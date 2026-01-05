@@ -144,24 +144,11 @@ const ImportExcelModal = ({ isOpen, onClose, onImport }: ImportExcelModalProps) 
             }
           });
 
-          if (!invoice.supplier_name) {
-            parseErrors.push(`שורה ${index + 2}: חסר שם ספק`);
-            return;
-          }
-          if (!invoice.document_number) {
-            parseErrors.push(`שורה ${index + 2}: חסר מספר מסמך`);
-            return;
-          }
-          if (!invoice.document_date) {
-            parseErrors.push(`שורה ${index + 2}: חסר תאריך מסמך`);
-            return;
-          }
-          if (!invoice.amount_before_vat || invoice.amount_before_vat <= 0) {
-            parseErrors.push(`שורה ${index + 2}: סכום לא תקין`);
-            return;
-          }
-
-          const amountBeforeVat = invoice.amount_before_vat;
+          // Use defaults for missing fields instead of rejecting
+          const supplierName = invoice.supplier_name || 'ספק לא ידוע';
+          const documentNumber = invoice.document_number || `AUTO-${Date.now()}-${index}`;
+          const documentDate = invoice.document_date || new Date().toISOString().split('T')[0];
+          const amountBeforeVat = invoice.amount_before_vat || 0;
           const businessType = invoice.business_type || 'עוסק מורשה';
           
           // Use VAT from Excel if provided, otherwise calculate
@@ -174,10 +161,10 @@ const ImportExcelModal = ({ isOpen, onClose, onImport }: ImportExcelModalProps) 
 
           parsedInvoices.push({
             intake_date: invoice.intake_date || new Date().toISOString().split('T')[0],
-            document_date: invoice.document_date,
+            document_date: documentDate,
             status: invoice.status || 'חדש',
-            supplier_name: invoice.supplier_name,
-            document_number: invoice.document_number,
+            supplier_name: supplierName,
+            document_number: documentNumber,
             document_type: invoice.document_type || 'חשבונית מס',
             category: invoice.category || 'כללי',
             amount_before_vat: amountBeforeVat,
