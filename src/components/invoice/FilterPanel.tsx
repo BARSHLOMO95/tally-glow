@@ -77,21 +77,20 @@ function MultiSelectFilter<T extends string>({ label, options, selected, onChang
         <Button
           variant="outline"
           className={cn(
-            'justify-between min-w-[140px]',
+            'justify-between min-w-[140px] flex-row-reverse',
             selected.length > 0 && 'border-primary bg-primary/5'
           )}
         >
-          <ChevronDown className="h-4 w-4 ml-2 shrink-0" />
           <span className="truncate">{displayText}</span>
+          <ChevronDown className="h-4 w-4 mr-2 shrink-0" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-0" align="end">
+      <PopoverContent className="w-56 p-0 bg-popover" align="start" dir="rtl">
         <div className="p-2 border-b">
           <div
-            className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md text-primary font-medium flex-row-reverse"
+            className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md text-primary font-medium"
             onClick={handleSelectAll}
           >
-            <span>בחר הכל</span>
             <Checkbox
               checked={isAllSelected}
               ref={(el) => {
@@ -100,17 +99,18 @@ function MultiSelectFilter<T extends string>({ label, options, selected, onChang
                 }
               }}
             />
+            <span>בחר הכל</span>
           </div>
         </div>
         <div className="max-h-60 overflow-y-auto p-2">
           {options.map((option) => (
             <div
               key={option}
-              className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md flex-row-reverse"
+              className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md"
               onClick={() => handleToggle(option)}
             >
-              <span className="text-sm">{option}</span>
               <Checkbox checked={selected.includes(option)} />
+              <span className="text-sm">{option}</span>
             </div>
           ))}
         </div>
@@ -162,44 +162,45 @@ const FilterPanel = ({
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <div className="bg-card rounded-lg border shadow-sm">
+      <div className="bg-card rounded-lg border shadow-sm" dir="rtl">
         <CollapsibleTrigger asChild>
-          <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-accent/50 transition-colors">
-            <div className="flex items-center gap-2">
-              <Filter className="h-5 w-5 text-primary" />
-              <span className="font-medium">🔍 פילטרים ופעולות</span>
+          <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-accent/50 transition-colors flex-row-reverse">
+            {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            <div className="flex items-center gap-2 flex-row-reverse">
               {hasActiveFilters && (
                 <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
                   פעיל
                 </span>
               )}
+              <span className="font-medium">🔍 פילטרים ופעולות</span>
+              <Filter className="h-5 w-5 text-primary" />
             </div>
-            {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
           </div>
         </CollapsibleTrigger>
         
         <CollapsibleContent>
           <div className="p-4 pt-0 space-y-4">
             {/* Add Buttons Row */}
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={onAddInvoice} size="sm">
-                <Plus className="h-4 w-4 ml-1" />
+            <div className="flex flex-wrap gap-2 flex-row-reverse justify-start">
+              <Button onClick={onAddInvoice} size="sm" className="flex-row-reverse">
                 הוסף חשבונית
+                <Plus className="h-4 w-4 mr-2" />
               </Button>
-              <Button variant="outline" onClick={onImportExcel} size="sm">
-                <Upload className="h-4 w-4 ml-1" />
+              <Button variant="outline" onClick={onImportExcel} size="sm" className="flex-row-reverse">
                 ייבוא Excel
+                <Upload className="h-4 w-4 mr-2" />
               </Button>
             </div>
 
             {/* Search Bar */}
             <div className="relative">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
                 placeholder="חיפוש חופשי..."
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className="pr-10"
+                className="pr-10 text-right"
+                dir="rtl"
               />
             </div>
 
@@ -262,32 +263,36 @@ const FilterPanel = ({
                   <Button
                     variant="outline"
                     className={cn(
-                      'min-w-[140px]',
+                      'min-w-[140px] flex-row-reverse',
                       (filters.amountMin !== null || filters.amountMax !== null) && 'border-primary bg-primary/5'
                     )}
                   >
-                    <ChevronDown className="h-4 w-4 ml-2" />
                     <span>סכום סה"כ</span>
+                    <ChevronDown className="h-4 w-4 mr-2" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-64 p-4" align="end">
+                <PopoverContent className="w-64 p-4 bg-popover" align="start" dir="rtl">
                   <div className="space-y-3">
                     <div>
-                      <label className="text-sm font-medium">סכום מינימום</label>
+                      <label className="text-sm font-medium block text-right">סכום מינימום</label>
                       <Input
                         type="number"
                         placeholder="0"
                         value={filters.amountMin ?? ''}
                         onChange={(e) => updateFilter('amountMin', e.target.value ? Number(e.target.value) : null)}
+                        className="text-right"
+                        dir="rtl"
                       />
                     </div>
                     <div>
-                      <label className="text-sm font-medium">סכום מקסימום</label>
+                      <label className="text-sm font-medium block text-right">סכום מקסימום</label>
                       <Input
                         type="number"
                         placeholder="ללא הגבלה"
                         value={filters.amountMax ?? ''}
                         onChange={(e) => updateFilter('amountMax', e.target.value ? Number(e.target.value) : null)}
+                        className="text-right"
+                        dir="rtl"
                       />
                     </div>
                     <Button
@@ -307,60 +312,64 @@ const FilterPanel = ({
             </div>
 
             {/* Actions Row */}
-            <div className="flex flex-wrap items-center gap-3 pt-2 border-t justify-end">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClearFilters}
-                disabled={!hasActiveFilters && searchQuery === '' && duplicatesMode === 'all'}
-              >
-                <RotateCcw className="h-4 w-4 ml-1" />
-                נקה הכל
-              </Button>
+            <div className="flex flex-wrap items-center gap-3 pt-2 border-t flex-row-reverse justify-start">
+              {selectedCount > 0 && (
+                <Badge variant="secondary" className="text-sm">
+                  {selectedCount} נבחרו
+                </Badge>
+              )}
               <Button
                 variant="outline"
                 size="sm"
-                onClick={onBulkDelete}
-                disabled={selectedCount === 0}
-                className="text-destructive hover:text-destructive"
+                onClick={onBulkEdit}
+                disabled={selectedCount !== 1}
+                className="flex-row-reverse"
               >
-                <Trash2 className="h-4 w-4 ml-1" />
-                מחק ({selectedCount})
-              </Button>
-              <Button
-                variant={getDuplicatesButtonVariant()}
-                size="sm"
-                onClick={onToggleDuplicates}
-              >
-                <Copy className="h-4 w-4 ml-1" />
-                {getDuplicatesButtonText()}
-                {duplicatesCount > 0 && duplicatesMode === 'all' && (
-                  <Badge variant="secondary" className="mr-2">{duplicatesCount}</Badge>
-                )}
+                עריכה
+                <Edit className="h-4 w-4 mr-2" />
               </Button>
               <Button
                 variant="default"
                 size="sm"
                 onClick={onPrint}
                 disabled={selectedCount === 0}
+                className="flex-row-reverse"
               >
-                <Printer className="h-4 w-4 ml-1" />
                 הדפסה
+                <Printer className="h-4 w-4 mr-2" />
+              </Button>
+              <Button
+                variant={getDuplicatesButtonVariant()}
+                size="sm"
+                onClick={onToggleDuplicates}
+                className="flex-row-reverse"
+              >
+                {duplicatesCount > 0 && duplicatesMode === 'all' && (
+                  <Badge variant="secondary" className="ml-2">{duplicatesCount}</Badge>
+                )}
+                {getDuplicatesButtonText()}
+                <Copy className="h-4 w-4 mr-2" />
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={onBulkEdit}
-                disabled={selectedCount !== 1}
+                onClick={onBulkDelete}
+                disabled={selectedCount === 0}
+                className="text-destructive hover:text-destructive flex-row-reverse"
               >
-                <Edit className="h-4 w-4 ml-1" />
-                עריכה
+                מחק ({selectedCount})
+                <Trash2 className="h-4 w-4 mr-2" />
               </Button>
-              {selectedCount > 0 && (
-                <Badge variant="secondary" className="text-sm">
-                  {selectedCount} נבחרו
-                </Badge>
-              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClearFilters}
+                disabled={!hasActiveFilters && searchQuery === '' && duplicatesMode === 'all'}
+                className="flex-row-reverse"
+              >
+                נקה הכל
+                <RotateCcw className="h-4 w-4 mr-2" />
+              </Button>
             </div>
           </div>
         </CollapsibleContent>

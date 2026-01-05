@@ -241,22 +241,20 @@ const Dashboard = () => {
       {/* Header */}
       <header className="bg-card border-b sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground">
-                <LogOut className="h-4 w-4 ml-1" />
-                {user?.email?.split('@')[0]}
-              </Button>
+          <div className="flex items-center justify-between flex-row-reverse">
+            <div className="text-right">
+              <h1 className="text-xl font-bold">ניהול הוצאות</h1>
+              <p className="text-sm text-muted-foreground">דאשבורד פיננסי בזמן אמת</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-row-reverse">
               <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-                <RefreshCw className="h-4 w-4 ml-1" />
                 רענן
+                <RefreshCw className="h-4 w-4 mr-2" />
               </Button>
-              <div className="text-left">
-                <h1 className="text-xl font-bold">ניהול הוצאות</h1>
-                <p className="text-sm text-muted-foreground">דאשבורד פיננסי בזמן אמת</p>
-              </div>
+              <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground">
+                {user?.email?.split('@')[0]}
+                <LogOut className="h-4 w-4 mr-2" />
+              </Button>
             </div>
           </div>
         </div>

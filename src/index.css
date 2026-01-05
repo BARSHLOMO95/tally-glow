@@ -113,6 +113,23 @@
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     text-align: right;
   }
+
+  /* RTL fixes for common elements */
+  input, textarea, select {
+    text-align: right;
+  }
+
+  /* Ensure flex items flow RTL */
+  .flex {
+    --tw-flex-direction: row;
+  }
+
+  /* Fix icon spacing for RTL */
+  .gap-1 > svg,
+  .gap-2 > svg,
+  .gap-3 > svg {
+    order: 1;
+  }
 }
 
 /* Custom animations */

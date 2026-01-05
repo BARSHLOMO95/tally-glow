@@ -124,14 +124,14 @@ const DashboardCharts = ({ invoices }: DashboardChartsProps) => {
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <div className="bg-card rounded-lg border shadow-sm">
+      <div className="bg-card rounded-lg border shadow-sm" dir="rtl">
         <CollapsibleTrigger asChild>
-          <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-accent/50 transition-colors">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" />
-              <span className="font-medium">📊 גרפים וניתוחים</span>
-            </div>
+          <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-accent/50 transition-colors flex-row-reverse">
             {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            <div className="flex items-center gap-2 flex-row-reverse">
+              <span className="font-medium">📊 גרפים וניתוחים</span>
+              <BarChart3 className="h-5 w-5 text-primary" />
+            </div>
           </div>
         </CollapsibleTrigger>
         
