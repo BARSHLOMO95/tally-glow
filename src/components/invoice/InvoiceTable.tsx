@@ -421,8 +421,15 @@ const InvoiceTable = ({
                       <span className="text-slate-400">-</span>
                     )}
                   </TableCell>
-                  <TableCell className="py-4 px-2 text-right text-sm font-semibold text-slate-800 whitespace-nowrap">
-                    ₪{Number(invoice.total_amount).toLocaleString('he-IL')}
+                  <TableCell className="py-4 px-2 text-right whitespace-nowrap">
+                    <span className={cn(
+                      'text-sm font-semibold px-2 py-1 rounded',
+                      Number(invoice.total_amount) >= 1000 
+                        ? 'bg-red-100 text-red-700 border border-red-200' 
+                        : 'text-slate-800'
+                    )}>
+                      ₪{Number(invoice.total_amount).toLocaleString('he-IL')}
+                    </span>
                   </TableCell>
                   <TableCell className="py-4 px-2 text-right">
                     <span className={cn('text-xs px-2 py-1 rounded-full border font-medium', entryMethodColors[invoice.entry_method])}>
