@@ -135,27 +135,24 @@ const InvoiceTable = ({
   ];
 
   return (
-    <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
+    <div className="bg-card rounded-lg border shadow-sm overflow-hidden" dir="rtl">
       {/* Column Settings */}
-      <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30">
-        <span className="text-sm text-muted-foreground">
-          {invoices.length} רשומות
-        </span>
+      <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30 flex-row-reverse">
         <Popover open={showColumnSettings} onOpenChange={setShowColumnSettings}>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <Settings2 className="h-4 w-4 ml-1" />
+            <Button variant="ghost" size="sm" className="flex-row-reverse">
               רוחב עמודות
+              <Settings2 className="h-4 w-4 mr-2" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-72" dir="rtl">
+          <PopoverContent align="start" className="w-72 bg-popover" dir="rtl">
             <div className="space-y-4">
-              <h4 className="font-medium text-sm">התאמת רוחב עמודות</h4>
+              <h4 className="font-medium text-sm text-right">התאמת רוחב עמודות</h4>
               {columnSettings.map(col => (
                 <div key={col.key} className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{columnWidths[col.key]}px</span>
+                  <div className="flex justify-between text-sm flex-row-reverse">
                     <Label>{col.label}</Label>
+                    <span className="text-muted-foreground">{columnWidths[col.key]}px</span>
                   </div>
                   <Slider
                     value={[columnWidths[col.key]]}
@@ -177,6 +174,9 @@ const InvoiceTable = ({
             </div>
           </PopoverContent>
         </Popover>
+        <span className="text-sm text-muted-foreground">
+          {invoices.length} רשומות
+        </span>
       </div>
 
       <div className="overflow-x-auto">
@@ -196,122 +196,122 @@ const InvoiceTable = ({
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.intake_date }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap"
+                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('intake_date')}
               >
-                <div className="flex items-center gap-1">
-                  <span>ת.קליטה</span>
+                <div className="flex items-center gap-1 flex-row-reverse justify-start">
                   <SortIcon field="intake_date" />
+                  <span>ת.קליטה</span>
                 </div>
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.status }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap"
+                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('status')}
               >
-                <div className="flex items-center gap-1">
-                  <span>סטטוס</span>
+                <div className="flex items-center gap-1 flex-row-reverse justify-start">
                   <SortIcon field="status" />
+                  <span>סטטוס</span>
                 </div>
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.supplier_name }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap"
+                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('supplier_name')}
               >
-                <div className="flex items-center gap-1">
-                  <span>ספק</span>
+                <div className="flex items-center gap-1 flex-row-reverse justify-start">
                   <SortIcon field="supplier_name" />
+                  <span>ספק</span>
                 </div>
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.business_type }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap"
+                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('business_type')}
               >
-                <div className="flex items-center gap-1">
-                  <span>סוג עוסק</span>
+                <div className="flex items-center gap-1 flex-row-reverse justify-start">
                   <SortIcon field="business_type" />
+                  <span>סוג עוסק</span>
                 </div>
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.category }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap"
+                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('category')}
               >
-                <div className="flex items-center gap-1">
-                  <span>קטגוריה</span>
+                <div className="flex items-center gap-1 flex-row-reverse justify-start">
                   <SortIcon field="category" />
+                  <span>קטגוריה</span>
                 </div>
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.document_date }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap"
+                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('document_date')}
               >
-                <div className="flex items-center gap-1">
-                  <span>ת.מסמך</span>
+                <div className="flex items-center gap-1 flex-row-reverse justify-start">
                   <SortIcon field="document_date" />
+                  <span>ת.מסמך</span>
                 </div>
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.document_type }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap"
+                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('document_type')}
               >
-                <div className="flex items-center gap-1">
-                  <span>סוג</span>
+                <div className="flex items-center gap-1 flex-row-reverse justify-start">
                   <SortIcon field="document_type" />
+                  <span>סוג</span>
                 </div>
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.document_number }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap"
+                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('document_number')}
               >
-                <div className="flex items-center gap-1">
-                  <span>מס׳</span>
+                <div className="flex items-center gap-1 flex-row-reverse justify-start">
                   <SortIcon field="document_number" />
+                  <span>מס׳</span>
                 </div>
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.amount_before_vat }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-left"
+                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('amount_before_vat')}
               >
-                <div className="flex items-center gap-1">
-                  <span>לפני מע"מ</span>
+                <div className="flex items-center gap-1 flex-row-reverse justify-start">
                   <SortIcon field="amount_before_vat" />
+                  <span>לפני מע"מ</span>
                 </div>
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.vat_amount }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-left"
+                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('vat_amount')}
               >
-                <div className="flex items-center gap-1">
-                  <span>מע"מ</span>
+                <div className="flex items-center gap-1 flex-row-reverse justify-start">
                   <SortIcon field="vat_amount" />
+                  <span>מע"מ</span>
                 </div>
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.total_amount }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-left"
+                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('total_amount')}
               >
-                <div className="flex items-center gap-1">
-                  <span>סה"כ</span>
+                <div className="flex items-center gap-1 flex-row-reverse justify-start">
                   <SortIcon field="total_amount" />
+                  <span>סה"כ</span>
                 </div>
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.entry_method }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap"
+                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('entry_method')}
               >
-                <div className="flex items-center gap-1">
-                  <span>אופן</span>
+                <div className="flex items-center gap-1 flex-row-reverse justify-start">
                   <SortIcon field="entry_method" />
+                  <span>אופן</span>
                 </div>
               </TableHead>
               <TableHead style={{ width: columnWidths.image }} className="text-center p-2">📷</TableHead>
@@ -350,18 +350,18 @@ const InvoiceTable = ({
                       onCheckedChange={() => onToggleSelection(invoice.id)}
                     />
                   </TableCell>
-                  <TableCell className="p-2 whitespace-nowrap text-xs">
+                  <TableCell className="p-2 whitespace-nowrap text-xs text-right">
                     {format(new Date(invoice.intake_date), 'dd/MM/yy')}
                   </TableCell>
-                  <TableCell className="p-2">
+                  <TableCell className="p-2 text-right">
                     <Badge className={cn('text-xs px-1.5 py-0', statusColors[invoice.status])}>
                       {invoice.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="p-2">
+                  <TableCell className="p-2 text-right">
                     <span
                       data-supplier
-                      className="text-primary hover:underline cursor-pointer font-medium text-xs truncate block"
+                      className="text-primary hover:underline cursor-pointer font-medium text-xs truncate block text-right"
                       style={{ maxWidth: columnWidths.supplier_name }}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -372,7 +372,7 @@ const InvoiceTable = ({
                       {invoice.supplier_name}
                     </span>
                   </TableCell>
-                  <TableCell className="p-2">
+                  <TableCell className="p-2 text-right">
                     <Badge 
                       variant="outline" 
                       className={cn('text-xs px-1.5 py-0 whitespace-nowrap', businessTypeColors[invoice.business_type])}
@@ -382,22 +382,22 @@ const InvoiceTable = ({
                        invoice.business_type === 'חברה בע"מ' ? 'חברה' : 'חו"ל'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="p-2">
-                    <span className="text-xs truncate block" style={{ maxWidth: columnWidths.category }} title={invoice.category}>
+                  <TableCell className="p-2 text-right">
+                    <span className="text-xs truncate block text-right" style={{ maxWidth: columnWidths.category }} title={invoice.category}>
                       {invoice.category}
                     </span>
                   </TableCell>
-                  <TableCell className="p-2 whitespace-nowrap text-xs">
+                  <TableCell className="p-2 whitespace-nowrap text-xs text-right">
                     {format(new Date(invoice.document_date), 'dd/MM/yy')}
                   </TableCell>
-                  <TableCell className="p-2 text-xs truncate" title={invoice.document_type}>
+                  <TableCell className="p-2 text-xs truncate text-right" title={invoice.document_type}>
                     {invoice.document_type.substring(0, 8)}
                   </TableCell>
-                  <TableCell className="p-2 font-mono text-xs">{invoice.document_number}</TableCell>
-                  <TableCell className="p-2 text-left text-xs font-medium whitespace-nowrap">
+                  <TableCell className="p-2 font-mono text-xs text-right">{invoice.document_number}</TableCell>
+                  <TableCell className="p-2 text-right text-xs font-medium whitespace-nowrap">
                     {formatCurrency(Number(invoice.amount_before_vat))}
                   </TableCell>
-                  <TableCell className="p-2 text-left text-xs whitespace-nowrap">
+                  <TableCell className="p-2 text-right text-xs whitespace-nowrap">
                     {invoice.vat_amount ? (
                       <span className="font-bold text-primary">
                         {formatCurrency(Number(invoice.vat_amount))}
@@ -406,7 +406,7 @@ const InvoiceTable = ({
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
-                  <TableCell className="p-2 text-left text-xs font-bold whitespace-nowrap">
+                  <TableCell className="p-2 text-right text-xs font-bold whitespace-nowrap">
                     {formatCurrency(Number(invoice.total_amount))}
                   </TableCell>
                   <TableCell className="p-2">
