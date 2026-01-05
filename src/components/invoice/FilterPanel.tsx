@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -45,6 +46,7 @@ interface MultiSelectFilterProps<T extends string> {
 }
 
 function MultiSelectFilter<T extends string>({ label, options, selected, onChange }: MultiSelectFilterProps<T>) {
+  const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
   
   const isAllSelected = selected.length === options.length && options.length > 0;
@@ -87,7 +89,7 @@ function MultiSelectFilter<T extends string>({ label, options, selected, onChang
           <span className="truncate">{displayText}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-0 bg-popover" align="end" side="bottom" dir="rtl" sideOffset={8} collisionPadding={16}>
+      <PopoverContent className="w-[calc(100vw-2rem)] sm:w-56 p-0 bg-popover" align={isMobile ? "center" : "end"} side="bottom" dir="rtl" sideOffset={8} collisionPadding={16}>
         <div className="p-2 border-b">
           <div
             className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md text-primary font-medium flex-row-reverse"
@@ -141,6 +143,7 @@ const FilterPanel = ({
 }: FilterPanelProps) => {
   const [isOpen, setIsOpen] = useState(true);
   const [showAmountFilter, setShowAmountFilter] = useState(false);
+  const isMobile = useIsMobile();
 
   const updateFilter = <K extends FilterKey>(key: K, value: FilterState[K]) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -275,7 +278,7 @@ const FilterPanel = ({
                     <span>סכום סה"כ</span>
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-64 p-4 bg-popover" align="end" side="bottom" dir="rtl" sideOffset={8} collisionPadding={16}>
+                <PopoverContent className="w-[calc(100vw-2rem)] sm:w-64 p-4 bg-popover" align={isMobile ? "center" : "end"} side="bottom" dir="rtl" sideOffset={8} collisionPadding={16}>
                   <div className="space-y-3">
                     <div>
                       <label className="text-sm font-medium block text-right">סכום מינימום</label>
