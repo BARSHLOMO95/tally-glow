@@ -183,11 +183,11 @@ const FilterPanel = ({
             {/* Add Buttons Row */}
             <div className="flex flex-wrap gap-2 flex-row-reverse justify-start">
               <Button onClick={onAddInvoice} size="sm" className="flex-row-reverse">
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4 ml-2" />
                 הוסף חשבונית
               </Button>
               <Button variant="outline" onClick={onImportExcel} size="sm" className="flex-row-reverse">
-                <Upload className="h-4 w-4 mr-2" />
+                <Upload className="h-4 w-4 ml-2" />
                 ייבוא Excel
               </Button>
             </div>
@@ -267,7 +267,7 @@ const FilterPanel = ({
                       (filters.amountMin !== null || filters.amountMax !== null) && 'border-primary bg-primary/5'
                     )}
                   >
-                    <ChevronDown className="h-4 w-4 mr-2" />
+                    <ChevronDown className="h-4 w-4 ml-2" />
                     <span>סכום סה"כ</span>
                   </Button>
                 </PopoverTrigger>
@@ -325,7 +325,7 @@ const FilterPanel = ({
               disabled={selectedCount !== 1}
               className="flex-row-reverse"
             >
-              <Edit className="h-4 w-4 mr-2" />
+              <Edit className="h-4 w-4 ml-2" />
               עריכה
             </Button>
             <Button
@@ -335,7 +335,7 @@ const FilterPanel = ({
               disabled={selectedCount === 0}
               className="flex-row-reverse"
             >
-              <Printer className="h-4 w-4 mr-2" />
+              <Printer className="h-4 w-4 ml-2" />
               הדפסה
             </Button>
             <Button
@@ -344,7 +344,7 @@ const FilterPanel = ({
               onClick={onToggleDuplicates}
               className="flex-row-reverse"
             >
-              <Copy className="h-4 w-4 mr-2" />
+              <Copy className="h-4 w-4 ml-2" />
               {getDuplicatesButtonText()}
               {duplicatesCount > 0 && duplicatesMode === 'all' && (
                 <Badge variant="secondary" className="mr-2">{duplicatesCount}</Badge>
@@ -357,7 +357,7 @@ const FilterPanel = ({
               disabled={selectedCount === 0}
               className="text-destructive hover:text-destructive flex-row-reverse"
             >
-              <Trash2 className="h-4 w-4 mr-2" />
+              <Trash2 className="h-4 w-4 ml-2" />
               מחק ({selectedCount})
             </Button>
             <Button
@@ -367,7 +367,7 @@ const FilterPanel = ({
               disabled={!hasActiveFilters && searchQuery === '' && duplicatesMode === 'all'}
               className="flex-row-reverse"
             >
-              <RotateCcw className="h-4 w-4 mr-2" />
+              <RotateCcw className="h-4 w-4 ml-2" />
               נקה הכל
             </Button>
             </div>
