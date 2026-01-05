@@ -81,7 +81,7 @@ function MultiSelectFilter<T extends string>({ label, options, selected, onChang
             selected.length > 0 && 'border-primary bg-primary/5'
           )}
         >
-          <ChevronDown className="h-4 w-4 mr-2 shrink-0" />
+          <ChevronDown className="h-4 w-4 ml-2 shrink-0" />
           <span className="truncate">{displayText}</span>
         </Button>
       </PopoverTrigger>
@@ -205,7 +205,7 @@ const FilterPanel = ({
             </div>
 
             {/* Status Quick Filters */}
-            <div className="flex flex-wrap gap-2 justify-end">
+            <div className="flex flex-wrap gap-2 flex-row-reverse justify-end">
               {filterOptions.statuses.map((status) => (
                 <Badge
                   key={status}
@@ -225,7 +225,7 @@ const FilterPanel = ({
             </div>
 
             {/* Filters Row */}
-            <div className="flex flex-wrap gap-3 justify-end">
+            <div className="flex flex-wrap gap-3 flex-row-reverse justify-end">
               <MultiSelectFilter
                 label="חודש קליטה 🔥"
                 options={filterOptions.intakeMonths}
@@ -347,7 +347,7 @@ const FilterPanel = ({
               <Copy className="h-4 w-4 ml-2" />
               {getDuplicatesButtonText()}
               {duplicatesCount > 0 && duplicatesMode === 'all' && (
-                <Badge variant="secondary" className="mr-2">{duplicatesCount}</Badge>
+                <Badge variant="secondary" className="ml-2">{duplicatesCount}</Badge>
               )}
             </Button>
             <Button
