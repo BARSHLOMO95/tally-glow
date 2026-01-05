@@ -154,9 +154,9 @@ const DashboardCharts = ({ invoices }: DashboardChartsProps) => {
       {/* הוצאות לפי קטגוריה - עמודות */}
       <Card className="bg-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2 justify-end">
-            הוצאות לפי קטגוריה
+          <CardTitle className="text-sm font-medium flex items-center gap-2 justify-end flex-row-reverse">
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            הוצאות לפי קטגוריה
           </CardTitle>
         </CardHeader>
         <CardContent className="h-[240px]">
@@ -197,9 +197,9 @@ const DashboardCharts = ({ invoices }: DashboardChartsProps) => {
       {/* מגמת הוצאות */}
       <Card className="bg-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2 justify-end">
-            מגמת הוצאות (כולל מע"מ)
+          <CardTitle className="text-sm font-medium flex items-center gap-2 justify-end flex-row-reverse">
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            מגמת הוצאות (כולל מע"מ)
           </CardTitle>
         </CardHeader>
         <CardContent className="h-[240px]">
@@ -241,7 +241,8 @@ const DashboardCharts = ({ invoices }: DashboardChartsProps) => {
       {/* מע"מ חודשי */}
       <Card className="bg-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2 justify-end">
+          <CardTitle className="text-sm font-medium flex items-center gap-2 justify-end flex-row-reverse">
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
             מע"מ חודשי %
           </CardTitle>
         </CardHeader>
@@ -279,13 +280,13 @@ const DashboardCharts = ({ invoices }: DashboardChartsProps) => {
       {/* הוצאות לפי קטגוריה - עוגה */}
       <Card className="bg-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2 justify-end">
-            הוצאות לפי קטגוריה (אחוזים)
+          <CardTitle className="text-sm font-medium flex items-center gap-2 justify-end flex-row-reverse">
             <PieChartIcon className="h-4 w-4 text-muted-foreground" />
+            הוצאות לפי קטגוריה (אחוזים)
           </CardTitle>
         </CardHeader>
         <CardContent className="h-[240px]">
-          <div className="flex h-full">
+          <div className="flex h-full flex-row-reverse">
             <div className="flex-1">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -319,15 +320,15 @@ const DashboardCharts = ({ invoices }: DashboardChartsProps) => {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <div className="w-32 text-xs space-y-1 overflow-y-auto">
+            <div className="w-36 text-xs space-y-1 overflow-y-auto">
               {pieData.slice(0, 8).map((item, index) => (
-                <div key={item.name} className="flex items-center gap-1 text-right">
-                  <span className="text-muted-foreground truncate flex-1">{item.percentage}%</span>
-                  <span className="truncate flex-1">{formatCurrency(item.value)}</span>
+                <div key={item.name} className="flex items-center gap-2 text-right flex-row-reverse">
                   <div 
                     className="w-2 h-2 rounded-full shrink-0"
                     style={{ backgroundColor: COLORS[index % COLORS.length] }}
                   />
+                  <span className="truncate flex-1 text-right">{formatCurrency(item.value)}</span>
+                  <span className="text-muted-foreground shrink-0">{item.percentage}%</span>
                 </div>
               ))}
             </div>
@@ -338,17 +339,17 @@ const DashboardCharts = ({ invoices }: DashboardChartsProps) => {
       {/* ממוצע לחשבונית לפי קטגוריה */}
       <Card className="bg-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2 justify-end">
-            ממוצע לחשבונית לפי קטגוריה
+          <CardTitle className="text-sm font-medium flex items-center gap-2 justify-end flex-row-reverse">
             <LayoutGrid className="h-4 w-4 text-muted-foreground" />
+            ממוצע לחשבונית לפי קטגוריה
           </CardTitle>
         </CardHeader>
         <CardContent className="h-[240px] space-y-3 overflow-y-auto">
           {avgByCategory.map((item, index) => (
             <div key={item.name} className="space-y-1">
-              <div className="flex justify-between text-sm">
-                <span className="text-primary font-medium">{formatCurrency(item.total)}</span>
+              <div className="flex justify-between text-sm flex-row-reverse">
                 <span className="font-medium text-right">{formatCurrency(item.average)} ₪</span>
+                <span className="text-primary font-medium">{formatCurrency(item.total)}</span>
               </div>
               <div className="h-2 bg-muted rounded-full overflow-hidden">
                 <div 
@@ -368,15 +369,16 @@ const DashboardCharts = ({ invoices }: DashboardChartsProps) => {
       {/* ספקים מובילים */}
       <Card className="bg-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2 justify-end">
-            ספקים מובילים (Top 5)
+          <CardTitle className="text-sm font-medium flex items-center gap-2 justify-end flex-row-reverse">
             <Users className="h-4 w-4 text-muted-foreground" />
+            ספקים מובילים (Top 5)
           </CardTitle>
         </CardHeader>
         <CardContent className="h-[240px] space-y-3 overflow-y-auto">
           {topSuppliers.map((supplier, index) => (
             <div key={supplier.name} className="space-y-1">
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm flex-row-reverse">
+                <span className="font-medium text-right truncate max-w-[150px]">{supplier.name}</span>
                 <span className={cn(
                   "text-xs px-2 py-0.5 rounded-full",
                   supplier.status === 'בתהליך' && "bg-blue-100 text-blue-700",
@@ -386,19 +388,18 @@ const DashboardCharts = ({ invoices }: DashboardChartsProps) => {
                 )}>
                   {supplier.status}
                 </span>
-                <span className="font-medium text-right truncate max-w-[150px]">{supplier.name}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">{formatCurrency(supplier.total)} ₪</span>
+              <div className="flex items-center gap-2 flex-row-reverse">
                 <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                   <div 
-                    className="h-full rounded-full"
+                    className="h-full rounded-full float-right"
                     style={{ 
                       width: `${(supplier.total / maxSupplier) * 100}%`,
                       backgroundColor: index === 0 ? '#22c55e' : index === 1 ? '#ec4899' : '#f59e0b'
                     }}
                   />
                 </div>
+                <span className="text-xs text-muted-foreground">{formatCurrency(supplier.total)} ₪</span>
               </div>
             </div>
           ))}
