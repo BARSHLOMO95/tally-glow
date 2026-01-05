@@ -26,16 +26,36 @@ const COLUMN_MAPPING: Record<string, keyof InvoiceFormData> = {
   'קטגוריה': 'category',
   'לפני מע"מ': 'amount_before_vat',
   'סכום לפני מע"מ': 'amount_before_vat',
+  'סכום לפני מעמ': 'amount_before_vat',
+  'מעמ': 'vat_amount',
+  'מע"מ': 'vat_amount',
   'סה"כ': 'total_amount',
   'סכום כולל': 'total_amount',
   'סכום כולל מע"מ': 'total_amount',
+  'סכום כולל מעמ': 'total_amount',
   'סוג עוסק': 'business_type',
   'ידני / דיגיטלי': 'entry_method',
+  'ידני/דיגטלי': 'entry_method',
+  'ידני/דיגיטלי': 'entry_method',
   'תמונה': 'image_url',
+  'קישור תמונה מהדרייב': 'image_url',
 };
 
 const VALID_STATUSES: InvoiceStatus[] = ['חדש', 'בתהליך', 'טופל'];
+const STATUS_MAPPING: Record<string, InvoiceStatus> = {
+  'חדש': 'חדש',
+  'בתהליך': 'בתהליך',
+  'טופל': 'טופל',
+  'ממתין': 'חדש',
+};
 const VALID_BUSINESS_TYPES: BusinessType[] = ['עוסק מורשה', 'עוסק פטור', 'חברה בע"מ', 'ספק חו"ל'];
+const BUSINESS_TYPE_MAPPING: Record<string, BusinessType> = {
+  'עוסק מורשה': 'עוסק מורשה',
+  'עוסק פטור': 'עוסק פטור',
+  'חברה בע"מ': 'חברה בע"מ',
+  'ספק חו"ל': 'ספק חו"ל',
+  "ספק חו'ל": 'ספק חו"ל',
+};
 
 const ImportExcelModal = ({ isOpen, onClose, onImport }: ImportExcelModalProps) => {
   const [file, setFile] = useState<File | null>(null);
@@ -108,14 +128,16 @@ const ImportExcelModal = ({ isOpen, onClose, onImport }: ImportExcelModalProps) 
               } else if (mappedKey === 'amount_before_vat' || mappedKey === 'total_amount') {
                 invoice[mappedKey] = parseFloat(String(value).replace(/[^\d.-]/g, '')) || 0;
               } else if (mappedKey === 'status') {
-                const status = String(value).trim() as InvoiceStatus;
-                invoice[mappedKey] = VALID_STATUSES.includes(status) ? status : 'חדש';
+                const statusStr = String(value).trim();
+                invoice[mappedKey] = STATUS_MAPPING[statusStr] || 'חדש';
               } else if (mappedKey === 'business_type') {
-                const businessType = String(value).trim() as BusinessType;
-                invoice[mappedKey] = VALID_BUSINESS_TYPES.includes(businessType) ? businessType : 'עוסק מורשה';
+                const businessStr = String(value).trim();
+                invoice[mappedKey] = BUSINESS_TYPE_MAPPING[businessStr] || 'עוסק מורשה';
               } else if (mappedKey === 'entry_method') {
                 const entryMethod = String(value).trim() as EntryMethod;
                 invoice[mappedKey] = VALID_ENTRY_METHODS.includes(entryMethod) ? entryMethod : 'ידני';
+              } else if (mappedKey === 'vat_amount') {
+                invoice[mappedKey] = parseFloat(String(value).replace(/[^\d.-]/g, '')) || null;
               } else {
                 (invoice as Record<string, unknown>)[mappedKey] = String(value);
               }
@@ -141,9 +163,14 @@ const ImportExcelModal = ({ isOpen, onClose, onImport }: ImportExcelModalProps) 
 
           const amountBeforeVat = invoice.amount_before_vat;
           const businessType = invoice.business_type || 'עוסק מורשה';
-          const vatAmount = (businessType === 'עוסק מורשה' || businessType === 'חברה בע"מ') 
-            ? amountBeforeVat * 0.18 
-            : null;
+          
+          // Use VAT from Excel if provided, otherwise calculate
+          let vatAmount: number | null = invoice.vat_amount ?? null;
+          if (vatAmount === null || vatAmount === undefined) {
+            vatAmount = (businessType === 'עוסק מורשה' || businessType === 'חברה בע"מ') 
+              ? amountBeforeVat * 0.18 
+              : null;
+          }
 
           parsedInvoices.push({
             intake_date: invoice.intake_date || new Date().toISOString().split('T')[0],
@@ -157,7 +184,7 @@ const ImportExcelModal = ({ isOpen, onClose, onImport }: ImportExcelModalProps) 
             vat_amount: vatAmount,
             total_amount: invoice.total_amount || amountBeforeVat + (vatAmount || 0),
             business_type: businessType,
-            entry_method: invoice.entry_method || 'ידני',
+            entry_method: invoice.entry_method || 'דיגיטלי',
             image_url: invoice.image_url || null,
           });
         } catch (err) {
