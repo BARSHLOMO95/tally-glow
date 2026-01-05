@@ -81,7 +81,7 @@ const KPICards = ({ data, documentCount, filteredCount }: KPICardsProps) => {
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
       {cards.map((card) => (
         <Card
           key={card.key}
@@ -90,15 +90,15 @@ const KPICards = ({ data, documentCount, filteredCount }: KPICardsProps) => {
             animating === card.key && 'animate-kpi-pulse ring-2 ring-primary'
           )}
         >
-          <CardContent className="p-4">
+          <CardContent className="p-2 sm:p-4">
             <div className="flex items-start justify-between flex-row-reverse">
-              <div className={cn('p-3 rounded-xl', card.iconBg)}>
-                <card.icon className={cn('w-6 h-6', card.iconColor)} />
+              <div className={cn('p-2 sm:p-3 rounded-xl', card.iconBg)}>
+                <card.icon className={cn('w-4 h-4 sm:w-6 sm:h-6', card.iconColor)} />
               </div>
-              <div className="text-right flex-1 mr-3">
-                <p className="text-xs text-muted-foreground">{card.label}</p>
-                <p className="text-2xl font-bold mt-1">{card.value}</p>
-                <p className="text-xs text-muted-foreground">{card.subtitle}</p>
+              <div className="text-right flex-1 mr-2 sm:mr-3">
+                <p className="text-[10px] sm:text-xs text-muted-foreground">{card.label}</p>
+                <p className="text-lg sm:text-2xl font-bold mt-0.5 sm:mt-1">{card.value}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">{card.subtitle}</p>
               </div>
             </div>
           </CardContent>

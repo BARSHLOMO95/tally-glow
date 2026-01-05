@@ -68,14 +68,14 @@ const EditInvoiceModal = ({ invoice, isOpen, onClose, onSave, categories }: Edit
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto" dir="rtl">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-auto" dir="rtl">
           <DialogHeader>
-            <DialogTitle className="text-xl">עריכת חשבונית</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">עריכת חשבונית</DialogTitle>
           </DialogHeader>
 
-          <div className="flex flex-col md:flex-row gap-6 mt-4">
+          <div className="flex flex-col md:flex-row gap-4 sm:gap-6 mt-4">
             {/* Form on the right side */}
-            <div className={`${invoice.image_url ? 'md:w-1/2' : 'w-full'} grid grid-cols-1 md:grid-cols-2 gap-4`}>
+            <div className={`${invoice.image_url ? 'md:w-1/2' : 'w-full'} grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4`}>
               <div className="space-y-2">
                 <Label>תאריך ושעת קליטה</Label>
                 <Input

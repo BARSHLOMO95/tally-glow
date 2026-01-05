@@ -79,12 +79,12 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave, existingCategories }: AddInv
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-auto" dir="rtl">
         <DialogHeader>
-          <DialogTitle className="text-xl">הוספת חשבונית חדשה</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">הוספת חשבונית חדשה</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4">
           <div className="space-y-2">
             <Label>תאריך ושעת קליטה</Label>
             <Input
