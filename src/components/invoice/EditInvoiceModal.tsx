@@ -83,9 +83,9 @@ const EditInvoiceModal = ({ invoice, isOpen, onClose, onSave, categories }: Edit
           )}
 
           <div className="space-y-2">
-            <Label>תאריך קליטה</Label>
+            <Label>תאריך ושעת קליטה</Label>
             <Input
-              type="date"
+              type="datetime-local"
               value={formData.intake_date || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, intake_date: e.target.value }))}
             />
