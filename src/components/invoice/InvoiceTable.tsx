@@ -49,21 +49,39 @@ const defaultColumnWidths: Record<string, number> = {
 };
 
 const statusColors: Record<InvoiceStatus, string> = {
-  'חדש': 'text-amber-600 font-medium',
-  'בתהליך': 'text-blue-600 font-medium',
-  'טופל': 'text-emerald-600 font-medium',
+  'חדש': 'bg-amber-100 text-amber-700 border-amber-200',
+  'בתהליך': 'bg-blue-100 text-blue-700 border-blue-200',
+  'טופל': 'bg-emerald-100 text-emerald-700 border-emerald-200',
 };
 
 const businessTypeColors: Record<BusinessType, string> = {
-  'עוסק מורשה': 'text-slate-600',
-  'עוסק פטור': 'text-slate-600',
-  'חברה בע"מ': 'text-slate-600',
-  'ספק חו"ל': 'text-slate-600',
+  'עוסק מורשה': 'bg-violet-100 text-violet-700 border-violet-200',
+  'עוסק פטור': 'bg-pink-100 text-pink-700 border-pink-200',
+  'חברה בע"מ': 'bg-indigo-100 text-indigo-700 border-indigo-200',
+  'ספק חו"ל': 'bg-orange-100 text-orange-700 border-orange-200',
 };
 
 const entryMethodColors: Record<EntryMethod, string> = {
-  'ידני': 'text-orange-500 font-medium',
-  'דיגיטלי': 'text-cyan-500 font-medium',
+  'ידני': 'bg-rose-100 text-rose-700 border-rose-200',
+  'דיגיטלי': 'bg-cyan-100 text-cyan-700 border-cyan-200',
+};
+
+const categoryColors: Record<string, string> = {
+  'חשמל': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  'מים': 'bg-sky-100 text-sky-700 border-sky-200',
+  'גז': 'bg-orange-100 text-orange-700 border-orange-200',
+  'טלפון': 'bg-purple-100 text-purple-700 border-purple-200',
+  'אינטרנט': 'bg-blue-100 text-blue-700 border-blue-200',
+  'ביטוח': 'bg-teal-100 text-teal-700 border-teal-200',
+  'שכירות': 'bg-amber-100 text-amber-700 border-amber-200',
+  'משרדי': 'bg-slate-100 text-slate-700 border-slate-200',
+  'רכב': 'bg-red-100 text-red-700 border-red-200',
+  'דלק': 'bg-lime-100 text-lime-700 border-lime-200',
+  'אחר': 'bg-gray-100 text-gray-700 border-gray-200',
+};
+
+const getCategoryColor = (category: string): string => {
+  return categoryColors[category] || 'bg-slate-100 text-slate-600 border-slate-200';
 };
 
 const formatCurrency = (amount: number | null) => {
@@ -356,7 +374,7 @@ const InvoiceTable = ({
                     <div className="text-slate-400 text-xs">{format(new Date(invoice.intake_date), 'HH:mm')}</div>
                   </TableCell>
                   <TableCell className="py-4 px-2 text-right">
-                    <span className={cn('text-sm', statusColors[invoice.status])}>
+                    <span className={cn('text-xs px-2 py-1 rounded-full border font-medium', statusColors[invoice.status])}>
                       {invoice.status === 'בתהליך' ? 'ממתין' : invoice.status}
                     </span>
                   </TableCell>
@@ -375,14 +393,12 @@ const InvoiceTable = ({
                     </span>
                   </TableCell>
                   <TableCell className="py-4 px-2 text-right">
-                    <span className={cn('text-sm', businessTypeColors[invoice.business_type])}>
-                      {invoice.business_type === 'עוסק מורשה' ? 'ספקים (פעילויות)' : 
-                       invoice.business_type === 'עוסק פטור' ? 'ספקים (פעילויות)' :
-                       invoice.business_type === 'חברה בע"מ' ? 'ספקים (פעילויות)' : 'חו"ל'}
+                    <span className={cn('text-xs px-2 py-1 rounded-full border font-medium', businessTypeColors[invoice.business_type])}>
+                      {invoice.business_type}
                     </span>
                   </TableCell>
                   <TableCell className="py-4 px-2 text-right">
-                    <span className="text-sm text-slate-600" style={{ maxWidth: columnWidths.category }} title={invoice.category}>
+                    <span className={cn('text-xs px-2 py-1 rounded-full border font-medium', getCategoryColor(invoice.category))} title={invoice.category}>
                       {invoice.category}
                     </span>
                   </TableCell>
@@ -409,7 +425,7 @@ const InvoiceTable = ({
                     ₪{Number(invoice.total_amount).toLocaleString('he-IL')}
                   </TableCell>
                   <TableCell className="py-4 px-2 text-right">
-                    <span className={cn('text-sm', entryMethodColors[invoice.entry_method])}>
+                    <span className={cn('text-xs px-2 py-1 rounded-full border font-medium', entryMethodColors[invoice.entry_method])}>
                       {invoice.entry_method}
                     </span>
                   </TableCell>
