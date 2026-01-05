@@ -181,7 +181,7 @@ const FilterPanel = ({
         <CollapsibleContent>
           <div className="p-4 pt-0 space-y-4">
             {/* Add Buttons Row */}
-            <div className="flex flex-wrap gap-2 flex-row-reverse justify-start">
+            <div className="flex flex-wrap gap-2 flex-row-reverse justify-end">
               <Button onClick={onAddInvoice} size="sm" className="flex-row-reverse">
                 <Plus className="h-4 w-4 ml-2" />
                 הוסף חשבונית
@@ -205,7 +205,7 @@ const FilterPanel = ({
             </div>
 
             {/* Status Quick Filters */}
-            <div className="flex flex-wrap gap-2 flex-row-reverse justify-start">
+            <div className="flex flex-wrap gap-2 justify-end">
               {filterOptions.statuses.map((status) => (
                 <Badge
                   key={status}
@@ -225,7 +225,7 @@ const FilterPanel = ({
             </div>
 
             {/* Filters Row */}
-            <div className="flex flex-wrap gap-3 flex-row-reverse justify-start">
+            <div className="flex flex-wrap gap-3 justify-end">
               <MultiSelectFilter
                 label="חודש קליטה 🔥"
                 options={filterOptions.intakeMonths}
@@ -312,7 +312,7 @@ const FilterPanel = ({
             </div>
 
             {/* Actions Row */}
-            <div className="flex flex-wrap items-center gap-3 pt-2 border-t flex-row-reverse justify-start">
+            <div className="flex flex-wrap items-center gap-3 pt-2 border-t flex-row-reverse justify-end">
               {selectedCount > 0 && (
                 <Badge variant="secondary" className="text-sm">
                   {selectedCount} נבחרו
