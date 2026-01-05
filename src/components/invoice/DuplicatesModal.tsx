@@ -1,16 +1,18 @@
-import { useMemo } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useMemo, useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Invoice } from '@/types/invoice';
-import { AlertTriangle, Check } from 'lucide-react';
+import { AlertTriangle, Check, Trash2, CheckSquare, Square } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface DuplicatesModalProps {
   isOpen: boolean;
   onClose: () => void;
   invoices: Invoice[];
-  onSelectDuplicates: (ids: string[]) => void;
+  onDeleteSelected: (ids: string[]) => void;
 }
 
 interface DuplicateGroup {
@@ -24,8 +26,15 @@ const formatCurrency = (amount: number) =>
 const formatDate = (dateString: string) =>
   new Date(dateString).toLocaleDateString('he-IL');
 
-const DuplicatesModal = ({ isOpen, onClose, invoices, onSelectDuplicates }: DuplicatesModalProps) => {
-  // מציאת כפילויות על בסיס מספר מסמך וסכום (±2 ש"ח)
+const formatDateTime = (dateString: string) => {
+  const date = new Date(dateString);
+  return `${date.toLocaleDateString('he-IL')} ${date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}`;
+};
+
+const DuplicatesModal = ({ isOpen, onClose, invoices, onDeleteSelected }: DuplicatesModalProps) => {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // מציאת כפילויות על בסיס מספר מסמך וסכום
   const duplicateGroups = useMemo(() => {
     const groups: DuplicateGroup[] = [];
     const processed = new Set<string>();
@@ -39,16 +48,16 @@ const DuplicatesModal = ({ isOpen, onClose, invoices, onSelectDuplicates }: Dupl
         // התאמה על בסיס מספר מסמך
         const sameDocNumber = inv.document_number === other.document_number && inv.document_number !== '';
         
-        // התאמה על בסיס סכום (±2 ש"ח)
-        const amountDiff = Math.abs(inv.total_amount - other.total_amount);
-        const similarAmount = amountDiff <= 2;
+        // התאמה על בסיס סכום (מעוגל)
+        const sameAmount = Math.round(inv.total_amount) === Math.round(other.total_amount);
         
-        // צריך התאמה במספר מסמך וגם בסכום
-        return sameDocNumber && similarAmount;
+        return sameDocNumber && sameAmount;
       });
 
       if (matches.length > 0) {
         const groupInvoices = [inv, ...matches];
+        // מיון לפי תאריך קליטה - הישן ביותר ראשון (זה שישאר)
+        groupInvoices.sort((a, b) => new Date(a.intake_date).getTime() - new Date(b.intake_date).getTime());
         groupInvoices.forEach(i => processed.add(i.id));
         groups.push({
           key: `${inv.document_number}-${inv.total_amount.toFixed(0)}`,
@@ -60,87 +69,171 @@ const DuplicatesModal = ({ isOpen, onClose, invoices, onSelectDuplicates }: Dupl
     return groups;
   }, [invoices]);
 
-  const totalDuplicates = duplicateGroups.reduce((sum, g) => sum + g.invoices.length, 0);
+  const totalDuplicates = duplicateGroups.reduce((sum, g) => sum + g.invoices.length - 1, 0);
 
-  const handleSelectAll = () => {
-    // בחירת כל הכפילויות חוץ מהראשונה בכל קבוצה
-    const duplicateIds = duplicateGroups.flatMap(group => 
-      group.invoices.slice(1).map(inv => inv.id)
-    );
-    onSelectDuplicates(duplicateIds);
+  const toggleSelection = (id: string) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleAutoSelect = () => {
+    // סימון אוטומטי של כל הכפילויות הישנות יותר (משאירים את הראשון בכל קבוצה)
+    const duplicateIds = new Set<string>();
+    duplicateGroups.forEach(group => {
+      // דילוג על הראשון (הישן ביותר), סימון השאר
+      group.invoices.slice(1).forEach(inv => duplicateIds.add(inv.id));
+    });
+    setSelectedIds(duplicateIds);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedIds.size > 0) {
+      onDeleteSelected(Array.from(selectedIds));
+      setSelectedIds(new Set());
+      onClose();
+    }
+  };
+
+  const handleClose = () => {
+    setSelectedIds(new Set());
     onClose();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col" dir="rtl">
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col" dir="rtl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-yellow-500" />
-            סינון כפילויות ({duplicateGroups.length} קבוצות)
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            ניהול כפילויות
           </DialogTitle>
+          <DialogDescription>
+            נמצאו {duplicateGroups.length} קבוצות של חשבוניות עם אותו מספר מסמך וסכום
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto">
           {duplicateGroups.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Check className="h-12 w-12 text-green-500 mb-4" />
+              <Check className="h-12 w-12 text-emerald-500 mb-4" />
               <h3 className="text-lg font-medium">לא נמצאו כפילויות</h3>
               <p className="text-muted-foreground mt-1">
                 כל החשבוניות ייחודיות לפי מספר מסמך וסכום
               </p>
             </div>
           ) : (
-            <div className="space-y-6">
-              <p className="text-sm text-muted-foreground">
-                נמצאו {totalDuplicates} חשבוניות בעלות מספר מסמך זהה וסכום דומה (±2 ש"ח)
-              </p>
+            <div className="space-y-4">
+              {/* Action bar */}
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg flex-row-reverse">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleAutoSelect}
+                  className="flex-row-reverse"
+                >
+                  <CheckSquare className="h-4 w-4 ml-2" />
+                  סמן כפילויות אוטומטית ({totalDuplicates})
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleClearSelection}
+                  disabled={selectedIds.size === 0}
+                  className="flex-row-reverse"
+                >
+                  <Square className="h-4 w-4 ml-2" />
+                  נקה בחירה
+                </Button>
+                <div className="flex-1" />
+                <span className="text-sm text-muted-foreground">
+                  {selectedIds.size} נבחרו למחיקה
+                </span>
+              </div>
 
+              {/* Duplicate groups */}
               {duplicateGroups.map((group, groupIndex) => (
                 <div key={group.key} className="border rounded-lg overflow-hidden">
-                  <div className="bg-muted px-4 py-2 flex items-center justify-between">
+                  <div className="bg-muted px-4 py-2 flex items-center justify-between flex-row-reverse">
+                    <span className="font-medium text-sm">
+                      קבוצה {groupIndex + 1}: מסמך #{group.invoices[0].document_number}
+                    </span>
                     <Badge variant="secondary">
                       {group.invoices.length} חשבוניות
                     </Badge>
-                    <span className="font-medium text-sm">
-                      קבוצה {groupIndex + 1}: מסמך {group.invoices[0].document_number}
-                    </span>
                   </div>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-right">תאריך</TableHead>
+                        <TableHead className="w-12 text-center">בחר</TableHead>
+                        <TableHead className="text-right">תאריך קליטה</TableHead>
                         <TableHead className="text-right">ספק</TableHead>
                         <TableHead className="text-right">מספר מסמך</TableHead>
                         <TableHead className="text-right">סכום</TableHead>
                         <TableHead className="text-right">סטטוס</TableHead>
-                        <TableHead className="text-right">תאריך קליטה</TableHead>
+                        <TableHead className="text-right">קטגוריה</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {group.invoices.map((inv, idx) => (
-                        <TableRow 
-                          key={inv.id}
-                          className={idx === 0 ? 'bg-green-50' : 'bg-red-50'}
-                        >
-                          <TableCell>{formatDate(inv.document_date)}</TableCell>
-                          <TableCell>{inv.supplier_name}</TableCell>
-                          <TableCell>{inv.document_number}</TableCell>
-                          <TableCell>{formatCurrency(inv.total_amount)}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{inv.status}</Badge>
-                          </TableCell>
-                          <TableCell>{formatDate(inv.intake_date)}</TableCell>
-                        </TableRow>
-                      ))}
+                      {group.invoices.map((inv, idx) => {
+                        const isOriginal = idx === 0;
+                        const isSelected = selectedIds.has(inv.id);
+                        
+                        return (
+                          <TableRow 
+                            key={inv.id}
+                            className={cn(
+                              'cursor-pointer transition-colors',
+                              isOriginal && 'bg-emerald-50 hover:bg-emerald-100',
+                              !isOriginal && !isSelected && 'bg-amber-50 hover:bg-amber-100',
+                              isSelected && 'bg-red-100 hover:bg-red-200'
+                            )}
+                            onClick={() => !isOriginal && toggleSelection(inv.id)}
+                          >
+                            <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                              {isOriginal ? (
+                                <Badge variant="outline" className="text-xs bg-emerald-100 text-emerald-700 border-emerald-300">
+                                  מקור
+                                </Badge>
+                              ) : (
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={() => toggleSelection(inv.id)}
+                                />
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">{formatDateTime(inv.intake_date)}</TableCell>
+                            <TableCell className="text-right">{inv.supplier_name}</TableCell>
+                            <TableCell className="text-right">{inv.document_number}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(inv.total_amount)}</TableCell>
+                            <TableCell className="text-right">
+                              <Badge variant="outline">{inv.status}</Badge>
+                            </TableCell>
+                            <TableCell className="text-right">{inv.category}</TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
-                  <div className="bg-muted/50 px-4 py-2 text-xs text-muted-foreground">
+                  <div className="bg-muted/50 px-4 py-2 text-xs text-muted-foreground flex items-center gap-4 flex-row-reverse">
                     <span className="inline-flex items-center gap-1">
-                      <div className="w-3 h-3 bg-green-200 rounded" /> מקור
+                      <div className="w-3 h-3 bg-emerald-200 rounded border border-emerald-300" /> מקור (הישן ביותר)
                     </span>
-                    <span className="inline-flex items-center gap-1 mr-4">
-                      <div className="w-3 h-3 bg-red-200 rounded" /> כפילות מוצעת למחיקה
+                    <span className="inline-flex items-center gap-1">
+                      <div className="w-3 h-3 bg-amber-200 rounded border border-amber-300" /> כפילות
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <div className="w-3 h-3 bg-red-200 rounded border border-red-300" /> נבחר למחיקה
                     </span>
                   </div>
                 </div>
@@ -149,16 +242,22 @@ const DuplicatesModal = ({ isOpen, onClose, invoices, onSelectDuplicates }: Dupl
           )}
         </div>
 
-        {duplicateGroups.length > 0 && (
-          <div className="flex gap-3 pt-4 border-t">
-            <Button onClick={handleSelectAll} className="flex-1">
-              בחר את כל הכפילויות ({duplicateGroups.reduce((sum, g) => sum + g.invoices.length - 1, 0)})
+        <div className="flex gap-3 pt-4 border-t flex-row-reverse">
+          {duplicateGroups.length > 0 && (
+            <Button 
+              onClick={handleDeleteSelected} 
+              disabled={selectedIds.size === 0}
+              variant="destructive"
+              className="flex-row-reverse"
+            >
+              <Trash2 className="h-4 w-4 ml-2" />
+              מחק {selectedIds.size} חשבוניות נבחרות
             </Button>
-            <Button variant="outline" onClick={onClose}>
-              סגור
-            </Button>
-          </div>
-        )}
+          )}
+          <Button variant="outline" onClick={handleClose}>
+            סגור
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

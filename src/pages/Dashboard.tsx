@@ -13,6 +13,7 @@ import SupplierCardModal from '@/components/invoice/SupplierCardModal';
 import AddInvoiceModal from '@/components/invoice/AddInvoiceModal';
 import ImportExcelModal from '@/components/invoice/ImportExcelModal';
 import DashboardCharts from '@/components/invoice/DashboardCharts';
+import DuplicatesModal from '@/components/invoice/DuplicatesModal';
 import { Invoice, InvoiceFormData, DuplicatesFilterMode } from '@/types/invoice';
 import { LogOut, Plus, Loader2, Upload, RefreshCw, Settings } from 'lucide-react';
 import { toast } from 'sonner';
@@ -47,6 +48,7 @@ const Dashboard = () => {
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [duplicatesMode, setDuplicatesMode] = useState<DuplicatesFilterMode>('all');
+  const [isDuplicatesModalOpen, setIsDuplicatesModalOpen] = useState(false);
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -297,6 +299,7 @@ const Dashboard = () => {
           onPrint={handlePrint}
           onClearFilters={handleClearAll}
           onToggleDuplicates={handleToggleDuplicates}
+          onOpenDuplicatesModal={() => setIsDuplicatesModalOpen(true)}
           onAddInvoice={() => setIsAddModalOpen(true)}
           onImportExcel={() => setIsImportModalOpen(true)}
         />
@@ -305,6 +308,7 @@ const Dashboard = () => {
         <InvoiceTable
           invoices={displayedInvoices}
           selectedIds={selectedIds}
+          duplicateIds={duplicatesInfo.ids}
           onToggleSelection={toggleSelection}
           onToggleSelectAll={toggleSelectAll}
           onRowClick={(invoice) => setEditingInvoice(invoice)}
@@ -354,6 +358,13 @@ const Dashboard = () => {
         onSave={(data: BulkEditData) => bulkUpdateInvoices(selectedIds, data)}
         selectedCount={selectedIds.length}
         categories={filterOptions.categories}
+      />
+
+      <DuplicatesModal
+        isOpen={isDuplicatesModalOpen}
+        onClose={() => setIsDuplicatesModalOpen(false)}
+        invoices={invoices}
+        onDeleteSelected={deleteInvoices}
       />
 
       {/* Delete Confirmation Dialog */}
