@@ -17,18 +17,18 @@ export type Database = {
       invoices: {
         Row: {
           amount_before_vat: number
-          business_type: Database["public"]["Enums"]["business_type"]
-          category: string
+          business_type: string | null
+          category: string | null
           created_at: string
           document_date: string
-          document_number: string
-          document_type: string
-          entry_method: string
+          document_number: string | null
+          document_type: string | null
+          entry_method: string | null
           id: string
           image_url: string | null
           intake_date: string
           status: Database["public"]["Enums"]["invoice_status"]
-          supplier_name: string
+          supplier_name: string | null
           total_amount: number
           updated_at: string
           user_id: string
@@ -36,18 +36,18 @@ export type Database = {
         }
         Insert: {
           amount_before_vat: number
-          business_type?: Database["public"]["Enums"]["business_type"]
-          category: string
+          business_type?: string | null
+          category?: string | null
           created_at?: string
           document_date: string
-          document_number: string
-          document_type?: string
-          entry_method?: string
+          document_number?: string | null
+          document_type?: string | null
+          entry_method?: string | null
           id?: string
           image_url?: string | null
           intake_date?: string
           status?: Database["public"]["Enums"]["invoice_status"]
-          supplier_name: string
+          supplier_name?: string | null
           total_amount: number
           updated_at?: string
           user_id: string
@@ -55,18 +55,18 @@ export type Database = {
         }
         Update: {
           amount_before_vat?: number
-          business_type?: Database["public"]["Enums"]["business_type"]
-          category?: string
+          business_type?: string | null
+          category?: string | null
           created_at?: string
           document_date?: string
-          document_number?: string
-          document_type?: string
-          entry_method?: string
+          document_number?: string | null
+          document_type?: string | null
+          entry_method?: string | null
           id?: string
           image_url?: string | null
           intake_date?: string
           status?: Database["public"]["Enums"]["invoice_status"]
-          supplier_name?: string
+          supplier_name?: string | null
           total_amount?: number
           updated_at?: string
           user_id?: string

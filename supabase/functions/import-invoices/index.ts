@@ -54,27 +54,27 @@ Deno.serve(async (req) => {
     };
 
     const invoicesToInsert = invoicesData.map((invoice: any) => {
-      // Support both Hebrew and English field names
-      const supplierName = invoice['שם הספק'] || invoice.supplier_name || 'לא צוין';
+      // Support both Hebrew and English field names - keep empty values as null
+      const supplierName = invoice['שם הספק'] || invoice.supplier_name || null;
       const documentDate = invoice['תאריך מסמך'] || invoice.document_date;
-      const documentType = invoice['סוג מסמך'] || invoice.document_type || 'חשבונית מס';
-      const documentNumber = invoice['מספר מסמך'] || invoice.document_number || `AUTO-${Date.now()}`;
+      const documentType = invoice['סוג מסמך'] || invoice.document_type || null;
+      const documentNumber = invoice['מספר מסמך'] || invoice.document_number || null;
       const amountBeforeVat = invoice['סכום לפני מע"מ'] || invoice['סכום לפני מע״מ'] || invoice.amount_before_vat || 0;
       const vatAmount = invoice['מע"מ'] || invoice['מע״מ'] || invoice.vat_amount;
       const totalAmount = invoice['סכום כולל מע"מ'] || invoice['סכום כולל מע״מ'] || invoice.total_amount;
-      const category = invoice['קטגוריה'] || invoice.category || 'כללי';
-      const entryMethod = invoice['פורמט מסמך'] || invoice.entry_method || 'דיגיטלי';
-      const businessType = invoice['סוג עוסק'] || invoice.business_type || 'עוסק מורשה';
+      const category = invoice['קטגוריה'] || invoice.category || null;
+      const entryMethod = invoice['פורמט מסמך'] || invoice.entry_method || null;
+      const businessType = invoice['סוג עוסק'] || invoice.business_type || null;
       const imageUrl = invoice['קישור לתמונה'] || invoice['תמונה'] || invoice.image_url || null;
 
       const parsedAmountBeforeVat = parseFloat(amountBeforeVat) || 0;
-      const parsedVatAmount = vatAmount ? parseFloat(vatAmount) : parsedAmountBeforeVat * 0.18;
-      const parsedTotalAmount = totalAmount ? parseFloat(totalAmount) : parsedAmountBeforeVat * 1.18;
+      const parsedVatAmount = vatAmount !== undefined && vatAmount !== '' ? parseFloat(vatAmount) : null;
+      const parsedTotalAmount = totalAmount !== undefined && totalAmount !== '' ? parseFloat(totalAmount) : null;
 
       return {
         user_id: userId,
         intake_date: invoice.intake_date || new Date().toISOString().split('T')[0],
-        document_date: parseDate(documentDate),
+        document_date: documentDate ? parseDate(documentDate) : null,
         status: invoice.status || 'חדש',
         supplier_name: supplierName,
         document_number: documentNumber,
@@ -82,9 +82,9 @@ Deno.serve(async (req) => {
         category: category,
         amount_before_vat: parsedAmountBeforeVat,
         vat_amount: parsedVatAmount,
-        total_amount: parsedTotalAmount,
+        total_amount: parsedTotalAmount || parsedAmountBeforeVat,
         business_type: businessType,
-        entry_method: mapEntryMethod(entryMethod),
+        entry_method: entryMethod,
         image_url: imageUrl,
       };
     });
