@@ -120,6 +120,30 @@ export function useInvoices(userId: string | undefined) {
     }
   };
 
+  // Bulk create invoices (for Excel import)
+  const bulkCreateInvoices = async (dataList: InvoiceFormData[]) => {
+    if (!userId) return;
+
+    const invoicesToInsert = dataList.map(data => ({
+      ...data,
+      user_id: userId,
+      vat_amount: calculateVat(data.amount_before_vat, data.business_type),
+    }));
+
+    const { data: newInvoices, error } = await supabase
+      .from('invoices')
+      .insert(invoicesToInsert)
+      .select();
+
+    if (error) {
+      toast.error('שגיאה בייבוא החשבוניות');
+      console.error(error);
+    } else {
+      setInvoices(prev => [...(newInvoices as Invoice[]), ...prev]);
+      toast.success(`${newInvoices?.length || 0} חשבוניות יובאו בהצלחה`);
+    }
+  };
+
   // Update invoice
   const updateInvoice = async (id: string, data: Partial<InvoiceFormData>) => {
     const vatAmount = data.amount_before_vat && data.business_type 
@@ -199,6 +223,7 @@ export function useInvoices(userId: string | undefined) {
     kpiData,
     setFilters,
     createInvoice,
+    bulkCreateInvoices,
     updateInvoice,
     deleteInvoices,
     toggleSelection,
