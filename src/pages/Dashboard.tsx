@@ -11,8 +11,9 @@ import ImageModal from '@/components/invoice/ImageModal';
 import SupplierCardModal from '@/components/invoice/SupplierCardModal';
 import AddInvoiceModal from '@/components/invoice/AddInvoiceModal';
 import { Invoice, InvoiceFormData } from '@/types/invoice';
-import { LogOut, Plus, FileText, Loader2 } from 'lucide-react';
+import { LogOut, Plus, FileText, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -92,6 +93,26 @@ const Dashboard = () => {
                 <Plus className="h-4 w-4 ml-1" />
                 הוסף חשבונית
               </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      const webhookUrl = `https://osqanpfiprsbcontotlq.supabase.co/functions/v1/import-invoices`;
+                      navigator.clipboard.writeText(webhookUrl);
+                      toast.success('כתובת Webhook הועתקה!', {
+                        description: webhookUrl
+                      });
+                    }}
+                  >
+                    <Upload className="h-4 w-4 ml-1" />
+                    ייבוא נתונים
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>לחץ להעתקת כתובת ה-Webhook</p>
+                </TooltipContent>
+              </Tooltip>
               <Button variant="outline" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4 ml-1" />
                 התנתק
