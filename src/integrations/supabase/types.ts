@@ -20,7 +20,7 @@ export type Database = {
           business_type: string | null
           category: string | null
           created_at: string
-          document_date: string
+          document_date: string | null
           document_number: string | null
           document_type: string | null
           entry_method: string | null
@@ -39,7 +39,7 @@ export type Database = {
           business_type?: string | null
           category?: string | null
           created_at?: string
-          document_date: string
+          document_date?: string | null
           document_number?: string | null
           document_type?: string | null
           entry_method?: string | null
@@ -58,7 +58,7 @@ export type Database = {
           business_type?: string | null
           category?: string | null
           created_at?: string
-          document_date?: string
+          document_date?: string | null
           document_number?: string | null
           document_type?: string | null
           entry_method?: string | null
