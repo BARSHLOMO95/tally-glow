@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Invoice, InvoiceStatus, BusinessType } from '@/types/invoice';
+import { Invoice, InvoiceStatus, BusinessType, EntryMethod } from '@/types/invoice';
 import { format } from 'date-fns';
 import { ArrowUpDown, ArrowUp, ArrowDown, FileImage } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -17,7 +17,7 @@ interface InvoiceTableProps {
   onImageClick: (imageUrl: string) => void;
 }
 
-type SortField = 'intake_date' | 'document_date' | 'status' | 'supplier_name' | 'document_number' | 'category' | 'amount_before_vat' | 'vat_amount' | 'total_amount' | 'business_type';
+type SortField = 'intake_date' | 'document_date' | 'status' | 'supplier_name' | 'document_number' | 'document_type' | 'category' | 'amount_before_vat' | 'vat_amount' | 'total_amount' | 'business_type' | 'entry_method';
 type SortDirection = 'asc' | 'desc';
 
 const statusColors: Record<InvoiceStatus, string> = {
@@ -31,6 +31,11 @@ const businessTypeColors: Record<BusinessType, string> = {
   'עוסק פטור': 'bg-yellow-100 text-yellow-800 border-yellow-300',
   'חברה בע"מ': 'bg-green-100 text-green-800 border-green-300',
   'ספק חו"ל': 'bg-purple-100 text-purple-800 border-purple-300',
+};
+
+const entryMethodColors: Record<EntryMethod, string> = {
+  'ידני': 'bg-orange-100 text-orange-800 border-orange-300',
+  'דיגיטלי': 'bg-teal-100 text-teal-800 border-teal-300',
 };
 
 const formatCurrency = (amount: number | null) => {
@@ -109,7 +114,7 @@ const InvoiceTable = ({
                 onClick={() => handleSort('intake_date')}
               >
                 <div className="flex items-center gap-1">
-                  📅 תאריך קליטה
+                  תאריך קליטה
                   <SortIcon field="intake_date" />
                 </div>
               </TableHead>
@@ -118,17 +123,8 @@ const InvoiceTable = ({
                 onClick={() => handleSort('status')}
               >
                 <div className="flex items-center gap-1">
-                  🟡 סטטוס
+                  סטטוס
                   <SortIcon field="status" />
-                </div>
-              </TableHead>
-              <TableHead 
-                className="cursor-pointer hover:bg-muted transition-colors"
-                onClick={() => handleSort('document_date')}
-              >
-                <div className="flex items-center gap-1">
-                  📅 תאריך מסמך
-                  <SortIcon field="document_date" />
                 </div>
               </TableHead>
               <TableHead 
@@ -136,17 +132,17 @@ const InvoiceTable = ({
                 onClick={() => handleSort('supplier_name')}
               >
                 <div className="flex items-center gap-1">
-                  🏢 שם הספק
+                  שם הספק
                   <SortIcon field="supplier_name" />
                 </div>
               </TableHead>
               <TableHead 
                 className="cursor-pointer hover:bg-muted transition-colors"
-                onClick={() => handleSort('document_number')}
+                onClick={() => handleSort('business_type')}
               >
                 <div className="flex items-center gap-1">
-                  🔢 מספר מסמך
-                  <SortIcon field="document_number" />
+                  סוג עוסק
+                  <SortIcon field="business_type" />
                 </div>
               </TableHead>
               <TableHead 
@@ -154,8 +150,35 @@ const InvoiceTable = ({
                 onClick={() => handleSort('category')}
               >
                 <div className="flex items-center gap-1">
-                  📂 קטגוריה
+                  קטגוריה
                   <SortIcon field="category" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-muted transition-colors"
+                onClick={() => handleSort('document_date')}
+              >
+                <div className="flex items-center gap-1">
+                  תאריך מסמך
+                  <SortIcon field="document_date" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-muted transition-colors"
+                onClick={() => handleSort('document_type')}
+              >
+                <div className="flex items-center gap-1">
+                  סוג מסמך
+                  <SortIcon field="document_type" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-muted transition-colors"
+                onClick={() => handleSort('document_number')}
+              >
+                <div className="flex items-center gap-1">
+                  מספר מסמך
+                  <SortIcon field="document_number" />
                 </div>
               </TableHead>
               <TableHead 
@@ -163,7 +186,7 @@ const InvoiceTable = ({
                 onClick={() => handleSort('amount_before_vat')}
               >
                 <div className="flex items-center gap-1">
-                  💰 לפני מע"מ
+                  לפני מע"מ
                   <SortIcon field="amount_before_vat" />
                 </div>
               </TableHead>
@@ -172,7 +195,7 @@ const InvoiceTable = ({
                 onClick={() => handleSort('vat_amount')}
               >
                 <div className="flex items-center gap-1">
-                  💸 מע"מ
+                  מע"מ
                   <SortIcon field="vat_amount" />
                 </div>
               </TableHead>
@@ -181,26 +204,26 @@ const InvoiceTable = ({
                 onClick={() => handleSort('total_amount')}
               >
                 <div className="flex items-center gap-1">
-                  💵 סה"כ
+                  סכום כולל מע"מ
                   <SortIcon field="total_amount" />
                 </div>
               </TableHead>
               <TableHead 
                 className="cursor-pointer hover:bg-muted transition-colors"
-                onClick={() => handleSort('business_type')}
+                onClick={() => handleSort('entry_method')}
               >
                 <div className="flex items-center gap-1">
-                  🏷️ סוג עוסק
-                  <SortIcon field="business_type" />
+                  ידני / דיגיטלי
+                  <SortIcon field="entry_method" />
                 </div>
               </TableHead>
-              <TableHead className="w-12 text-center">📸</TableHead>
+              <TableHead className="w-12 text-center">תמונה</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {sortedInvoices.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={14} className="text-center py-8 text-muted-foreground">
                   לא נמצאו חשבוניות
                 </TableCell>
               </TableRow>
@@ -213,7 +236,6 @@ const InvoiceTable = ({
                     selectedIds.includes(invoice.id) && 'bg-primary/5'
                   )}
                   onClick={(e) => {
-                    // Don't open edit modal if clicking on checkbox, supplier, or image
                     const target = e.target as HTMLElement;
                     if (
                       target.closest('[data-checkbox]') ||
@@ -237,7 +259,6 @@ const InvoiceTable = ({
                       {invoice.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>{format(new Date(invoice.document_date), 'dd/MM/yyyy')}</TableCell>
                   <TableCell>
                     <span
                       data-supplier
@@ -250,16 +271,26 @@ const InvoiceTable = ({
                       {invoice.supplier_name}
                     </span>
                   </TableCell>
-                  <TableCell className="font-mono">{invoice.document_number}</TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant="outline" 
+                      className={cn('font-medium', businessTypeColors[invoice.business_type])}
+                    >
+                      {invoice.business_type}
+                    </Badge>
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline">{invoice.category}</Badge>
                   </TableCell>
+                  <TableCell>{format(new Date(invoice.document_date), 'dd/MM/yyyy')}</TableCell>
+                  <TableCell>{invoice.document_type}</TableCell>
+                  <TableCell className="font-mono">{invoice.document_number}</TableCell>
                   <TableCell className="text-left font-medium">
                     {formatCurrency(Number(invoice.amount_before_vat))}
                   </TableCell>
                   <TableCell className="text-left">
                     {invoice.vat_amount ? (
-                      <span className="font-bold text-pink-600">
+                      <span className="font-bold text-primary">
                         {formatCurrency(Number(invoice.vat_amount))}
                       </span>
                     ) : (
@@ -272,9 +303,9 @@ const InvoiceTable = ({
                   <TableCell>
                     <Badge 
                       variant="outline" 
-                      className={cn('font-medium', businessTypeColors[invoice.business_type])}
+                      className={cn('font-medium', entryMethodColors[invoice.entry_method])}
                     >
-                      {invoice.business_type}
+                      {invoice.entry_method}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-center">
@@ -287,7 +318,7 @@ const InvoiceTable = ({
                           onImageClick(invoice.image_url!);
                         }}
                       >
-                        📄
+                        <FileImage className="h-4 w-4 mx-auto" />
                       </button>
                     ) : (
                       <FileImage className="h-4 w-4 text-muted-foreground mx-auto" />

@@ -22,6 +22,8 @@ export type Database = {
           created_at: string
           document_date: string
           document_number: string
+          document_type: string
+          entry_method: string
           id: string
           image_url: string | null
           intake_date: string
@@ -39,6 +41,8 @@ export type Database = {
           created_at?: string
           document_date: string
           document_number: string
+          document_type?: string
+          entry_method?: string
           id?: string
           image_url?: string | null
           intake_date?: string
@@ -56,6 +60,8 @@ export type Database = {
           created_at?: string
           document_date?: string
           document_number?: string
+          document_type?: string
+          entry_method?: string
           id?: string
           image_url?: string | null
           intake_date?: string

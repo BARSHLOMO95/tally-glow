@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { InvoiceFormData, InvoiceStatus, BusinessType } from '@/types/invoice';
+import { InvoiceFormData, InvoiceStatus, BusinessType, EntryMethod } from '@/types/invoice';
 import { Plus, X } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -17,6 +17,8 @@ interface AddInvoiceModalProps {
 
 const statusOptions: InvoiceStatus[] = ['חדש', 'בתהליך', 'טופל'];
 const businessTypeOptions: BusinessType[] = ['עוסק מורשה', 'עוסק פטור', 'חברה בע"מ', 'ספק חו"ל'];
+const entryMethodOptions: EntryMethod[] = ['ידני', 'דיגיטלי'];
+const documentTypeOptions = ['חשבונית מס', 'חשבונית מס קבלה', 'קבלה', 'חשבון עסקה', 'תעודת משלוח'];
 
 const defaultCategories = ['תקשורת', 'סופרים', 'משרד', 'שירותים', 'ציוד', 'אחר'];
 
@@ -27,11 +29,13 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave, existingCategories }: AddInv
     status: 'חדש',
     supplier_name: '',
     document_number: '',
+    document_type: 'חשבונית מס',
     category: '',
     amount_before_vat: 0,
     vat_amount: null,
     total_amount: 0,
     business_type: 'עוסק מורשה',
+    entry_method: 'ידני',
     image_url: null,
   });
 
@@ -62,11 +66,13 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave, existingCategories }: AddInv
       status: 'חדש',
       supplier_name: '',
       document_number: '',
+      document_type: 'חשבונית מס',
       category: '',
       amount_before_vat: 0,
       vat_amount: null,
       total_amount: 0,
       business_type: 'עוסק מורשה',
+      entry_method: 'ידני',
       image_url: null,
     });
   };
@@ -75,12 +81,12 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave, existingCategories }: AddInv
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
         <DialogHeader>
-          <DialogTitle className="text-xl">➕ הוספת חשבונית חדשה</DialogTitle>
+          <DialogTitle className="text-xl">הוספת חשבונית חדשה</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div className="space-y-2">
-            <Label>📅 תאריך קליטה</Label>
+            <Label>תאריך קליטה</Label>
             <Input
               type="date"
               value={formData.intake_date}
@@ -89,16 +95,7 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave, existingCategories }: AddInv
           </div>
 
           <div className="space-y-2">
-            <Label>📅 תאריך מסמך</Label>
-            <Input
-              type="date"
-              value={formData.document_date}
-              onChange={(e) => setFormData(prev => ({ ...prev, document_date: e.target.value }))}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>🟡 סטטוס</Label>
+            <Label>סטטוס</Label>
             <Select
               value={formData.status}
               onValueChange={(value: InvoiceStatus) => setFormData(prev => ({ ...prev, status: value }))}
@@ -115,7 +112,7 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave, existingCategories }: AddInv
           </div>
 
           <div className="space-y-2">
-            <Label>🏢 שם ספק *</Label>
+            <Label>שם ספק *</Label>
             <Input
               value={formData.supplier_name}
               onChange={(e) => setFormData(prev => ({ ...prev, supplier_name: e.target.value }))}
@@ -124,33 +121,7 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave, existingCategories }: AddInv
           </div>
 
           <div className="space-y-2">
-            <Label>🔢 מספר מסמך *</Label>
-            <Input
-              value={formData.document_number}
-              onChange={(e) => setFormData(prev => ({ ...prev, document_number: e.target.value }))}
-              placeholder="הזן מספר מסמך"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>📂 קטגוריה *</Label>
-            <Select
-              value={formData.category}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="בחר קטגוריה" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map(cat => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>🏷️ סוג עוסק</Label>
+            <Label>סוג עוסק</Label>
             <Select
               value={formData.business_type}
               onValueChange={(value: BusinessType) => setFormData(prev => ({ ...prev, business_type: value }))}
@@ -167,7 +138,59 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave, existingCategories }: AddInv
           </div>
 
           <div className="space-y-2">
-            <Label>💰 לפני מע"מ</Label>
+            <Label>קטגוריה *</Label>
+            <Select
+              value={formData.category}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="בחר קטגוריה" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>תאריך מסמך</Label>
+            <Input
+              type="date"
+              value={formData.document_date}
+              onChange={(e) => setFormData(prev => ({ ...prev, document_date: e.target.value }))}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>סוג מסמך</Label>
+            <Select
+              value={formData.document_type}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, document_type: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {documentTypeOptions.map(type => (
+                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>מספר מסמך *</Label>
+            <Input
+              value={formData.document_number}
+              onChange={(e) => setFormData(prev => ({ ...prev, document_number: e.target.value }))}
+              placeholder="הזן מספר מסמך"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>לפני מע"מ</Label>
             <Input
               type="number"
               value={formData.amount_before_vat || ''}
@@ -176,22 +199,39 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave, existingCategories }: AddInv
           </div>
 
           <div className="space-y-2">
-            <Label>💸 מע"מ (18%)</Label>
+            <Label>מע"מ (18%)</Label>
             <Input
               type="number"
               value={formData.vat_amount || ''}
               readOnly
-              className="bg-pink-50 text-pink-600 font-bold"
+              className="bg-muted"
             />
           </div>
 
           <div className="space-y-2">
-            <Label>💵 סה"כ</Label>
+            <Label>סה"כ כולל מע"מ</Label>
             <Input
               type="number"
               value={formData.total_amount || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, total_amount: Number(e.target.value) }))}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>ידני / דיגיטלי</Label>
+            <Select
+              value={formData.entry_method}
+              onValueChange={(value: EntryMethod) => setFormData(prev => ({ ...prev, entry_method: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {entryMethodOptions.map(method => (
+                  <SelectItem key={method} value={method}>{method}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
