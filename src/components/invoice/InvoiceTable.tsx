@@ -49,21 +49,21 @@ const defaultColumnWidths: Record<string, number> = {
 };
 
 const statusColors: Record<InvoiceStatus, string> = {
-  'חדש': 'bg-yellow-400 text-yellow-900',
-  'בתהליך': 'bg-blue-500 text-white',
-  'טופל': 'bg-green-500 text-white',
+  'חדש': 'text-amber-600 font-medium',
+  'בתהליך': 'text-blue-600 font-medium',
+  'טופל': 'text-emerald-600 font-medium',
 };
 
 const businessTypeColors: Record<BusinessType, string> = {
-  'עוסק מורשה': 'bg-blue-100 text-blue-800',
-  'עוסק פטור': 'bg-yellow-100 text-yellow-800',
-  'חברה בע"מ': 'bg-green-100 text-green-800',
-  'ספק חו"ל': 'bg-purple-100 text-purple-800',
+  'עוסק מורשה': 'text-slate-600',
+  'עוסק פטור': 'text-slate-600',
+  'חברה בע"מ': 'text-slate-600',
+  'ספק חו"ל': 'text-slate-600',
 };
 
 const entryMethodColors: Record<EntryMethod, string> = {
-  'ידני': 'bg-orange-100 text-orange-800',
-  'דיגיטלי': 'bg-teal-100 text-teal-800',
+  'ידני': 'text-orange-500 font-medium',
+  'דיגיטלי': 'text-cyan-500 font-medium',
 };
 
 const formatCurrency = (amount: number | null) => {
@@ -135,9 +135,9 @@ const InvoiceTable = ({
   ];
 
   return (
-    <div className="bg-card rounded-lg border shadow-sm overflow-hidden" dir="rtl">
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" dir="rtl">
       {/* Column Settings */}
-      <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30 flex-row-reverse">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 bg-slate-50/50 flex-row-reverse">
         <span className="text-sm text-muted-foreground">
           {invoices.length} רשומות
         </span>
@@ -182,8 +182,8 @@ const InvoiceTable = ({
       <div className="overflow-x-auto">
         <Table className="text-sm">
           <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead style={{ width: columnWidths.checkbox }} className="text-center p-2">
+            <TableRow className="bg-slate-50 border-b border-slate-200">
+              <TableHead style={{ width: columnWidths.checkbox }} className="text-center py-3 px-2">
                 <Checkbox
                   checked={isAllSelected}
                   ref={(el) => {
@@ -196,17 +196,17 @@ const InvoiceTable = ({
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.intake_date }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
+                className="cursor-pointer hover:bg-slate-100 transition-colors py-3 px-2 whitespace-nowrap text-right text-slate-600 font-medium text-xs"
                 onClick={() => handleSort('intake_date')}
               >
                 <div className="flex items-center gap-1 flex-row-reverse justify-end">
-                  <span>ת.קליטה</span>
+                  <span>ת. קליטה</span>
                   <SortIcon field="intake_date" />
                 </div>
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.status }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
+                className="cursor-pointer hover:bg-slate-100 transition-colors py-3 px-2 whitespace-nowrap text-right text-slate-600 font-medium text-xs"
                 onClick={() => handleSort('status')}
               >
                 <div className="flex items-center gap-1 flex-row-reverse justify-end">
@@ -216,27 +216,27 @@ const InvoiceTable = ({
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.supplier_name }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
+                className="cursor-pointer hover:bg-slate-100 transition-colors py-3 px-2 whitespace-nowrap text-right text-slate-600 font-medium text-xs"
                 onClick={() => handleSort('supplier_name')}
               >
                 <div className="flex items-center gap-1 flex-row-reverse justify-end">
-                  <span>ספק</span>
+                  <span>שם הספק</span>
                   <SortIcon field="supplier_name" />
                 </div>
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.business_type }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
+                className="cursor-pointer hover:bg-slate-100 transition-colors py-3 px-2 whitespace-nowrap text-right text-slate-600 font-medium text-xs"
                 onClick={() => handleSort('business_type')}
               >
                 <div className="flex items-center gap-1 flex-row-reverse justify-end">
-                  <span>סוג עוסק</span>
+                  <span>עוסק</span>
                   <SortIcon field="business_type" />
                 </div>
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.category }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
+                className="cursor-pointer hover:bg-slate-100 transition-colors py-3 px-2 whitespace-nowrap text-right text-slate-600 font-medium text-xs"
                 onClick={() => handleSort('category')}
               >
                 <div className="flex items-center gap-1 flex-row-reverse justify-end">
@@ -246,91 +246,91 @@ const InvoiceTable = ({
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.document_date }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
+                className="cursor-pointer hover:bg-slate-100 transition-colors py-3 px-2 whitespace-nowrap text-right text-slate-600 font-medium text-xs"
                 onClick={() => handleSort('document_date')}
               >
                 <div className="flex items-center gap-1 flex-row-reverse justify-end">
-                  <span>ת.מסמך</span>
+                  <span>ת. מסמך</span>
                   <SortIcon field="document_date" />
                 </div>
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.document_type }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
+                className="cursor-pointer hover:bg-slate-100 transition-colors py-3 px-2 whitespace-nowrap text-right text-slate-600 font-medium text-xs"
                 onClick={() => handleSort('document_type')}
               >
                 <div className="flex items-center gap-1 flex-row-reverse justify-end">
-                  <span>סוג</span>
+                  <span>אסמכתא</span>
                   <SortIcon field="document_type" />
                 </div>
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.document_number }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
+                className="cursor-pointer hover:bg-slate-100 transition-colors py-3 px-2 whitespace-nowrap text-right text-slate-600 font-medium text-xs"
                 onClick={() => handleSort('document_number')}
               >
                 <div className="flex items-center gap-1 flex-row-reverse justify-end">
-                  <span>מס׳</span>
+                  <span>לפני מע"מ</span>
                   <SortIcon field="document_number" />
                 </div>
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.amount_before_vat }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
+                className="cursor-pointer hover:bg-slate-100 transition-colors py-3 px-2 whitespace-nowrap text-right text-slate-600 font-medium text-xs"
                 onClick={() => handleSort('amount_before_vat')}
               >
                 <div className="flex items-center gap-1 flex-row-reverse justify-end">
-                  <span>לפני מע"מ</span>
+                  <span>מע"מ</span>
                   <SortIcon field="amount_before_vat" />
                 </div>
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.vat_amount }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
+                className="cursor-pointer hover:bg-slate-100 transition-colors py-3 px-2 whitespace-nowrap text-right text-slate-600 font-medium text-xs"
                 onClick={() => handleSort('vat_amount')}
               >
                 <div className="flex items-center gap-1 flex-row-reverse justify-end">
-                  <span>מע"מ</span>
+                  <span>סה"כ</span>
                   <SortIcon field="vat_amount" />
                 </div>
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.total_amount }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
+                className="cursor-pointer hover:bg-slate-100 transition-colors py-3 px-2 whitespace-nowrap text-right text-slate-600 font-medium text-xs"
                 onClick={() => handleSort('total_amount')}
               >
                 <div className="flex items-center gap-1 flex-row-reverse justify-end">
-                  <span>סה"כ</span>
+                  <span>עוסק</span>
                   <SortIcon field="total_amount" />
                 </div>
               </TableHead>
               <TableHead 
                 style={{ width: columnWidths.entry_method }}
-                className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
+                className="cursor-pointer hover:bg-slate-100 transition-colors py-3 px-2 whitespace-nowrap text-right text-slate-600 font-medium text-xs"
                 onClick={() => handleSort('entry_method')}
               >
                 <div className="flex items-center gap-1 flex-row-reverse justify-end">
-                  <span>אופן</span>
+                  <span>תמונה</span>
                   <SortIcon field="entry_method" />
                 </div>
               </TableHead>
-              <TableHead style={{ width: columnWidths.image }} className="text-center p-2">📷</TableHead>
+              <TableHead style={{ width: columnWidths.image }} className="text-center py-3 px-2 text-slate-600 font-medium text-xs">☑</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {sortedInvoices.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={14} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={14} className="text-center py-12 text-slate-400">
                   לא נמצאו חשבוניות
                 </TableCell>
               </TableRow>
             ) : (
-              sortedInvoices.map((invoice) => (
+              sortedInvoices.map((invoice, index) => (
                 <TableRow
                   key={invoice.id}
                   className={cn(
-                    'cursor-pointer transition-colors hover:bg-muted/50',
-                    selectedIds.includes(invoice.id) && 'bg-primary/10'
+                    'cursor-pointer transition-colors hover:bg-slate-50 border-b border-slate-100',
+                    selectedIds.includes(invoice.id) && 'bg-blue-50/50'
                   )}
                   onClick={(e) => {
                     const target = e.target as HTMLElement;
@@ -344,24 +344,26 @@ const InvoiceTable = ({
                     onRowClick(invoice);
                   }}
                 >
-                  <TableCell data-checkbox className="p-2 text-center" onClick={(e) => e.stopPropagation()}>
+                  <TableCell data-checkbox className="py-4 px-2 text-center" onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={selectedIds.includes(invoice.id)}
                       onCheckedChange={() => onToggleSelection(invoice.id)}
+                      className="border-slate-300"
                     />
                   </TableCell>
-                  <TableCell className="p-2 whitespace-nowrap text-xs text-right">
-                    {format(new Date(invoice.intake_date), 'dd/MM/yy')}
+                  <TableCell className="py-4 px-2 whitespace-nowrap text-right">
+                    <div className="text-slate-700 text-sm">{format(new Date(invoice.intake_date), 'dd/MM/yyyy')}</div>
+                    <div className="text-slate-400 text-xs">{format(new Date(invoice.intake_date), 'HH:mm')}</div>
                   </TableCell>
-                  <TableCell className="p-2 text-right">
-                    <Badge className={cn('text-xs px-1.5 py-0', statusColors[invoice.status])}>
-                      {invoice.status}
-                    </Badge>
+                  <TableCell className="py-4 px-2 text-right">
+                    <span className={cn('text-sm', statusColors[invoice.status])}>
+                      {invoice.status === 'בתהליך' ? 'ממתין' : invoice.status}
+                    </span>
                   </TableCell>
-                  <TableCell className="p-2 text-right">
+                  <TableCell className="py-4 px-2 text-right">
                     <span
                       data-supplier
-                      className="text-primary hover:underline cursor-pointer font-medium text-xs truncate block text-right"
+                      className="text-slate-800 hover:text-blue-600 hover:underline cursor-pointer text-sm block text-right leading-relaxed"
                       style={{ maxWidth: columnWidths.supplier_name }}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -372,65 +374,59 @@ const InvoiceTable = ({
                       {invoice.supplier_name}
                     </span>
                   </TableCell>
-                  <TableCell className="p-2 text-right">
-                    <Badge 
-                      variant="outline" 
-                      className={cn('text-xs px-1.5 py-0 whitespace-nowrap', businessTypeColors[invoice.business_type])}
-                    >
-                      {invoice.business_type === 'עוסק מורשה' ? 'מורשה' : 
-                       invoice.business_type === 'עוסק פטור' ? 'פטור' :
-                       invoice.business_type === 'חברה בע"מ' ? 'חברה' : 'חו"ל'}
-                    </Badge>
+                  <TableCell className="py-4 px-2 text-right">
+                    <span className={cn('text-sm', businessTypeColors[invoice.business_type])}>
+                      {invoice.business_type === 'עוסק מורשה' ? 'ספקים (פעילויות)' : 
+                       invoice.business_type === 'עוסק פטור' ? 'ספקים (פעילויות)' :
+                       invoice.business_type === 'חברה בע"מ' ? 'ספקים (פעילויות)' : 'חו"ל'}
+                    </span>
                   </TableCell>
-                  <TableCell className="p-2 text-right">
-                    <span className="text-xs truncate block text-right" style={{ maxWidth: columnWidths.category }} title={invoice.category}>
+                  <TableCell className="py-4 px-2 text-right">
+                    <span className="text-sm text-slate-600" style={{ maxWidth: columnWidths.category }} title={invoice.category}>
                       {invoice.category}
                     </span>
                   </TableCell>
-                  <TableCell className="p-2 whitespace-nowrap text-xs text-right">
+                  <TableCell className="py-4 px-2 whitespace-nowrap text-sm text-slate-600 text-right">
                     {format(new Date(invoice.document_date), 'dd/MM/yy')}
                   </TableCell>
-                  <TableCell className="p-2 text-xs truncate text-right" title={invoice.document_type}>
-                    {invoice.document_type.substring(0, 8)}
+                  <TableCell className="py-4 px-2 text-sm text-slate-600 text-right" title={invoice.document_type}>
+                    {invoice.document_type === 'חשבונית מס' ? 'חשבונית מס' : invoice.document_type.substring(0, 10)}
                   </TableCell>
-                  <TableCell className="p-2 font-mono text-xs text-right">{invoice.document_number}</TableCell>
-                  <TableCell className="p-2 text-right text-xs font-medium whitespace-nowrap">
-                    {formatCurrency(Number(invoice.amount_before_vat))}
+                  <TableCell className="py-4 px-2 font-mono text-sm text-slate-600 text-right">{invoice.document_number}</TableCell>
+                  <TableCell className="py-4 px-2 text-right text-sm text-slate-700 whitespace-nowrap">
+                    ₪{Number(invoice.amount_before_vat).toLocaleString('he-IL')}
                   </TableCell>
-                  <TableCell className="p-2 text-right text-xs whitespace-nowrap">
+                  <TableCell className="py-4 px-2 text-right text-sm whitespace-nowrap">
                     {invoice.vat_amount ? (
-                      <span className="font-bold text-primary">
-                        {formatCurrency(Number(invoice.vat_amount))}
+                      <span className="text-slate-700">
+                        ₪{Number(invoice.vat_amount).toLocaleString('he-IL')}
                       </span>
                     ) : (
-                      <span className="text-muted-foreground">-</span>
+                      <span className="text-slate-400">-</span>
                     )}
                   </TableCell>
-                  <TableCell className="p-2 text-right text-xs font-bold whitespace-nowrap">
-                    {formatCurrency(Number(invoice.total_amount))}
+                  <TableCell className="py-4 px-2 text-right text-sm font-semibold text-slate-800 whitespace-nowrap">
+                    ₪{Number(invoice.total_amount).toLocaleString('he-IL')}
                   </TableCell>
-                  <TableCell className="p-2">
-                    <Badge 
-                      variant="outline" 
-                      className={cn('text-xs px-1.5 py-0', entryMethodColors[invoice.entry_method])}
-                    >
-                      {invoice.entry_method === 'ידני' ? '✍️' : '💻'}
-                    </Badge>
+                  <TableCell className="py-4 px-2 text-right">
+                    <span className={cn('text-sm', entryMethodColors[invoice.entry_method])}>
+                      {invoice.entry_method}
+                    </span>
                   </TableCell>
-                  <TableCell className="p-2 text-center">
+                  <TableCell className="py-4 px-2 text-center">
                     {invoice.image_url ? (
                       <button
                         data-image
-                        className="text-primary hover:text-primary/80 transition-colors"
+                        className="text-blue-500 hover:text-blue-600 transition-colors"
                         onClick={(e) => {
                           e.stopPropagation();
                           onImageClick(invoice.image_url!);
                         }}
                       >
-                        <FileImage className="h-4 w-4" />
+                        <FileImage className="h-5 w-5" />
                       </button>
                     ) : (
-                      <FileImage className="h-4 w-4 text-muted-foreground/40" />
+                      <FileImage className="h-5 w-5 text-slate-300" />
                     )}
                   </TableCell>
                 </TableRow>
