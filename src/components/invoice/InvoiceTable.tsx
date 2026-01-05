@@ -370,47 +370,69 @@ const InvoiceTable = ({
                     />
                   </TableCell>
                   <TableCell className="py-4 px-2 whitespace-nowrap text-right">
-                    <div className="text-slate-700 text-sm">{format(new Date(invoice.intake_date), 'dd/MM/yyyy')}</div>
-                    <div className="text-slate-400 text-xs">{format(new Date(invoice.intake_date), 'HH:mm')}</div>
+                    {invoice.intake_date ? (
+                      <>
+                        <div className="text-slate-700 text-sm">{format(new Date(invoice.intake_date), 'dd/MM/yyyy')}</div>
+                        <div className="text-slate-400 text-xs">{format(new Date(invoice.intake_date), 'HH:mm')}</div>
+                      </>
+                    ) : (
+                      <span className="text-slate-400">-</span>
+                    )}
                   </TableCell>
                   <TableCell className="py-4 px-2 text-right">
-                    <span className={cn('text-xs px-2 py-1 rounded-full border font-medium', statusColors[invoice.status])}>
-                      {invoice.status === 'בתהליך' ? 'ממתין' : invoice.status}
-                    </span>
+                    {invoice.status ? (
+                      <span className={cn('text-xs px-2 py-1 rounded-full border font-medium', statusColors[invoice.status])}>
+                        {invoice.status === 'בתהליך' ? 'ממתין' : invoice.status}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">-</span>
+                    )}
                   </TableCell>
                   <TableCell className="py-4 px-2 text-right">
-                    <span
-                      data-supplier
-                      className="text-slate-800 hover:text-blue-600 hover:underline cursor-pointer text-sm block text-right leading-relaxed"
-                      style={{ maxWidth: columnWidths.supplier_name }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSupplierClick(invoice.supplier_name);
-                      }}
-                      title={invoice.supplier_name}
-                    >
-                      {invoice.supplier_name}
-                    </span>
+                    {invoice.supplier_name ? (
+                      <span
+                        data-supplier
+                        className="text-slate-800 hover:text-blue-600 hover:underline cursor-pointer text-sm block text-right leading-relaxed"
+                        style={{ maxWidth: columnWidths.supplier_name }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSupplierClick(invoice.supplier_name!);
+                        }}
+                        title={invoice.supplier_name}
+                      >
+                        {invoice.supplier_name}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">-</span>
+                    )}
                   </TableCell>
                   <TableCell className="py-4 px-2 text-right">
-                    <span className={cn('text-xs px-2 py-1 rounded-full border font-medium', businessTypeColors[invoice.business_type])}>
-                      {invoice.business_type}
-                    </span>
+                    {invoice.business_type ? (
+                      <span className={cn('text-xs px-2 py-1 rounded-full border font-medium', businessTypeColors[invoice.business_type as BusinessType])}>
+                        {invoice.business_type}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">-</span>
+                    )}
                   </TableCell>
                   <TableCell className="py-4 px-2 text-right">
-                    <span className={cn('text-xs px-2 py-1 rounded-full border font-medium', getCategoryColor(invoice.category))} title={invoice.category}>
-                      {invoice.category}
-                    </span>
+                    {invoice.category ? (
+                      <span className={cn('text-xs px-2 py-1 rounded-full border font-medium', getCategoryColor(invoice.category))} title={invoice.category}>
+                        {invoice.category}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">-</span>
+                    )}
                   </TableCell>
                   <TableCell className="py-4 px-2 whitespace-nowrap text-sm text-slate-600 text-right">
-                    {format(new Date(invoice.document_date), 'dd/MM/yy')}
+                    {invoice.document_date ? format(new Date(invoice.document_date), 'dd/MM/yy') : <span className="text-slate-400">-</span>}
                   </TableCell>
-                  <TableCell className="py-4 px-2 text-sm text-slate-600 text-right" title={invoice.document_type}>
-                    {invoice.document_type === 'חשבונית מס' ? 'חשבונית מס' : invoice.document_type.substring(0, 10)}
+                  <TableCell className="py-4 px-2 text-sm text-slate-600 text-right" title={invoice.document_type || ''}>
+                    {invoice.document_type ? (invoice.document_type === 'חשבונית מס' ? 'חשבונית מס' : invoice.document_type.substring(0, 10)) : <span className="text-slate-400">-</span>}
                   </TableCell>
-                  <TableCell className="py-4 px-2 font-mono text-sm text-slate-600 text-right">{invoice.document_number}</TableCell>
+                  <TableCell className="py-4 px-2 font-mono text-sm text-slate-600 text-right">{invoice.document_number || <span className="text-slate-400">-</span>}</TableCell>
                   <TableCell className="py-4 px-2 text-right text-sm text-slate-700 whitespace-nowrap">
-                    ₪{Number(invoice.amount_before_vat).toLocaleString('he-IL')}
+                    {invoice.amount_before_vat != null ? `₪${Number(invoice.amount_before_vat).toLocaleString('he-IL')}` : <span className="text-slate-400">-</span>}
                   </TableCell>
                   <TableCell className="py-4 px-2 text-right text-sm whitespace-nowrap">
                     {invoice.vat_amount ? (
@@ -422,19 +444,27 @@ const InvoiceTable = ({
                     )}
                   </TableCell>
                   <TableCell className="py-4 px-2 text-right whitespace-nowrap">
-                    <span className={cn(
-                      'text-sm font-semibold px-2 py-1 rounded',
-                      Number(invoice.total_amount) >= 1000 
-                        ? 'bg-red-100 text-red-700 border border-red-200' 
-                        : 'text-slate-800'
-                    )}>
-                      ₪{Number(invoice.total_amount).toLocaleString('he-IL')}
-                    </span>
+                    {invoice.total_amount != null ? (
+                      <span className={cn(
+                        'text-sm font-semibold px-2 py-1 rounded',
+                        Number(invoice.total_amount) >= 1000 
+                          ? 'bg-red-100 text-red-700 border border-red-200' 
+                          : 'text-slate-800'
+                      )}>
+                        ₪{Number(invoice.total_amount).toLocaleString('he-IL')}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">-</span>
+                    )}
                   </TableCell>
                   <TableCell className="py-4 px-2 text-right">
-                    <span className={cn('text-xs px-2 py-1 rounded-full border font-medium', entryMethodColors[invoice.entry_method])}>
-                      {invoice.entry_method}
-                    </span>
+                    {invoice.entry_method ? (
+                      <span className={cn('text-xs px-2 py-1 rounded-full border font-medium', entryMethodColors[invoice.entry_method as EntryMethod])}>
+                        {invoice.entry_method}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">-</span>
+                    )}
                   </TableCell>
                   <TableCell className="py-4 px-2 text-center">
                     {invoice.image_url ? (
