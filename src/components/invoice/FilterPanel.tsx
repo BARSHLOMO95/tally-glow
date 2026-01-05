@@ -81,16 +81,17 @@ function MultiSelectFilter<T extends string>({ label, options, selected, onChang
             selected.length > 0 && 'border-primary bg-primary/5'
           )}
         >
+          <ChevronDown className="h-4 w-4 ml-2 shrink-0" />
           <span className="truncate">{displayText}</span>
-          <ChevronDown className="h-4 w-4 mr-2 shrink-0" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-0 bg-popover" align="start" dir="rtl">
         <div className="p-2 border-b">
           <div
-            className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md text-primary font-medium"
+            className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md text-primary font-medium flex-row-reverse"
             onClick={handleSelectAll}
           >
+            <span>בחר הכל</span>
             <Checkbox
               checked={isAllSelected}
               ref={(el) => {
@@ -99,18 +100,17 @@ function MultiSelectFilter<T extends string>({ label, options, selected, onChang
                 }
               }}
             />
-            <span>בחר הכל</span>
           </div>
         </div>
         <div className="max-h-60 overflow-y-auto p-2">
           {options.map((option) => (
             <div
               key={option}
-              className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md"
+              className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md flex-row-reverse"
               onClick={() => handleToggle(option)}
             >
-              <Checkbox checked={selected.includes(option)} />
               <span className="text-sm">{option}</span>
+              <Checkbox checked={selected.includes(option)} />
             </div>
           ))}
         </div>
@@ -267,8 +267,8 @@ const FilterPanel = ({
                       (filters.amountMin !== null || filters.amountMax !== null) && 'border-primary bg-primary/5'
                     )}
                   >
+                    <ChevronDown className="h-4 w-4 ml-2" />
                     <span>סכום סה"כ</span>
-                    <ChevronDown className="h-4 w-4 mr-2" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-64 p-4 bg-popover" align="start" dir="rtl">

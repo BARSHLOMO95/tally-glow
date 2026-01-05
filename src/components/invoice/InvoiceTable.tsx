@@ -199,9 +199,9 @@ const InvoiceTable = ({
                 className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('intake_date')}
               >
-                <div className="flex items-center gap-1 flex-row-reverse justify-start">
-                  <SortIcon field="intake_date" />
+                <div className="flex items-center gap-1 flex-row-reverse justify-end">
                   <span>ת.קליטה</span>
+                  <SortIcon field="intake_date" />
                 </div>
               </TableHead>
               <TableHead 
@@ -209,9 +209,9 @@ const InvoiceTable = ({
                 className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('status')}
               >
-                <div className="flex items-center gap-1 flex-row-reverse justify-start">
-                  <SortIcon field="status" />
+                <div className="flex items-center gap-1 flex-row-reverse justify-end">
                   <span>סטטוס</span>
+                  <SortIcon field="status" />
                 </div>
               </TableHead>
               <TableHead 
@@ -219,9 +219,9 @@ const InvoiceTable = ({
                 className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('supplier_name')}
               >
-                <div className="flex items-center gap-1 flex-row-reverse justify-start">
-                  <SortIcon field="supplier_name" />
+                <div className="flex items-center gap-1 flex-row-reverse justify-end">
                   <span>ספק</span>
+                  <SortIcon field="supplier_name" />
                 </div>
               </TableHead>
               <TableHead 
@@ -229,9 +229,9 @@ const InvoiceTable = ({
                 className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('business_type')}
               >
-                <div className="flex items-center gap-1 flex-row-reverse justify-start">
-                  <SortIcon field="business_type" />
+                <div className="flex items-center gap-1 flex-row-reverse justify-end">
                   <span>סוג עוסק</span>
+                  <SortIcon field="business_type" />
                 </div>
               </TableHead>
               <TableHead 
@@ -239,9 +239,9 @@ const InvoiceTable = ({
                 className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('category')}
               >
-                <div className="flex items-center gap-1 flex-row-reverse justify-start">
-                  <SortIcon field="category" />
+                <div className="flex items-center gap-1 flex-row-reverse justify-end">
                   <span>קטגוריה</span>
+                  <SortIcon field="category" />
                 </div>
               </TableHead>
               <TableHead 
@@ -249,9 +249,9 @@ const InvoiceTable = ({
                 className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('document_date')}
               >
-                <div className="flex items-center gap-1 flex-row-reverse justify-start">
-                  <SortIcon field="document_date" />
+                <div className="flex items-center gap-1 flex-row-reverse justify-end">
                   <span>ת.מסמך</span>
+                  <SortIcon field="document_date" />
                 </div>
               </TableHead>
               <TableHead 
@@ -259,9 +259,9 @@ const InvoiceTable = ({
                 className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('document_type')}
               >
-                <div className="flex items-center gap-1 flex-row-reverse justify-start">
-                  <SortIcon field="document_type" />
+                <div className="flex items-center gap-1 flex-row-reverse justify-end">
                   <span>סוג</span>
+                  <SortIcon field="document_type" />
                 </div>
               </TableHead>
               <TableHead 
@@ -269,9 +269,9 @@ const InvoiceTable = ({
                 className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('document_number')}
               >
-                <div className="flex items-center gap-1 flex-row-reverse justify-start">
-                  <SortIcon field="document_number" />
+                <div className="flex items-center gap-1 flex-row-reverse justify-end">
                   <span>מס׳</span>
+                  <SortIcon field="document_number" />
                 </div>
               </TableHead>
               <TableHead 
@@ -279,9 +279,9 @@ const InvoiceTable = ({
                 className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('amount_before_vat')}
               >
-                <div className="flex items-center gap-1 flex-row-reverse justify-start">
-                  <SortIcon field="amount_before_vat" />
+                <div className="flex items-center gap-1 flex-row-reverse justify-end">
                   <span>לפני מע"מ</span>
+                  <SortIcon field="amount_before_vat" />
                 </div>
               </TableHead>
               <TableHead 
@@ -289,9 +289,9 @@ const InvoiceTable = ({
                 className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('vat_amount')}
               >
-                <div className="flex items-center gap-1 flex-row-reverse justify-start">
-                  <SortIcon field="vat_amount" />
+                <div className="flex items-center gap-1 flex-row-reverse justify-end">
                   <span>מע"מ</span>
+                  <SortIcon field="vat_amount" />
                 </div>
               </TableHead>
               <TableHead 
@@ -299,9 +299,9 @@ const InvoiceTable = ({
                 className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('total_amount')}
               >
-                <div className="flex items-center gap-1 flex-row-reverse justify-start">
-                  <SortIcon field="total_amount" />
+                <div className="flex items-center gap-1 flex-row-reverse justify-end">
                   <span>סה"כ</span>
+                  <SortIcon field="total_amount" />
                 </div>
               </TableHead>
               <TableHead 
@@ -309,9 +309,9 @@ const InvoiceTable = ({
                 className="cursor-pointer hover:bg-muted transition-colors p-2 whitespace-nowrap text-right"
                 onClick={() => handleSort('entry_method')}
               >
-                <div className="flex items-center gap-1 flex-row-reverse justify-start">
-                  <SortIcon field="entry_method" />
+                <div className="flex items-center gap-1 flex-row-reverse justify-end">
                   <span>אופן</span>
+                  <SortIcon field="entry_method" />
                 </div>
               </TableHead>
               <TableHead style={{ width: columnWidths.image }} className="text-center p-2">📷</TableHead>
