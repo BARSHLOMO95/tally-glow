@@ -5,7 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Upload, FileSpreadsheet, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
-import { InvoiceFormData, BusinessType, InvoiceStatus } from '@/types/invoice';
+import { InvoiceFormData, BusinessType, InvoiceStatus, EntryMethod } from '@/types/invoice';
+
+const VALID_ENTRY_METHODS: EntryMethod[] = ['ידני', 'דיגיטלי'];
 
 interface ImportExcelModalProps {
   isOpen: boolean;
@@ -18,13 +20,17 @@ const COLUMN_MAPPING: Record<string, keyof InvoiceFormData> = {
   'תאריך מסמך': 'document_date',
   'סטטוס': 'status',
   'שם ספק': 'supplier_name',
+  'שם הספק': 'supplier_name',
   'מספר מסמך': 'document_number',
+  'סוג מסמך': 'document_type',
   'קטגוריה': 'category',
   'לפני מע"מ': 'amount_before_vat',
   'סכום לפני מע"מ': 'amount_before_vat',
   'סה"כ': 'total_amount',
   'סכום כולל': 'total_amount',
+  'סכום כולל מע"מ': 'total_amount',
   'סוג עוסק': 'business_type',
+  'ידני / דיגיטלי': 'entry_method',
   'תמונה': 'image_url',
 };
 
@@ -107,6 +113,9 @@ const ImportExcelModal = ({ isOpen, onClose, onImport }: ImportExcelModalProps) 
               } else if (mappedKey === 'business_type') {
                 const businessType = String(value).trim() as BusinessType;
                 invoice[mappedKey] = VALID_BUSINESS_TYPES.includes(businessType) ? businessType : 'עוסק מורשה';
+              } else if (mappedKey === 'entry_method') {
+                const entryMethod = String(value).trim() as EntryMethod;
+                invoice[mappedKey] = VALID_ENTRY_METHODS.includes(entryMethod) ? entryMethod : 'ידני';
               } else {
                 (invoice as Record<string, unknown>)[mappedKey] = String(value);
               }
@@ -142,11 +151,13 @@ const ImportExcelModal = ({ isOpen, onClose, onImport }: ImportExcelModalProps) 
             status: invoice.status || 'חדש',
             supplier_name: invoice.supplier_name,
             document_number: invoice.document_number,
+            document_type: invoice.document_type || 'חשבונית מס',
             category: invoice.category || 'כללי',
             amount_before_vat: amountBeforeVat,
             vat_amount: vatAmount,
             total_amount: invoice.total_amount || amountBeforeVat + (vatAmount || 0),
             business_type: businessType,
+            entry_method: invoice.entry_method || 'ידני',
             image_url: invoice.image_url || null,
           });
         } catch (err) {

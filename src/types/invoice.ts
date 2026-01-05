@@ -1,5 +1,6 @@
 export type InvoiceStatus = 'חדש' | 'בתהליך' | 'טופל';
 export type BusinessType = 'עוסק מורשה' | 'עוסק פטור' | 'חברה בע"מ' | 'ספק חו"ל';
+export type EntryMethod = 'ידני' | 'דיגיטלי';
 
 export interface Invoice {
   id: string;
@@ -9,11 +10,13 @@ export interface Invoice {
   status: InvoiceStatus;
   supplier_name: string;
   document_number: string;
+  document_type: string;
   category: string;
   amount_before_vat: number;
   vat_amount: number | null;
   total_amount: number;
   business_type: BusinessType;
+  entry_method: EntryMethod;
   image_url: string | null;
   created_at: string;
   updated_at: string;
@@ -25,11 +28,13 @@ export interface InvoiceFormData {
   status: InvoiceStatus;
   supplier_name: string;
   document_number: string;
+  document_type: string;
   category: string;
   amount_before_vat: number;
   vat_amount: number | null;
   total_amount: number;
   business_type: BusinessType;
+  entry_method: EntryMethod;
   image_url: string | null;
 }
 
