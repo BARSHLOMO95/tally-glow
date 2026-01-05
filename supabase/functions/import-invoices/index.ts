@@ -59,17 +59,70 @@ Deno.serve(async (req) => {
       const documentDate = invoice['תאריך מסמך'] || invoice.document_date;
       const documentType = invoice['סוג מסמך'] || invoice.document_type || null;
       const documentNumber = invoice['מספר מסמך'] || invoice.document_number || null;
-      const amountBeforeVat = invoice['סכום לפני מע"מ'] || invoice['סכום לפני מע״מ'] || invoice.amount_before_vat || 0;
-      const vatAmount = invoice['מע"מ'] || invoice['מע״מ'] || invoice.vat_amount;
-      const totalAmount = invoice['סכום כולל מע"מ'] || invoice['סכום כולל מע״מ'] || invoice.total_amount;
+      const rawAmountBeforeVat = invoice['סכום לפני מע"מ'] || invoice['סכום לפני מע״מ'] || invoice.amount_before_vat;
+      const rawVatAmount = invoice['מע"מ'] || invoice['מע״מ'] || invoice.vat_amount;
+      const rawTotalAmount = invoice['סכום כולל מע"מ'] || invoice['סכום כולל מע״מ'] || invoice.total_amount;
       const category = invoice['קטגוריה'] || invoice.category || null;
       const entryMethod = invoice['פורמט מסמך'] || invoice.entry_method || null;
       const businessType = invoice['סוג עוסק'] || invoice.business_type || null;
       const imageUrl = invoice['קישור לתמונה'] || invoice['תמונה'] || invoice.image_url || null;
 
-      const parsedAmountBeforeVat = parseFloat(amountBeforeVat) || 0;
-      const parsedVatAmount = vatAmount !== undefined && vatAmount !== '' ? parseFloat(vatAmount) : null;
-      const parsedTotalAmount = totalAmount !== undefined && totalAmount !== '' ? parseFloat(totalAmount) : null;
+      // Parse raw amounts
+      const parsedBeforeVat = parseFloat(rawAmountBeforeVat) || 0;
+      const parsedTotal = parseFloat(rawTotalAmount) || 0;
+      const parsedVat = rawVatAmount !== undefined && rawVatAmount !== '' && rawVatAmount !== 0 ? parseFloat(rawVatAmount) : null;
+
+      // Calculate VAT based on business type
+      // עוסק פטור and ספק חו"ל = 0% VAT
+      // עוסק מורשה and חברה בע"מ = 18% VAT
+      const isVatExempt = businessType === 'עוסק פטור' || businessType === 'ספק חו"ל';
+      
+      let finalAmountBeforeVat = parsedBeforeVat;
+      let finalVatAmount = parsedVat;
+      let finalTotalAmount = parsedTotal;
+
+      if (isVatExempt) {
+        // No VAT for exempt businesses
+        finalVatAmount = 0;
+        if (parsedTotal > 0) {
+          finalAmountBeforeVat = parsedTotal;
+          finalTotalAmount = parsedTotal;
+        } else {
+          finalTotalAmount = parsedBeforeVat;
+        }
+      } else {
+        // 18% VAT for עוסק מורשה and חברה בע"מ
+        if (parsedVat !== null && parsedVat > 0) {
+          // VAT was provided explicitly
+          finalVatAmount = parsedVat;
+          if (parsedTotal > 0) {
+            finalTotalAmount = parsedTotal;
+            finalAmountBeforeVat = parsedBeforeVat > 0 ? parsedBeforeVat : parsedTotal - parsedVat;
+          } else {
+            finalTotalAmount = parsedBeforeVat + parsedVat;
+          }
+        } else if (parsedBeforeVat > 0 && parsedTotal > 0 && parsedBeforeVat === parsedTotal) {
+          // Same amount before and after VAT - need to extract 18% from total
+          // total = before_vat * 1.18, so before_vat = total / 1.18
+          finalAmountBeforeVat = Math.round((parsedTotal / 1.18) * 100) / 100;
+          finalVatAmount = Math.round((parsedTotal - finalAmountBeforeVat) * 100) / 100;
+          finalTotalAmount = parsedTotal;
+        } else if (parsedTotal > 0 && parsedBeforeVat === 0) {
+          // Only total provided - extract VAT
+          finalAmountBeforeVat = Math.round((parsedTotal / 1.18) * 100) / 100;
+          finalVatAmount = Math.round((parsedTotal - finalAmountBeforeVat) * 100) / 100;
+          finalTotalAmount = parsedTotal;
+        } else if (parsedBeforeVat > 0 && parsedTotal === 0) {
+          // Only before VAT provided - calculate total
+          finalVatAmount = Math.round((parsedBeforeVat * 0.18) * 100) / 100;
+          finalTotalAmount = Math.round((parsedBeforeVat + finalVatAmount) * 100) / 100;
+        } else if (parsedBeforeVat > 0 && parsedTotal > 0) {
+          // Both provided and different - calculate VAT as difference
+          finalVatAmount = Math.round((parsedTotal - parsedBeforeVat) * 100) / 100;
+        }
+      }
+
+      console.log(`VAT Calculation - Business: ${businessType}, Before: ${parsedBeforeVat}, Total: ${parsedTotal}, Raw VAT: ${parsedVat} => Final Before: ${finalAmountBeforeVat}, Final VAT: ${finalVatAmount}, Final Total: ${finalTotalAmount}`);
 
       return {
         user_id: userId,
@@ -80,9 +133,9 @@ Deno.serve(async (req) => {
         document_number: documentNumber,
         document_type: documentType,
         category: category,
-        amount_before_vat: parsedAmountBeforeVat,
-        vat_amount: parsedVatAmount,
-        total_amount: parsedTotalAmount || parsedAmountBeforeVat,
+        amount_before_vat: finalAmountBeforeVat,
+        vat_amount: finalVatAmount,
+        total_amount: finalTotalAmount || finalAmountBeforeVat,
         business_type: businessType,
         entry_method: entryMethod,
         image_url: imageUrl,
