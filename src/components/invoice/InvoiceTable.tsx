@@ -33,7 +33,7 @@ interface ColumnConfig {
 
 const defaultColumnWidths: Record<string, number> = {
   checkbox: 40,
-  intake_date: 90,
+  intake_date: 100,
   status: 70,
   supplier_name: 120,
   business_type: 90,

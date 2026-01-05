@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
 
       return {
         user_id: userId,
-        intake_date: invoice.intake_date || new Date().toISOString().split('T')[0],
+        intake_date: invoice.intake_date || new Date().toISOString(),
         document_date: documentDate ? parseDate(documentDate) : null,
         status: invoice.status || 'חדש',
         supplier_name: supplierName,
