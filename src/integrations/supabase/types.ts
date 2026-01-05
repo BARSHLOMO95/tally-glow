@@ -16,7 +16,7 @@ export type Database = {
     Tables: {
       invoices: {
         Row: {
-          amount_before_vat: number
+          amount_before_vat: number | null
           business_type: string | null
           category: string | null
           created_at: string
@@ -26,16 +26,16 @@ export type Database = {
           entry_method: string | null
           id: string
           image_url: string | null
-          intake_date: string
-          status: Database["public"]["Enums"]["invoice_status"]
+          intake_date: string | null
+          status: Database["public"]["Enums"]["invoice_status"] | null
           supplier_name: string | null
-          total_amount: number
+          total_amount: number | null
           updated_at: string
           user_id: string
           vat_amount: number | null
         }
         Insert: {
-          amount_before_vat: number
+          amount_before_vat?: number | null
           business_type?: string | null
           category?: string | null
           created_at?: string
@@ -45,16 +45,16 @@ export type Database = {
           entry_method?: string | null
           id?: string
           image_url?: string | null
-          intake_date?: string
-          status?: Database["public"]["Enums"]["invoice_status"]
+          intake_date?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"] | null
           supplier_name?: string | null
-          total_amount: number
+          total_amount?: number | null
           updated_at?: string
           user_id: string
           vat_amount?: number | null
         }
         Update: {
-          amount_before_vat?: number
+          amount_before_vat?: number | null
           business_type?: string | null
           category?: string | null
           created_at?: string
@@ -64,10 +64,10 @@ export type Database = {
           entry_method?: string | null
           id?: string
           image_url?: string | null
-          intake_date?: string
-          status?: Database["public"]["Enums"]["invoice_status"]
+          intake_date?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"] | null
           supplier_name?: string | null
-          total_amount?: number
+          total_amount?: number | null
           updated_at?: string
           user_id?: string
           vat_amount?: number | null
