@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useInvoices } from '@/hooks/useInvoices';
 import { Button } from '@/components/ui/button';
@@ -11,8 +11,10 @@ import ImageModal from '@/components/invoice/ImageModal';
 import SupplierCardModal from '@/components/invoice/SupplierCardModal';
 import AddInvoiceModal from '@/components/invoice/AddInvoiceModal';
 import ImportExcelModal from '@/components/invoice/ImportExcelModal';
+import DashboardCharts from '@/components/invoice/DashboardCharts';
+import DuplicatesModal from '@/components/invoice/DuplicatesModal';
 import { Invoice, InvoiceFormData } from '@/types/invoice';
-import { LogOut, Plus, FileText, Loader2, Upload } from 'lucide-react';
+import { LogOut, Plus, FileText, Loader2, Upload, LayoutGrid, RefreshCw, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Dashboard = () => {
@@ -41,6 +43,9 @@ const Dashboard = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDuplicatesModalOpen, setIsDuplicatesModalOpen] = useState(false);
+  const [showCharts, setShowCharts] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -170,6 +175,31 @@ const Dashboard = () => {
     createInvoice(data);
   };
 
+  // Calculate duplicates count
+  const duplicatesCount = useMemo(() => {
+    const groups = new Map<string, number>();
+    invoices.forEach((inv) => {
+      const key = `${inv.document_number}-${Math.round(inv.total_amount)}`;
+      groups.set(key, (groups.get(key) || 0) + 1);
+    });
+    return Array.from(groups.values()).filter(count => count > 1).reduce((sum, c) => sum + c, 0);
+  }, [invoices]);
+
+  // Filter invoices by search query
+  const searchFilteredInvoices = useMemo(() => {
+    if (!searchQuery.trim()) return filteredInvoices;
+    const query = searchQuery.toLowerCase();
+    return filteredInvoices.filter(inv =>
+      inv.supplier_name.toLowerCase().includes(query) ||
+      inv.document_number.toLowerCase().includes(query) ||
+      inv.category.toLowerCase().includes(query)
+    );
+  }, [filteredInvoices, searchQuery]);
+
+  const handleSelectDuplicates = (ids: string[]) => {
+    ids.forEach(id => toggleSelection(id));
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
@@ -185,26 +215,29 @@ const Dashboard = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                <FileText className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">מערכת ניהול חשבוניות</h1>
-                <p className="text-sm text-muted-foreground">{user?.email}</p>
-              </div>
+              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                סטטוס ONLINE
+              </span>
+              <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                <RefreshCw className="h-4 w-4 ml-1" />
+                רענן
+              </Button>
+              <Button 
+                variant={showCharts ? "default" : "outline"} 
+                size="sm" 
+                onClick={() => setShowCharts(!showCharts)}
+              >
+                <LayoutGrid className="h-4 w-4 ml-1" />
+                הסתר גרפים
+              </Button>
             </div>
             <div className="flex items-center gap-3">
-              <Button onClick={() => setIsAddModalOpen(true)}>
-                <Plus className="h-4 w-4 ml-1" />
-                הוסף חשבונית
-              </Button>
-              <Button variant="outline" onClick={() => setIsImportModalOpen(true)}>
-                <Upload className="h-4 w-4 ml-1" />
-                ייבוא מ-Excel
-              </Button>
-              <Button variant="outline" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 ml-1" />
-                התנתק
+              <div className="text-left">
+                <h1 className="text-xl font-bold">ניהול הוצאות</h1>
+                <p className="text-sm text-muted-foreground">דאשבורד פיננסי בזמן אמת</p>
+              </div>
+              <Button variant="ghost" size="icon">
+                <Settings className="h-5 w-5" />
               </Button>
             </div>
           </div>
@@ -214,7 +247,14 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* KPI Cards */}
-        <KPICards data={kpiData} />
+        <KPICards 
+          data={kpiData} 
+          documentCount={invoices.length}
+          filteredCount={searchFilteredInvoices.length}
+        />
+
+        {/* Charts Section */}
+        <DashboardCharts invoices={invoices} isVisible={showCharts} />
 
         {/* Filter Panel */}
         <FilterPanel
@@ -222,6 +262,9 @@ const Dashboard = () => {
           setFilters={setFilters}
           filterOptions={filterOptions}
           selectedCount={selectedIds.length}
+          duplicatesCount={duplicatesCount}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
           onBulkEdit={() => {
             if (selectedIds.length === 1) {
               const invoice = invoices.find(i => i.id === selectedIds[0]);
@@ -232,12 +275,16 @@ const Dashboard = () => {
           }}
           onBulkDelete={handleBulkDelete}
           onPrint={handlePrint}
-          onClearFilters={clearFilters}
+          onClearFilters={() => {
+            clearFilters();
+            setSearchQuery('');
+          }}
+          onShowDuplicates={() => setIsDuplicatesModalOpen(true)}
         />
 
         {/* Invoice Table */}
         <InvoiceTable
-          invoices={filteredInvoices}
+          invoices={searchFilteredInvoices}
           selectedIds={selectedIds}
           onToggleSelection={toggleSelection}
           onToggleSelectAll={toggleSelectAll}
@@ -282,6 +329,13 @@ const Dashboard = () => {
         onImport={bulkCreateInvoices}
       />
 
+      <DuplicatesModal
+        isOpen={isDuplicatesModalOpen}
+        onClose={() => setIsDuplicatesModalOpen(false)}
+        invoices={invoices}
+        onSelectDuplicates={handleSelectDuplicates}
+      />
+
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent dir="rtl">
@@ -299,6 +353,26 @@ const Dashboard = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Floating Action Buttons */}
+      <div className="fixed bottom-6 left-6 flex flex-col gap-2 z-50">
+        <Button onClick={() => setIsAddModalOpen(true)} size="lg" className="shadow-lg">
+          <Plus className="h-5 w-5 ml-1" />
+          הוסף חשבונית
+        </Button>
+        <Button variant="outline" onClick={() => setIsImportModalOpen(true)} className="shadow-lg bg-card">
+          <Upload className="h-4 w-4 ml-1" />
+          ייבוא Excel
+        </Button>
+      </div>
+
+      {/* User Menu - Top Left */}
+      <div className="fixed top-4 left-4 z-50">
+        <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground">
+          <LogOut className="h-4 w-4 ml-1" />
+          {user?.email?.split('@')[0]}
+        </Button>
+      </div>
     </div>
   );
 };
