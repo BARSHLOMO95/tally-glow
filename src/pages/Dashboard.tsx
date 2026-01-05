@@ -10,10 +10,10 @@ import EditInvoiceModal from '@/components/invoice/EditInvoiceModal';
 import ImageModal from '@/components/invoice/ImageModal';
 import SupplierCardModal from '@/components/invoice/SupplierCardModal';
 import AddInvoiceModal from '@/components/invoice/AddInvoiceModal';
+import ImportExcelModal from '@/components/invoice/ImportExcelModal';
 import { Invoice, InvoiceFormData } from '@/types/invoice';
 import { LogOut, Plus, FileText, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -27,6 +27,7 @@ const Dashboard = () => {
     kpiData,
     setFilters,
     createInvoice,
+    bulkCreateInvoices,
     updateInvoice,
     deleteInvoices,
     toggleSelection,
@@ -38,6 +39,7 @@ const Dashboard = () => {
   const [imageModalUrl, setImageModalUrl] = useState<string | null>(null);
   const [supplierCardName, setSupplierCardName] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const handleSignOut = async () => {
@@ -93,26 +95,10 @@ const Dashboard = () => {
                 <Plus className="h-4 w-4 ml-1" />
                 הוסף חשבונית
               </Button>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      const webhookUrl = `https://osqanpfiprsbcontotlq.supabase.co/functions/v1/import-invoices`;
-                      navigator.clipboard.writeText(webhookUrl);
-                      toast.success('כתובת Webhook הועתקה!', {
-                        description: webhookUrl
-                      });
-                    }}
-                  >
-                    <Upload className="h-4 w-4 ml-1" />
-                    ייבוא נתונים
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>לחץ להעתקת כתובת ה-Webhook</p>
-                </TooltipContent>
-              </Tooltip>
+              <Button variant="outline" onClick={() => setIsImportModalOpen(true)}>
+                <Upload className="h-4 w-4 ml-1" />
+                ייבוא מ-Excel
+              </Button>
               <Button variant="outline" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4 ml-1" />
                 התנתק
@@ -185,6 +171,12 @@ const Dashboard = () => {
         onClose={() => setIsAddModalOpen(false)}
         onSave={handleCreateInvoice}
         existingCategories={filterOptions.categories}
+      />
+
+      <ImportExcelModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={bulkCreateInvoices}
       />
 
       {/* Delete Confirmation Dialog */}
