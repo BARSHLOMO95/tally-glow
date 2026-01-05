@@ -87,7 +87,7 @@ function MultiSelectFilter<T extends string>({ label, options, selected, onChang
           <span className="truncate">{displayText}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-0 bg-popover" align="start" side="bottom" dir="rtl">
+      <PopoverContent className="w-56 p-0 bg-popover" align="end" side="bottom" dir="rtl" sideOffset={8} collisionPadding={16}>
         <div className="p-2 border-b">
           <div
             className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md text-primary font-medium flex-row-reverse"
@@ -275,7 +275,7 @@ const FilterPanel = ({
                     <span>סכום סה"כ</span>
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-64 p-4 bg-popover" align="start" side="bottom" dir="rtl">
+                <PopoverContent className="w-64 p-4 bg-popover" align="end" side="bottom" dir="rtl" sideOffset={8} collisionPadding={16}>
                   <div className="space-y-3">
                     <div>
                       <label className="text-sm font-medium block text-right">סכום מינימום</label>
