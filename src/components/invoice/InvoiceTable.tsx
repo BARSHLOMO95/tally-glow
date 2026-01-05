@@ -288,7 +288,7 @@ const InvoiceTable = ({
                 onClick={() => handleSort('document_number')}
               >
                 <div className="flex items-center gap-1 flex-row-reverse justify-end">
-                  <span>לפני מע"מ</span>
+                  <span>מס' מסמך</span>
                   <SortIcon field="document_number" />
                 </div>
               </TableHead>
@@ -298,7 +298,7 @@ const InvoiceTable = ({
                 onClick={() => handleSort('amount_before_vat')}
               >
                 <div className="flex items-center gap-1 flex-row-reverse justify-end">
-                  <span>מע"מ</span>
+                  <span>לפני מע"מ</span>
                   <SortIcon field="amount_before_vat" />
                 </div>
               </TableHead>
@@ -308,7 +308,7 @@ const InvoiceTable = ({
                 onClick={() => handleSort('vat_amount')}
               >
                 <div className="flex items-center gap-1 flex-row-reverse justify-end">
-                  <span>סה"כ</span>
+                  <span>מע"מ</span>
                   <SortIcon field="vat_amount" />
                 </div>
               </TableHead>
@@ -318,7 +318,7 @@ const InvoiceTable = ({
                 onClick={() => handleSort('total_amount')}
               >
                 <div className="flex items-center gap-1 flex-row-reverse justify-end">
-                  <span>עוסק</span>
+                  <span>סה"כ</span>
                   <SortIcon field="total_amount" />
                 </div>
               </TableHead>
@@ -328,11 +328,11 @@ const InvoiceTable = ({
                 onClick={() => handleSort('entry_method')}
               >
                 <div className="flex items-center gap-1 flex-row-reverse justify-end">
-                  <span>תמונה</span>
+                  <span>שיטה</span>
                   <SortIcon field="entry_method" />
                 </div>
               </TableHead>
-              <TableHead style={{ width: columnWidths.image }} className="text-center py-3 px-2 text-slate-600 font-medium text-xs">☑</TableHead>
+              <TableHead style={{ width: columnWidths.image }} className="text-center py-3 px-2 text-slate-600 font-medium text-xs">תמונה</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
