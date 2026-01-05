@@ -68,8 +68,8 @@ const Dashboard = () => {
     // Get selected invoices
     const selectedInvoices = invoices.filter(inv => selectedIds.includes(inv.id));
     
-    // Store in sessionStorage for the report page
-    sessionStorage.setItem('printInvoices', JSON.stringify(selectedInvoices));
+    // Store in localStorage (more reliable across tabs)
+    localStorage.setItem('printInvoices', JSON.stringify(selectedInvoices));
     
     // Open report in new tab
     window.open('/report', '_blank');
