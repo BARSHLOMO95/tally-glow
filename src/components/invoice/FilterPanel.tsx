@@ -32,8 +32,6 @@ interface FilterPanelProps {
   onClearFilters: () => void;
   onToggleDuplicates: () => void;
   onOpenDuplicatesModal: () => void;
-  onAddInvoice: () => void;
-  onImportExcel: () => void;
 }
 
 type FilterKey = keyof FilterState;
@@ -92,10 +90,9 @@ function MultiSelectFilter<T extends string>({ label, options, selected, onChang
       <PopoverContent className="w-[calc(100vw-2rem)] sm:w-56 p-0 bg-popover" align={isMobile ? "center" : "end"} side="bottom" dir="rtl" sideOffset={8} collisionPadding={16}>
         <div className="p-2 border-b">
           <div
-            className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md text-primary font-medium flex-row-reverse"
+            className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md text-primary font-medium justify-end"
             onClick={handleSelectAll}
           >
-            <span>בחר הכל</span>
             <Checkbox
               checked={isAllSelected}
               ref={(el) => {
@@ -104,17 +101,18 @@ function MultiSelectFilter<T extends string>({ label, options, selected, onChang
                 }
               }}
             />
+            <span>בחר הכל</span>
           </div>
         </div>
         <div className="max-h-60 overflow-y-auto p-2">
           {options.map((option) => (
             <div
               key={option}
-              className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md flex-row-reverse"
+              className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md justify-end"
               onClick={() => handleToggle(option)}
             >
-              <span className="text-sm">{option}</span>
               <Checkbox checked={selected.includes(option)} />
+              <span className="text-sm">{option}</span>
             </div>
           ))}
         </div>
@@ -138,8 +136,6 @@ const FilterPanel = ({
   onClearFilters,
   onToggleDuplicates,
   onOpenDuplicatesModal,
-  onAddInvoice,
-  onImportExcel,
 }: FilterPanelProps) => {
   const [isOpen, setIsOpen] = useState(true);
   const [showAmountFilter, setShowAmountFilter] = useState(false);
@@ -186,18 +182,6 @@ const FilterPanel = ({
         
         <CollapsibleContent>
           <div className="p-3 sm:p-4 pt-0 space-y-3 sm:space-y-4">
-            {/* Add Buttons Row */}
-            <div className="flex flex-wrap gap-2 justify-start">
-              <Button onClick={onAddInvoice} size="sm" className="flex-row-reverse text-xs sm:text-sm">
-                <Plus className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
-                הוסף חשבונית
-              </Button>
-              <Button variant="outline" onClick={onImportExcel} size="sm" className="flex-row-reverse text-xs sm:text-sm">
-                <Upload className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
-                ייבוא Excel
-              </Button>
-            </div>
-
             {/* Search Bar */}
             <div className="relative">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />

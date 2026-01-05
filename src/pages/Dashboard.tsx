@@ -252,6 +252,14 @@ const Dashboard = () => {
               <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">דאשבורד פיננסי בזמן אמת</p>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-row-reverse">
+              <Button onClick={() => setIsAddModalOpen(true)} size="sm" className="flex-row-reverse px-2 sm:px-3">
+                <Plus className="h-4 w-4 sm:ml-2" />
+                <span className="hidden sm:inline">הוסף חשבונית</span>
+              </Button>
+              <Button variant="outline" onClick={() => setIsImportModalOpen(true)} size="sm" className="flex-row-reverse px-2 sm:px-3">
+                <Upload className="h-4 w-4 sm:ml-2" />
+                <span className="hidden sm:inline">ייבוא Excel</span>
+              </Button>
               <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="flex-row-reverse px-2 sm:px-3">
                 <RefreshCw className="h-4 w-4 sm:ml-2" />
                 <span className="hidden sm:inline">רענן</span>
@@ -300,8 +308,6 @@ const Dashboard = () => {
           onClearFilters={handleClearAll}
           onToggleDuplicates={handleToggleDuplicates}
           onOpenDuplicatesModal={() => setIsDuplicatesModalOpen(true)}
-          onAddInvoice={() => setIsAddModalOpen(true)}
-          onImportExcel={() => setIsImportModalOpen(true)}
         />
 
         {/* Invoice Table */}
