@@ -72,15 +72,6 @@ const EditInvoiceModal = ({ invoice, isOpen, onClose, onSave, categories }: Edit
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          {invoice.image_url && (
-            <div className="md:col-span-2 bg-muted rounded-lg p-8 text-center">
-              <img 
-                src={invoice.image_url} 
-                alt="תמונת חשבונית" 
-                className="max-h-48 mx-auto rounded-lg"
-              />
-            </div>
-          )}
 
           <div className="space-y-2">
             <Label>תאריך ושעת קליטה</Label>
@@ -229,6 +220,18 @@ const EditInvoiceModal = ({ invoice, isOpen, onClose, onSave, categories }: Edit
             </Select>
           </div>
         </div>
+
+        {invoice.image_url && (
+          <div className="mt-4 bg-muted rounded-lg p-4">
+            <Label className="block mb-2">תמונת חשבונית</Label>
+            <img 
+              src={invoice.image_url} 
+              alt="תמונת חשבונית" 
+              className="w-full max-h-[400px] object-contain rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+              onClick={() => window.open(invoice.image_url!, '_blank')}
+            />
+          </div>
+        )}
 
         <div className="flex gap-3 mt-6 justify-end">
           <Button variant="outline" onClick={onClose}>
