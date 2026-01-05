@@ -15,6 +15,8 @@ export function useInvoices(userId: string | undefined) {
     suppliers: [],
     categories: [],
     businessTypes: [],
+    amountMin: null,
+    amountMax: null,
   });
 
   // Fetch invoices
@@ -80,6 +82,10 @@ export function useInvoices(userId: string | undefined) {
       if (filters.suppliers.length > 0 && !filters.suppliers.includes(invoice.supplier_name)) return false;
       if (filters.categories.length > 0 && !filters.categories.includes(invoice.category)) return false;
       if (filters.businessTypes.length > 0 && !filters.businessTypes.includes(invoice.business_type)) return false;
+      
+      // Amount filters
+      if (filters.amountMin !== null && invoice.total_amount < filters.amountMin) return false;
+      if (filters.amountMax !== null && invoice.total_amount > filters.amountMax) return false;
 
       return true;
     });
@@ -210,6 +216,8 @@ export function useInvoices(userId: string | undefined) {
       suppliers: [],
       categories: [],
       businessTypes: [],
+      amountMin: null,
+      amountMax: null,
     });
   };
 
