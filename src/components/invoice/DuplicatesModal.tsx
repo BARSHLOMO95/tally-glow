@@ -46,10 +46,13 @@ const DuplicatesModal = ({ isOpen, onClose, invoices, onDeleteSelected }: Duplic
         if (i === j || processed.has(other.id)) return false;
         
         // התאמה על בסיס מספר מסמך
-        const sameDocNumber = inv.document_number === other.document_number && inv.document_number !== '';
+        const sameDocNumber = inv.document_number && other.document_number && 
+          inv.document_number === other.document_number && inv.document_number !== '';
         
-        // התאמה על בסיס סכום (מעוגל)
-        const sameAmount = Math.round(inv.total_amount) === Math.round(other.total_amount);
+        // התאמה על בסיס סכום (מעוגל) - רק אם שניהם קיימים
+        const invAmount = inv.total_amount ?? 0;
+        const otherAmount = other.total_amount ?? 0;
+        const sameAmount = Math.round(invAmount) === Math.round(otherAmount);
         
         return sameDocNumber && sameAmount;
       });
@@ -57,10 +60,10 @@ const DuplicatesModal = ({ isOpen, onClose, invoices, onDeleteSelected }: Duplic
       if (matches.length > 0) {
         const groupInvoices = [inv, ...matches];
         // מיון לפי תאריך קליטה - הישן ביותר ראשון (זה שישאר)
-        groupInvoices.sort((a, b) => new Date(a.intake_date).getTime() - new Date(b.intake_date).getTime());
+        groupInvoices.sort((a, b) => new Date(a.intake_date || '').getTime() - new Date(b.intake_date || '').getTime());
         groupInvoices.forEach(i => processed.add(i.id));
         groups.push({
-          key: `${inv.document_number}-${inv.total_amount.toFixed(0)}`,
+          key: `${inv.document_number || 'unknown'}-${(inv.total_amount ?? 0).toFixed(0)}`,
           invoices: groupInvoices
         });
       }
@@ -215,7 +218,7 @@ const DuplicatesModal = ({ isOpen, onClose, invoices, onDeleteSelected }: Duplic
                             <TableCell className="text-right">{formatDateTime(inv.intake_date)}</TableCell>
                             <TableCell className="text-right">{inv.supplier_name}</TableCell>
                             <TableCell className="text-right">{inv.document_number}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(inv.total_amount)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(inv.total_amount ?? 0)}</TableCell>
                             <TableCell className="text-right">
                               <Badge variant="outline">{inv.status}</Badge>
                             </TableCell>
