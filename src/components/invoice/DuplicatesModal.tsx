@@ -115,13 +115,13 @@ const DuplicatesModal = ({ isOpen, onClose, invoices, onDeleteSelected }: Duplic
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col" dir="rtl">
+      <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col w-[95vw] sm:w-auto" dir="rtl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />
             ניהול כפילויות
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
             נמצאו {duplicateGroups.length} קבוצות של חשבוניות עם אותו מספר מסמך וסכום
           </DialogDescription>
         </DialogHeader>
@@ -138,28 +138,30 @@ const DuplicatesModal = ({ isOpen, onClose, invoices, onDeleteSelected }: Duplic
           ) : (
             <div className="space-y-4">
               {/* Action bar */}
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg flex-row-reverse">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleAutoSelect}
-                  className="flex-row-reverse"
-                >
-                  <CheckSquare className="h-4 w-4 ml-2" />
-                  סמן כפילויות אוטומטית ({totalDuplicates})
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleClearSelection}
-                  disabled={selectedIds.size === 0}
-                  className="flex-row-reverse"
-                >
-                  <Square className="h-4 w-4 ml-2" />
-                  נקה בחירה
-                </Button>
-                <div className="flex-1" />
-                <span className="text-sm text-muted-foreground">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-muted/50 rounded-lg">
+                <div className="flex flex-wrap gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleAutoSelect}
+                    className="flex-row-reverse text-xs sm:text-sm"
+                  >
+                    <CheckSquare className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
+                    סמן אוטומטי ({totalDuplicates})
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleClearSelection}
+                    disabled={selectedIds.size === 0}
+                    className="flex-row-reverse text-xs sm:text-sm"
+                  >
+                    <Square className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
+                    נקה בחירה
+                  </Button>
+                </div>
+                <div className="sm:flex-1" />
+                <span className="text-xs sm:text-sm text-muted-foreground">
                   {selectedIds.size} נבחרו למחיקה
                 </span>
               </div>
@@ -167,24 +169,25 @@ const DuplicatesModal = ({ isOpen, onClose, invoices, onDeleteSelected }: Duplic
               {/* Duplicate groups */}
               {duplicateGroups.map((group, groupIndex) => (
                 <div key={group.key} className="border rounded-lg overflow-hidden">
-                  <div className="bg-muted px-4 py-2 flex items-center justify-between flex-row-reverse">
-                    <span className="font-medium text-sm">
+                  <div className="bg-muted px-3 sm:px-4 py-2 flex items-center justify-between flex-row-reverse">
+                    <span className="font-medium text-xs sm:text-sm">
                       קבוצה {groupIndex + 1}: מסמך #{group.invoices[0].document_number}
                     </span>
-                    <Badge variant="secondary">
+                    <Badge variant="secondary" className="text-xs">
                       {group.invoices.length} חשבוניות
                     </Badge>
                   </div>
-                  <Table>
+                  <div className="overflow-x-auto">
+                  <Table className="text-xs sm:text-sm">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-12 text-center">בחר</TableHead>
-                        <TableHead className="text-right">תאריך קליטה</TableHead>
+                        <TableHead className="text-right">תאריך</TableHead>
                         <TableHead className="text-right">ספק</TableHead>
-                        <TableHead className="text-right">מספר מסמך</TableHead>
+                        <TableHead className="text-right hidden sm:table-cell">מס' מסמך</TableHead>
                         <TableHead className="text-right">סכום</TableHead>
-                        <TableHead className="text-right">סטטוס</TableHead>
-                        <TableHead className="text-right">קטגוריה</TableHead>
+                        <TableHead className="text-right hidden sm:table-cell">סטטוס</TableHead>
+                        <TableHead className="text-right hidden md:table-cell">קטגוריה</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -203,9 +206,9 @@ const DuplicatesModal = ({ isOpen, onClose, invoices, onDeleteSelected }: Duplic
                             )}
                             onClick={() => !isOriginal && toggleSelection(inv.id)}
                           >
-                            <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                            <TableCell className="text-center p-2" onClick={(e) => e.stopPropagation()}>
                               {isOriginal ? (
-                                <Badge variant="outline" className="text-xs bg-emerald-100 text-emerald-700 border-emerald-300">
+                                <Badge variant="outline" className="text-[10px] sm:text-xs bg-emerald-100 text-emerald-700 border-emerald-300">
                                   מקור
                                 </Badge>
                               ) : (
@@ -215,28 +218,29 @@ const DuplicatesModal = ({ isOpen, onClose, invoices, onDeleteSelected }: Duplic
                                 />
                               )}
                             </TableCell>
-                            <TableCell className="text-right">{formatDateTime(inv.intake_date)}</TableCell>
-                            <TableCell className="text-right">{inv.supplier_name}</TableCell>
-                            <TableCell className="text-right">{inv.document_number}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(inv.total_amount ?? 0)}</TableCell>
-                            <TableCell className="text-right">
-                              <Badge variant="outline">{inv.status}</Badge>
+                            <TableCell className="text-right p-2 whitespace-nowrap">{formatDateTime(inv.intake_date || '')}</TableCell>
+                            <TableCell className="text-right p-2 max-w-[100px] truncate">{inv.supplier_name}</TableCell>
+                            <TableCell className="text-right p-2 hidden sm:table-cell">{inv.document_number}</TableCell>
+                            <TableCell className="text-right p-2 whitespace-nowrap">{formatCurrency(inv.total_amount ?? 0)}</TableCell>
+                            <TableCell className="text-right p-2 hidden sm:table-cell">
+                              <Badge variant="outline" className="text-xs">{inv.status}</Badge>
                             </TableCell>
-                            <TableCell className="text-right">{inv.category}</TableCell>
+                            <TableCell className="text-right p-2 hidden md:table-cell">{inv.category}</TableCell>
                           </TableRow>
                         );
                       })}
                     </TableBody>
                   </Table>
-                  <div className="bg-muted/50 px-4 py-2 text-xs text-muted-foreground flex items-center gap-4 flex-row-reverse">
+                  </div>
+                  <div className="bg-muted/50 px-3 sm:px-4 py-2 text-[10px] sm:text-xs text-muted-foreground flex flex-wrap items-center gap-2 sm:gap-4 justify-start">
                     <span className="inline-flex items-center gap-1">
-                      <div className="w-3 h-3 bg-emerald-200 rounded border border-emerald-300" /> מקור (הישן ביותר)
+                      <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-200 rounded border border-emerald-300" /> מקור
                     </span>
                     <span className="inline-flex items-center gap-1">
-                      <div className="w-3 h-3 bg-amber-200 rounded border border-amber-300" /> כפילות
+                      <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-amber-200 rounded border border-amber-300" /> כפילות
                     </span>
                     <span className="inline-flex items-center gap-1">
-                      <div className="w-3 h-3 bg-red-200 rounded border border-red-300" /> נבחר למחיקה
+                      <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-200 rounded border border-red-300" /> למחיקה
                     </span>
                   </div>
                 </div>
@@ -245,21 +249,21 @@ const DuplicatesModal = ({ isOpen, onClose, invoices, onDeleteSelected }: Duplic
           )}
         </div>
 
-        <div className="flex gap-3 pt-4 border-t flex-row-reverse">
+        <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-4 border-t">
+          <Button variant="outline" onClick={handleClose} className="w-full sm:w-auto">
+            סגור
+          </Button>
           {duplicateGroups.length > 0 && (
             <Button 
               onClick={handleDeleteSelected} 
               disabled={selectedIds.size === 0}
               variant="destructive"
-              className="flex-row-reverse"
+              className="flex-row-reverse w-full sm:w-auto"
             >
               <Trash2 className="h-4 w-4 ml-2" />
-              מחק {selectedIds.size} חשבוניות נבחרות
+              מחק {selectedIds.size} חשבוניות
             </Button>
           )}
-          <Button variant="outline" onClick={handleClose}>
-            סגור
-          </Button>
         </div>
       </DialogContent>
     </Dialog>

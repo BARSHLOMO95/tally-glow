@@ -245,20 +245,20 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card border-b sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
           <div className="flex items-center justify-between flex-row-reverse">
             <div className="text-right">
-              <h1 className="text-xl font-bold">ניהול הוצאות</h1>
-              <p className="text-sm text-muted-foreground">דאשבורד פיננסי בזמן אמת</p>
+              <h1 className="text-lg sm:text-xl font-bold">ניהול הוצאות</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">דאשבורד פיננסי בזמן אמת</p>
             </div>
-            <div className="flex items-center gap-3 flex-row-reverse">
-              <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="flex-row-reverse">
-                <RefreshCw className="h-4 w-4 ml-2" />
-                רענן
+            <div className="flex items-center gap-2 sm:gap-3 flex-row-reverse">
+              <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="flex-row-reverse px-2 sm:px-3">
+                <RefreshCw className="h-4 w-4 sm:ml-2" />
+                <span className="hidden sm:inline">רענן</span>
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground flex-row-reverse">
-                <LogOut className="h-4 w-4 ml-2" />
-                {user?.email?.split('@')[0]}
+              <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground flex-row-reverse px-2 sm:px-3">
+                <LogOut className="h-4 w-4 sm:ml-2" />
+                <span className="hidden sm:inline">{user?.email?.split('@')[0]}</span>
               </Button>
             </div>
           </div>
@@ -266,7 +266,7 @@ const Dashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6 space-y-6">
+      <main className="container mx-auto px-2 sm:px-4 py-3 sm:py-6 space-y-3 sm:space-y-6">
         {/* KPI Cards */}
         <KPICards 
           data={kpiData} 
