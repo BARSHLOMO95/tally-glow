@@ -24,7 +24,7 @@ const defaultCategories = ['תקשורת', 'סופרים', 'משרד', 'שירו
 
 const AddInvoiceModal = ({ isOpen, onClose, onSave, existingCategories }: AddInvoiceModalProps) => {
   const [formData, setFormData] = useState<InvoiceFormData>({
-    intake_date: format(new Date(), 'yyyy-MM-dd'),
+    intake_date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
     document_date: format(new Date(), 'yyyy-MM-dd'),
     status: 'חדש',
     supplier_name: '',
@@ -61,7 +61,7 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave, existingCategories }: AddInv
     onClose();
     // Reset form
     setFormData({
-      intake_date: format(new Date(), 'yyyy-MM-dd'),
+      intake_date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
       document_date: format(new Date(), 'yyyy-MM-dd'),
       status: 'חדש',
       supplier_name: '',
@@ -86,9 +86,9 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave, existingCategories }: AddInv
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div className="space-y-2">
-            <Label>תאריך קליטה</Label>
+            <Label>תאריך ושעת קליטה</Label>
             <Input
-              type="date"
+              type="datetime-local"
               value={formData.intake_date}
               onChange={(e) => setFormData(prev => ({ ...prev, intake_date: e.target.value }))}
             />
