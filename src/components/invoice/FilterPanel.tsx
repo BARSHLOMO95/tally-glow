@@ -90,7 +90,7 @@ function MultiSelectFilter<T extends string>({ label, options, selected, onChang
       <PopoverContent className="w-[calc(100vw-2rem)] sm:w-56 p-0 bg-popover" align={isMobile ? "center" : "end"} side="bottom" dir="rtl" sideOffset={8} collisionPadding={16}>
         <div className="p-2 border-b">
           <div
-            className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md text-primary font-medium flex-row-reverse justify-start"
+            className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md text-primary font-medium justify-start"
             onClick={handleSelectAll}
           >
             <Checkbox
@@ -108,7 +108,7 @@ function MultiSelectFilter<T extends string>({ label, options, selected, onChang
           {options.map((option) => (
             <div
               key={option}
-              className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md flex-row-reverse justify-start"
+              className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md justify-start"
               onClick={() => handleToggle(option)}
             >
               <Checkbox checked={selected.includes(option)} />
