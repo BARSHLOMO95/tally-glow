@@ -119,16 +119,36 @@
     text-align: right;
   }
 
-  /* Ensure flex items flow RTL */
-  .flex {
-    --tw-flex-direction: row;
+  /* Ensure popovers and dropdowns have solid backgrounds */
+  [data-radix-popper-content-wrapper] {
+    z-index: 50 !important;
   }
 
-  /* Fix icon spacing for RTL */
-  .gap-1 > svg,
-  .gap-2 > svg,
-  .gap-3 > svg {
-    order: 1;
+  /* RTL button icon spacing - icons should be on the left in RTL */
+  button svg:first-child:not(:only-child) {
+    margin-left: 0.5rem;
+    margin-right: 0;
+  }
+
+  button svg:last-child:not(:only-child) {
+    margin-right: 0.5rem;
+    margin-left: 0;
+  }
+
+  /* Table header alignment for RTL */
+  th {
+    text-align: right;
+  }
+
+  /* Dialog/Modal RTL alignment */
+  [role="dialog"] {
+    direction: rtl;
+  }
+
+  /* Dropdown menus RTL */
+  [role="menu"], [role="listbox"] {
+    direction: rtl;
+    text-align: right;
   }
 }
 
