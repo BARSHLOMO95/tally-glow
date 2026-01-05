@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 interface InvoiceTableProps {
   invoices: Invoice[];
   selectedIds: string[];
+  duplicateIds?: Set<string>;
   onToggleSelection: (id: string) => void;
   onToggleSelectAll: () => void;
   onRowClick: (invoice: Invoice) => void;
@@ -92,6 +93,7 @@ const formatCurrency = (amount: number | null) => {
 const InvoiceTable = ({
   invoices,
   selectedIds,
+  duplicateIds,
   onToggleSelection,
   onToggleSelectAll,
   onRowClick,
@@ -348,7 +350,8 @@ const InvoiceTable = ({
                   key={invoice.id}
                   className={cn(
                     'cursor-pointer transition-colors hover:bg-slate-50 border-b border-slate-100',
-                    selectedIds.includes(invoice.id) && 'bg-blue-50/50'
+                    selectedIds.includes(invoice.id) && 'bg-blue-50/50',
+                    duplicateIds?.has(invoice.id) && 'bg-amber-50/50 border-r-4 border-r-amber-400'
                   )}
                   onClick={(e) => {
                     const target = e.target as HTMLElement;

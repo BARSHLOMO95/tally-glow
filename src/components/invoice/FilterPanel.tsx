@@ -30,6 +30,7 @@ interface FilterPanelProps {
   onPrint: () => void;
   onClearFilters: () => void;
   onToggleDuplicates: () => void;
+  onOpenDuplicatesModal: () => void;
   onAddInvoice: () => void;
   onImportExcel: () => void;
 }
@@ -133,6 +134,7 @@ const FilterPanel = ({
   onPrint,
   onClearFilters,
   onToggleDuplicates,
+  onOpenDuplicatesModal,
   onAddInvoice,
   onImportExcel,
 }: FilterPanelProps) => {
@@ -350,6 +352,16 @@ const FilterPanel = ({
                 <Badge variant="secondary" className="ml-2">{duplicatesCount}</Badge>
               )}
             </Button>
+            {duplicatesCount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onOpenDuplicatesModal}
+                className="flex-row-reverse text-amber-600 hover:text-amber-700 border-amber-300 hover:border-amber-400"
+              >
+                נהל כפילויות
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
