@@ -176,6 +176,27 @@ export function useInvoices(userId: string | undefined) {
     }
   };
 
+  // Bulk update invoices
+  const bulkUpdateInvoices = async (ids: string[], data: Partial<InvoiceFormData>) => {
+    const { data: updatedInvoices, error } = await supabase
+      .from('invoices')
+      .update(data)
+      .in('id', ids)
+      .select();
+
+    if (error) {
+      toast.error('שגיאה בעדכון החשבוניות');
+      console.error(error);
+    } else {
+      setInvoices(prev => prev.map(i => {
+        const updated = updatedInvoices?.find(u => u.id === i.id);
+        return updated ? (updated as Invoice) : i;
+      }));
+      setSelectedIds([]);
+      toast.success(`${ids.length} חשבוניות עודכנו בהצלחה`);
+    }
+  };
+
   // Delete invoices
   const deleteInvoices = async (ids: string[]) => {
     const { error } = await supabase
@@ -233,6 +254,7 @@ export function useInvoices(userId: string | undefined) {
     createInvoice,
     bulkCreateInvoices,
     updateInvoice,
+    bulkUpdateInvoices,
     deleteInvoices,
     toggleSelection,
     toggleSelectAll,
