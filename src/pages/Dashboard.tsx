@@ -68,11 +68,102 @@ const Dashboard = () => {
     // Get selected invoices
     const selectedInvoices = invoices.filter(inv => selectedIds.includes(inv.id));
     
-    // Store in localStorage (more reliable across tabs)
-    localStorage.setItem('printInvoices', JSON.stringify(selectedInvoices));
+    const formatCurrency = (amount: number) => 
+      new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS' }).format(amount);
     
-    // Open report in new tab
-    window.open('/report', '_blank');
+    const formatDate = (dateString: string) => 
+      new Date(dateString).toLocaleDateString('he-IL');
+    
+    // Calculate totals
+    const totalBeforeVat = selectedInvoices.reduce((sum, inv) => sum + inv.amount_before_vat, 0);
+    const totalVat = selectedInvoices.reduce((sum, inv) => sum + (inv.vat_amount || 0), 0);
+    const totalAmount = selectedInvoices.reduce((sum, inv) => sum + inv.total_amount, 0);
+    
+    // Build table rows
+    const tableRows = selectedInvoices.map(inv => `
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatDate(inv.document_date)}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${inv.supplier_name}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${inv.document_number}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${inv.category}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${inv.vat_amount ? formatCurrency(inv.vat_amount) : '-'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatCurrency(inv.total_amount)}</td>
+      </tr>
+    `).join('');
+    
+    // Build images section
+    const imagesSection = selectedInvoices
+      .filter(inv => inv.image_url)
+      .map(inv => `
+        <div style="page-break-inside: avoid; margin-bottom: 30px; border: 1px solid #ddd; padding: 15px;">
+          <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
+            ${inv.supplier_name} - ${inv.document_number}
+          </div>
+          <img src="${inv.image_url}" style="max-width: 100%; max-height: 800px;" onerror="this.style.display='none'" />
+        </div>
+      `).join('');
+    
+    // Create the HTML document
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html dir="rtl" lang="he">
+      <head>
+        <meta charset="UTF-8">
+        <title>דוח הוצאות</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+          th { background: #f5f5f5; border: 1px solid #ddd; padding: 10px; text-align: right; }
+          @media print {
+            .no-print { display: none; }
+            body { padding: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1 style="text-align: center; margin-bottom: 5px;">דוח הוצאות</h1>
+        <p style="text-align: center; color: #666; margin-bottom: 20px;">
+          תאריך הפקה: ${new Date().toLocaleDateString('he-IL')}
+        </p>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>תאריך</th>
+              <th>ספק</th>
+              <th>אסמכתא</th>
+              <th>קטגוריה</th>
+              <th>מע"מ</th>
+              <th>סה"כ</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows}
+          </tbody>
+          <tfoot>
+            <tr style="font-weight: bold; background: #e8f4fc;">
+              <td colspan="4" style="border: 1px solid #ddd; padding: 10px; text-align: left;">סה"כ</td>
+              <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${formatCurrency(totalVat)}</td>
+              <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${formatCurrency(totalAmount)}</td>
+            </tr>
+          </tfoot>
+        </table>
+        
+        ${imagesSection ? `<h2 style="margin-top: 40px; border-bottom: 2px solid #333; padding-bottom: 10px;">תמונות חשבוניות</h2>${imagesSection}` : ''}
+        
+        <button class="no-print" onclick="window.print()" style="position: fixed; bottom: 20px; left: 20px; padding: 15px 30px; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+          הדפס
+        </button>
+      </body>
+      </html>
+    `;
+    
+    // Open in new blank window and write content
+    const printWindow = window.open('about:blank', '_blank');
+    if (printWindow) {
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+    }
   };
 
   const handleCreateInvoice = (data: InvoiceFormData) => {
