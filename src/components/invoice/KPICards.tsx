@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { KPIData } from '@/types/invoice';
-import { DollarSign, Receipt, Percent, Users } from 'lucide-react';
+import { FileText, Receipt, ArrowUpDown, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface KPICardsProps {
   data: KPIData;
+  documentCount: number;
+  filteredCount: number;
 }
 
 const formatCurrency = (amount: number) => {
@@ -17,7 +19,7 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-const KPICards = ({ data }: KPICardsProps) => {
+const KPICards = ({ data, documentCount, filteredCount }: KPICardsProps) => {
   const [animating, setAnimating] = useState<string | null>(null);
   const [prevData, setPrevData] = useState(data);
 
@@ -43,51 +45,60 @@ const KPICards = ({ data }: KPICardsProps) => {
     {
       key: 'totalWithVat',
       label: 'סה"כ לתשלום',
+      subtitle: 'כולל מע"מ',
       value: formatCurrency(data.totalWithVat),
-      icon: DollarSign,
-      gradient: 'from-blue-500 to-blue-600',
+      icon: FileText,
+      iconBg: 'bg-blue-100',
+      iconColor: 'text-blue-600',
     },
     {
       key: 'totalBeforeVat',
       label: 'לפני מע"מ',
+      subtitle: 'בסיס להוצאה',
       value: formatCurrency(data.totalBeforeVat),
       icon: Receipt,
-      gradient: 'from-emerald-500 to-emerald-600',
+      iconBg: 'bg-cyan-100',
+      iconColor: 'text-cyan-600',
     },
     {
       key: 'totalVat',
       label: 'סה"כ מע"מ',
+      subtitle: 'זיכוי משוער',
       value: formatCurrency(data.totalVat),
-      icon: Percent,
-      gradient: 'from-pink-500 to-pink-600',
+      icon: ArrowUpDown,
+      iconBg: 'bg-teal-100',
+      iconColor: 'text-teal-600',
     },
     {
-      key: 'uniqueSuppliers',
-      label: 'ספקים ייחודיים',
-      value: data.uniqueSuppliers.toString(),
-      icon: Users,
-      gradient: 'from-purple-500 to-purple-600',
+      key: 'documents',
+      label: 'מסמכים',
+      subtitle: `מתוך ${documentCount}`,
+      value: filteredCount.toString(),
+      icon: Filter,
+      iconBg: 'bg-indigo-100',
+      iconColor: 'text-indigo-600',
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map((card) => (
         <Card
           key={card.key}
           className={cn(
-            'overflow-hidden transition-all duration-300 hover:shadow-lg',
+            'overflow-hidden transition-all duration-300 hover:shadow-lg bg-card border',
             animating === card.key && 'animate-kpi-pulse ring-2 ring-primary'
           )}
         >
-          <CardContent className="p-0">
-            <div className={`bg-gradient-to-br ${card.gradient} p-4 text-white`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm opacity-90">{card.label}</p>
-                  <p className="text-2xl font-bold mt-1">{card.value}</p>
-                </div>
-                <card.icon className="w-10 h-10 opacity-80" />
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <div className={cn('p-3 rounded-xl', card.iconBg)}>
+                <card.icon className={cn('w-6 h-6', card.iconColor)} />
+              </div>
+              <div className="text-left">
+                <p className="text-xs text-muted-foreground">{card.label}</p>
+                <p className="text-2xl font-bold mt-1">{card.value}</p>
+                <p className="text-xs text-muted-foreground">{card.subtitle}</p>
               </div>
             </div>
           </CardContent>

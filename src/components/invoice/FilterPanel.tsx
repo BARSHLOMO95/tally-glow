@@ -3,8 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
 import { FilterState, InvoiceStatus, BusinessType } from '@/types/invoice';
-import { ChevronDown, ChevronUp, Filter, Edit, Trash2, Printer, RotateCcw } from 'lucide-react';
+import { ChevronDown, ChevronUp, Filter, Edit, Trash2, Printer, RotateCcw, Copy, Search } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 interface FilterPanelProps {
@@ -19,10 +21,14 @@ interface FilterPanelProps {
     businessTypes: BusinessType[];
   };
   selectedCount: number;
+  duplicatesCount: number;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
   onBulkEdit: () => void;
   onBulkDelete: () => void;
   onPrint: () => void;
   onClearFilters: () => void;
+  onShowDuplicates: () => void;
 }
 
 type FilterKey = keyof FilterState;
@@ -115,10 +121,14 @@ const FilterPanel = ({
   setFilters,
   filterOptions,
   selectedCount,
+  duplicatesCount,
+  searchQuery,
+  onSearchChange,
   onBulkEdit,
   onBulkDelete,
   onPrint,
   onClearFilters,
+  onShowDuplicates,
 }: FilterPanelProps) => {
   const [isOpen, setIsOpen] = useState(true);
 
@@ -148,61 +158,103 @@ const FilterPanel = ({
         
         <CollapsibleContent>
           <div className="p-4 pt-0 space-y-4">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="חיפוש חופשי..."
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="pr-10"
+              />
+            </div>
+
+            {/* Status Quick Filters */}
+            <div className="flex flex-wrap gap-2">
+              {filterOptions.statuses.map((status) => (
+                <Badge
+                  key={status}
+                  variant={filters.statuses.includes(status) ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => {
+                    if (filters.statuses.includes(status)) {
+                      updateFilter('statuses', filters.statuses.filter(s => s !== status));
+                    } else {
+                      updateFilter('statuses', [...filters.statuses, status]);
+                    }
+                  }}
+                >
+                  {status}
+                </Badge>
+              ))}
+            </div>
+
             {/* Filters Row */}
             <div className="flex flex-wrap gap-3">
               <MultiSelectFilter
-                label="📅 תאריך קליטה"
+                label="חודש קליטה 🔥"
                 options={filterOptions.intakeMonths}
                 selected={filters.intakeMonths}
                 onChange={(val) => updateFilter('intakeMonths', val)}
               />
               <MultiSelectFilter
-                label="📅 תאריך מסמך"
+                label="חודש מסמך 📅"
                 options={filterOptions.documentMonths}
                 selected={filters.documentMonths}
                 onChange={(val) => updateFilter('documentMonths', val)}
               />
               <MultiSelectFilter
-                label="🟡 סטטוס"
-                options={filterOptions.statuses}
-                selected={filters.statuses}
-                onChange={(val) => updateFilter('statuses', val)}
-              />
-              <MultiSelectFilter
-                label="🏢 ספקים"
+                label="ספקים"
                 options={filterOptions.suppliers}
                 selected={filters.suppliers}
                 onChange={(val) => updateFilter('suppliers', val)}
               />
               <MultiSelectFilter
-                label="📂 קטגוריות"
+                label="קטגוריות"
                 options={filterOptions.categories}
                 selected={filters.categories}
                 onChange={(val) => updateFilter('categories', val)}
               />
               <MultiSelectFilter
-                label="🏷️ סוג עוסק"
+                label="סוג עסק"
                 options={filterOptions.businessTypes}
                 selected={filters.businessTypes}
                 onChange={(val) => updateFilter('businessTypes', val)}
+              />
+              <MultiSelectFilter
+                label="אופן"
+                options={['ידני', 'דיגיטלי'] as const}
+                selected={[]}
+                onChange={() => {}}
               />
             </div>
 
             {/* Actions Row */}
             <div className="flex flex-wrap items-center gap-3 pt-2 border-t">
               {selectedCount > 0 && (
-                <span className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
+                <Badge variant="secondary" className="text-sm">
                   {selectedCount} נבחרו
-                </span>
+                </Badge>
               )}
+              <Button
+                variant="default"
+                size="sm"
+                onClick={onPrint}
+                disabled={selectedCount === 0}
+              >
+                <Printer className="h-4 w-4 ml-1" />
+                הדפסה
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={onBulkEdit}
-                disabled={selectedCount === 0}
+                onClick={onShowDuplicates}
               >
-                <Edit className="h-4 w-4 ml-1" />
-                עריכה מרובה
+                <Copy className="h-4 w-4 ml-1" />
+                סינון כפילויות
+                {duplicatesCount > 0 && (
+                  <Badge variant="secondary" className="mr-2">{duplicatesCount}</Badge>
+                )}
               </Button>
               <Button
                 variant="outline"
@@ -212,17 +264,13 @@ const FilterPanel = ({
                 className="text-destructive hover:text-destructive"
               >
                 <Trash2 className="h-4 w-4 ml-1" />
-                מחק נבחרים
-              </Button>
-              <Button variant="outline" size="sm" onClick={onPrint}>
-                <Printer className="h-4 w-4 ml-1" />
-                הדפסה
+                מחק ({selectedCount})
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onClearFilters}
-                disabled={!hasActiveFilters}
+                disabled={!hasActiveFilters && searchQuery === ''}
               >
                 <RotateCcw className="h-4 w-4 ml-1" />
                 נקה בחירה
