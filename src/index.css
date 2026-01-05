@@ -104,26 +104,35 @@
     @apply border-border;
   }
 
-  html {
-    direction: rtl;
-  }
-
   body {
     @apply bg-background text-foreground;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    text-align: right;
   }
-}
-
-/* RTL support */
-html[dir="rtl"] {
-  direction: rtl;
 }
 
 /* Custom animations */
 @keyframes kpi-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.05); }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-kpi-pulse {
+  animation: kpi-pulse 0.3s ease-in-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
 }
 
 @keyframes slide-up {

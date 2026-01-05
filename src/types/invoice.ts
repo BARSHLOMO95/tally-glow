@@ -45,7 +45,11 @@ export interface FilterState {
   suppliers: string[];
   categories: string[];
   businessTypes: BusinessType[];
+  amountMin: number | null;
+  amountMax: number | null;
 }
+
+export type DuplicatesFilterMode = 'all' | 'duplicates_only' | 'no_duplicates';
 
 export interface KPIData {
   totalWithVat: number;
