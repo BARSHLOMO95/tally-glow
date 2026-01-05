@@ -81,11 +81,11 @@ function MultiSelectFilter<T extends string>({ label, options, selected, onChang
             selected.length > 0 && 'border-primary bg-primary/5'
           )}
         >
-          <ChevronDown className="h-4 w-4 ml-2 shrink-0" />
+          <ChevronDown className="h-4 w-4 mr-2 shrink-0" />
           <span className="truncate">{displayText}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-0 bg-popover" align="start" dir="rtl">
+      <PopoverContent className="w-56 p-0 bg-popover" align="end" dir="rtl">
         <div className="p-2 border-b">
           <div
             className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md text-primary font-medium flex-row-reverse"
@@ -183,11 +183,11 @@ const FilterPanel = ({
             {/* Add Buttons Row */}
             <div className="flex flex-wrap gap-2 flex-row-reverse justify-start">
               <Button onClick={onAddInvoice} size="sm" className="flex-row-reverse">
-                <Plus className="h-4 w-4 ml-2" />
+                <Plus className="h-4 w-4 mr-2" />
                 הוסף חשבונית
               </Button>
               <Button variant="outline" onClick={onImportExcel} size="sm" className="flex-row-reverse">
-                <Upload className="h-4 w-4 ml-2" />
+                <Upload className="h-4 w-4 mr-2" />
                 ייבוא Excel
               </Button>
             </div>
@@ -205,7 +205,7 @@ const FilterPanel = ({
             </div>
 
             {/* Status Quick Filters */}
-            <div className="flex flex-wrap gap-2 justify-end">
+            <div className="flex flex-wrap gap-2 flex-row-reverse justify-start">
               {filterOptions.statuses.map((status) => (
                 <Badge
                   key={status}
@@ -225,7 +225,7 @@ const FilterPanel = ({
             </div>
 
             {/* Filters Row */}
-            <div className="flex flex-wrap gap-3 justify-end">
+            <div className="flex flex-wrap gap-3 flex-row-reverse justify-start">
               <MultiSelectFilter
                 label="חודש קליטה 🔥"
                 options={filterOptions.intakeMonths}
@@ -263,15 +263,15 @@ const FilterPanel = ({
                   <Button
                     variant="outline"
                     className={cn(
-                      'min-w-[140px] flex-row-reverse',
+                      'min-w-[140px] flex-row-reverse justify-between',
                       (filters.amountMin !== null || filters.amountMax !== null) && 'border-primary bg-primary/5'
                     )}
                   >
-                    <ChevronDown className="h-4 w-4 ml-2" />
+                    <ChevronDown className="h-4 w-4 mr-2" />
                     <span>סכום סה"כ</span>
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-64 p-4 bg-popover" align="start" dir="rtl">
+                <PopoverContent className="w-64 p-4 bg-popover" align="end" dir="rtl">
                   <div className="space-y-3">
                     <div>
                       <label className="text-sm font-medium block text-right">סכום מינימום</label>
@@ -318,58 +318,58 @@ const FilterPanel = ({
                   {selectedCount} נבחרו
                 </Badge>
               )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onBulkEdit}
-                disabled={selectedCount !== 1}
-                className="flex-row-reverse"
-              >
-                <Edit className="h-4 w-4 ml-2" />
-                עריכה
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={onPrint}
-                disabled={selectedCount === 0}
-                className="flex-row-reverse"
-              >
-                <Printer className="h-4 w-4 ml-2" />
-                הדפסה
-              </Button>
-              <Button
-                variant={getDuplicatesButtonVariant()}
-                size="sm"
-                onClick={onToggleDuplicates}
-                className="flex-row-reverse"
-              >
-                <Copy className="h-4 w-4 ml-2" />
-                {getDuplicatesButtonText()}
-                {duplicatesCount > 0 && duplicatesMode === 'all' && (
-                  <Badge variant="secondary" className="mr-2">{duplicatesCount}</Badge>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onBulkDelete}
-                disabled={selectedCount === 0}
-                className="text-destructive hover:text-destructive flex-row-reverse"
-              >
-                <Trash2 className="h-4 w-4 ml-2" />
-                מחק ({selectedCount})
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClearFilters}
-                disabled={!hasActiveFilters && searchQuery === '' && duplicatesMode === 'all'}
-                className="flex-row-reverse"
-              >
-                <RotateCcw className="h-4 w-4 ml-2" />
-                נקה הכל
-              </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onBulkEdit}
+              disabled={selectedCount !== 1}
+              className="flex-row-reverse"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              עריכה
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={onPrint}
+              disabled={selectedCount === 0}
+              className="flex-row-reverse"
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              הדפסה
+            </Button>
+            <Button
+              variant={getDuplicatesButtonVariant()}
+              size="sm"
+              onClick={onToggleDuplicates}
+              className="flex-row-reverse"
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              {getDuplicatesButtonText()}
+              {duplicatesCount > 0 && duplicatesMode === 'all' && (
+                <Badge variant="secondary" className="mr-2">{duplicatesCount}</Badge>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onBulkDelete}
+              disabled={selectedCount === 0}
+              className="text-destructive hover:text-destructive flex-row-reverse"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              מחק ({selectedCount})
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClearFilters}
+              disabled={!hasActiveFilters && searchQuery === '' && duplicatesMode === 'all'}
+              className="flex-row-reverse"
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              נקה הכל
+            </Button>
             </div>
           </div>
         </CollapsibleContent>
