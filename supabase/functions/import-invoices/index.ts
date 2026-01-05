@@ -55,17 +55,21 @@ Deno.serve(async (req) => {
 
     const invoicesToInsert = invoicesData.map((invoice: any) => {
       // Support both Hebrew and English field names
-      const supplierName = invoice['שם הספק'] || invoice.supplier_name;
+      const supplierName = invoice['שם הספק'] || invoice.supplier_name || 'לא צוין';
       const documentDate = invoice['תאריך מסמך'] || invoice.document_date;
       const documentType = invoice['סוג מסמך'] || invoice.document_type || 'חשבונית מס';
-      const documentNumber = invoice['מספר מסמך'] || invoice.document_number;
-      const amountBeforeVat = invoice['סכום לפני מע"מ'] || invoice.amount_before_vat;
-      const vatAmount = invoice['מע"מ'] || invoice.vat_amount;
-      const totalAmount = invoice['סכום כולל מע"מ'] || invoice.total_amount;
-      const category = invoice['קטגוריה'] || invoice.category;
+      const documentNumber = invoice['מספר מסמך'] || invoice.document_number || `AUTO-${Date.now()}`;
+      const amountBeforeVat = invoice['סכום לפני מע"מ'] || invoice['סכום לפני מע״מ'] || invoice.amount_before_vat || 0;
+      const vatAmount = invoice['מע"מ'] || invoice['מע״מ'] || invoice.vat_amount;
+      const totalAmount = invoice['סכום כולל מע"מ'] || invoice['סכום כולל מע״מ'] || invoice.total_amount;
+      const category = invoice['קטגוריה'] || invoice.category || 'כללי';
       const entryMethod = invoice['פורמט מסמך'] || invoice.entry_method || 'דיגיטלי';
       const businessType = invoice['סוג עוסק'] || invoice.business_type || 'עוסק מורשה';
       const imageUrl = invoice['קישור לתמונה'] || invoice['תמונה'] || invoice.image_url || null;
+
+      const parsedAmountBeforeVat = parseFloat(amountBeforeVat) || 0;
+      const parsedVatAmount = vatAmount ? parseFloat(vatAmount) : parsedAmountBeforeVat * 0.18;
+      const parsedTotalAmount = totalAmount ? parseFloat(totalAmount) : parsedAmountBeforeVat * 1.18;
 
       return {
         user_id: userId,
@@ -76,9 +80,9 @@ Deno.serve(async (req) => {
         document_number: documentNumber,
         document_type: documentType,
         category: category,
-        amount_before_vat: parseFloat(amountBeforeVat),
-        vat_amount: vatAmount ? parseFloat(vatAmount) : parseFloat(amountBeforeVat) * 0.18,
-        total_amount: totalAmount ? parseFloat(totalAmount) : parseFloat(amountBeforeVat) * 1.18,
+        amount_before_vat: parsedAmountBeforeVat,
+        vat_amount: parsedVatAmount,
+        total_amount: parsedTotalAmount,
         business_type: businessType,
         entry_method: mapEntryMethod(entryMethod),
         image_url: imageUrl,
