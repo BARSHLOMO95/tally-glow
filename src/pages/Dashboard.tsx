@@ -247,13 +247,13 @@ const Dashboard = () => {
               <p className="text-sm text-muted-foreground">דאשבורד פיננסי בזמן אמת</p>
             </div>
             <div className="flex items-center gap-3 flex-row-reverse">
-              <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+              <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="flex-row-reverse">
+                <RefreshCw className="h-4 w-4 ml-2" />
                 רענן
-                <RefreshCw className="h-4 w-4 mr-2" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground">
+              <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground flex-row-reverse">
+                <LogOut className="h-4 w-4 ml-2" />
                 {user?.email?.split('@')[0]}
-                <LogOut className="h-4 w-4 mr-2" />
               </Button>
             </div>
           </div>

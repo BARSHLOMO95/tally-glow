@@ -138,11 +138,14 @@ const InvoiceTable = ({
     <div className="bg-card rounded-lg border shadow-sm overflow-hidden" dir="rtl">
       {/* Column Settings */}
       <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30 flex-row-reverse">
+        <span className="text-sm text-muted-foreground">
+          {invoices.length} רשומות
+        </span>
         <Popover open={showColumnSettings} onOpenChange={setShowColumnSettings}>
           <PopoverTrigger asChild>
             <Button variant="ghost" size="sm" className="flex-row-reverse">
+              <Settings2 className="h-4 w-4 ml-2" />
               רוחב עמודות
-              <Settings2 className="h-4 w-4 mr-2" />
             </Button>
           </PopoverTrigger>
           <PopoverContent align="start" className="w-72 bg-popover" dir="rtl">
@@ -174,9 +177,6 @@ const InvoiceTable = ({
             </div>
           </PopoverContent>
         </Popover>
-        <span className="text-sm text-muted-foreground">
-          {invoices.length} רשומות
-        </span>
       </div>
 
       <div className="overflow-x-auto">
