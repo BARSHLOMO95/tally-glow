@@ -10,8 +10,8 @@ const AccountantReport = () => {
   });
 
   useEffect(() => {
-    // Get invoices from sessionStorage
-    const storedInvoices = sessionStorage.getItem('printInvoices');
+    // Get invoices from localStorage
+    const storedInvoices = localStorage.getItem('printInvoices');
     if (storedInvoices) {
       const parsed = JSON.parse(storedInvoices) as Invoice[];
       setInvoices(parsed);
@@ -21,6 +21,9 @@ const AccountantReport = () => {
       const vat = parsed.reduce((sum, inv) => sum + (inv.vat_amount || 0), 0);
       const total = parsed.reduce((sum, inv) => sum + inv.total_amount, 0);
       setTotals({ beforeVat, vat, total });
+      
+      // Clear after reading (optional - keeps data fresh)
+      // localStorage.removeItem('printInvoices');
     }
   }, []);
 
