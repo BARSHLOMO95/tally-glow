@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
       const category = invoice['קטגוריה'] || invoice.category;
       const entryMethod = invoice['פורמט מסמך'] || invoice.entry_method || 'דיגיטלי';
       const businessType = invoice['סוג עוסק'] || invoice.business_type || 'עוסק מורשה';
-      const imageUrl = invoice['קישור לתמונה'] || invoice.image_url || null;
+      const imageUrl = invoice['קישור לתמונה'] || invoice['תמונה'] || invoice.image_url || null;
 
       return {
         user_id: userId,
