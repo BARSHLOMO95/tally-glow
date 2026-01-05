@@ -1,15 +1,14 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Invoice } from '@/types/invoice';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
-import { LayoutGrid, TrendingUp, PieChart as PieChartIcon, BarChart3, Users } from 'lucide-react';
+import { LayoutGrid, TrendingUp, PieChart as PieChartIcon, BarChart3, Users, ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DashboardChartsProps {
   invoices: Invoice[];
-  isVisible: boolean;
 }
 
 const COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316'];
@@ -24,8 +23,8 @@ const formatCurrency = (amount: number) => {
   return `₪${amount.toFixed(0)}`;
 };
 
-const DashboardCharts = ({ invoices, isVisible }: DashboardChartsProps) => {
-  if (!isVisible) return null;
+const DashboardCharts = ({ invoices }: DashboardChartsProps) => {
+  const [isOpen, setIsOpen] = useState(true);
 
   // הוצאות לפי קטגוריה - גרף עמודות
   const categoryData = useMemo(() => {
@@ -123,22 +122,35 @@ const DashboardCharts = ({ invoices, isVisible }: DashboardChartsProps) => {
 
   const maxSupplier = topSuppliers[0]?.total || 1;
 
-  if (invoices.length === 0) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <Card key={i} className="bg-card">
-            <CardContent className="p-6 flex items-center justify-center h-[280px]">
-              <p className="text-muted-foreground">אין נתונים להצגה</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <div className="bg-card rounded-lg border shadow-sm">
+        <CollapsibleTrigger asChild>
+          <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-accent/50 transition-colors">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              <span className="font-medium">📊 גרפים וניתוחים</span>
+            </div>
+            {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+          </div>
+        </CollapsibleTrigger>
+        
+        <CollapsibleContent>
+          {invoices.length === 0 ? (
+            <div className="p-4 pt-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Card key={i} className="bg-muted/30">
+                    <CardContent className="p-6 flex items-center justify-center h-[200px]">
+                      <p className="text-muted-foreground">אין נתונים להצגה</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="p-4 pt-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {/* הוצאות לפי קטגוריה - עמודות */}
       <Card className="bg-card">
         <CardHeader className="pb-2">
@@ -392,7 +404,12 @@ const DashboardCharts = ({ invoices, isVisible }: DashboardChartsProps) => {
           ))}
         </CardContent>
       </Card>
-    </div>
+              </div>
+            </div>
+          )}
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
   );
 };
 

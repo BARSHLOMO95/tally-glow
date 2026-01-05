@@ -13,7 +13,7 @@ import AddInvoiceModal from '@/components/invoice/AddInvoiceModal';
 import ImportExcelModal from '@/components/invoice/ImportExcelModal';
 import DashboardCharts from '@/components/invoice/DashboardCharts';
 import { Invoice, InvoiceFormData, DuplicatesFilterMode } from '@/types/invoice';
-import { LogOut, Plus, Loader2, Upload, LayoutGrid, RefreshCw, Settings, Eye, EyeOff } from 'lucide-react';
+import { LogOut, Plus, Loader2, Upload, RefreshCw, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Dashboard = () => {
@@ -42,14 +42,13 @@ const Dashboard = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [showCharts, setShowCharts] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [duplicatesMode, setDuplicatesMode] = useState<DuplicatesFilterMode>('all');
 
   const handleSignOut = async () => {
     const { error } = await signOut();
     if (error) {
-      toast.error('Error signing out');
+      toast.error('שגיאה בהתנתקות');
     }
   };
 
@@ -65,7 +64,7 @@ const Dashboard = () => {
 
   const handlePrint = () => {
     if (selectedIds.length === 0) {
-      toast.info('Select invoices to print');
+      toast.info('בחר חשבוניות להדפסה');
       return;
     }
     
@@ -83,12 +82,12 @@ const Dashboard = () => {
     
     const tableRows = selectedInvoices.map(inv => `
       <tr>
-        <td style="border: 1px solid #ddd; padding: 8px;">${formatDate(inv.document_date)}</td>
-        <td style="border: 1px solid #ddd; padding: 8px;">${inv.supplier_name}</td>
-        <td style="border: 1px solid #ddd; padding: 8px;">${inv.document_number}</td>
-        <td style="border: 1px solid #ddd; padding: 8px;">${inv.category}</td>
-        <td style="border: 1px solid #ddd; padding: 8px;">${inv.vat_amount ? formatCurrency(inv.vat_amount) : '-'}</td>
-        <td style="border: 1px solid #ddd; padding: 8px;">${formatCurrency(inv.total_amount)}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatDate(inv.document_date)}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${inv.supplier_name}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${inv.document_number}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${inv.category}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${inv.vat_amount ? formatCurrency(inv.vat_amount) : '-'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatCurrency(inv.total_amount)}</td>
       </tr>
     `).join('');
     
@@ -105,14 +104,14 @@ const Dashboard = () => {
     
     const htmlContent = `
       <!DOCTYPE html>
-      <html lang="en">
+      <html dir="rtl" lang="he">
       <head>
         <meta charset="UTF-8">
-        <title>Expense Report</title>
+        <title>דוח הוצאות</title>
         <style>
-          body { font-family: Arial, sans-serif; padding: 20px; }
+          body { font-family: Arial, sans-serif; padding: 20px; direction: rtl; }
           table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-          th { background: #f5f5f5; border: 1px solid #ddd; padding: 10px; }
+          th { background: #f5f5f5; border: 1px solid #ddd; padding: 10px; text-align: right; }
           @media print {
             .no-print { display: none; }
             body { padding: 0; }
@@ -120,20 +119,20 @@ const Dashboard = () => {
         </style>
       </head>
       <body>
-        <h1 style="text-align: center; margin-bottom: 5px;">Expense Report</h1>
+        <h1 style="text-align: center; margin-bottom: 5px;">דוח הוצאות</h1>
         <p style="text-align: center; color: #666; margin-bottom: 20px;">
-          Generated: ${new Date().toLocaleDateString()}
+          תאריך הפקה: ${new Date().toLocaleDateString('he-IL')}
         </p>
         
         <table>
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Supplier</th>
-              <th>Reference</th>
-              <th>Category</th>
-              <th>VAT</th>
-              <th>Total</th>
+              <th>תאריך</th>
+              <th>ספק</th>
+              <th>אסמכתא</th>
+              <th>קטגוריה</th>
+              <th>מע"מ</th>
+              <th>סה"כ</th>
             </tr>
           </thead>
           <tbody>
@@ -141,17 +140,17 @@ const Dashboard = () => {
           </tbody>
           <tfoot>
             <tr style="font-weight: bold; background: #e8f4fc;">
-              <td colspan="4" style="border: 1px solid #ddd; padding: 10px;">Total</td>
-              <td style="border: 1px solid #ddd; padding: 10px;">${formatCurrency(totalVat)}</td>
-              <td style="border: 1px solid #ddd; padding: 10px;">${formatCurrency(totalAmount)}</td>
+              <td colspan="4" style="border: 1px solid #ddd; padding: 10px; text-align: left;">סה"כ</td>
+              <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${formatCurrency(totalVat)}</td>
+              <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${formatCurrency(totalAmount)}</td>
             </tr>
           </tfoot>
         </table>
         
-        ${imagesSection ? `<h2 style="margin-top: 40px; border-bottom: 2px solid #333; padding-bottom: 10px;">Invoice Images</h2>${imagesSection}` : ''}
+        ${imagesSection ? `<h2 style="margin-top: 40px; border-bottom: 2px solid #333; padding-bottom: 10px;">תמונות חשבוניות</h2>${imagesSection}` : ''}
         
-        <button class="no-print" onclick="window.print()" style="position: fixed; bottom: 20px; right: 20px; padding: 15px 30px; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
-          Print
+        <button class="no-print" onclick="window.print()" style="position: fixed; bottom: 20px; left: 20px; padding: 15px 30px; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+          הדפס
         </button>
       </body>
       </html>
@@ -244,28 +243,20 @@ const Dashboard = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold">Expense Management</h1>
-              <p className="text-sm text-muted-foreground hidden md:block">Real-time Financial Dashboard</p>
+              <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground">
+                <LogOut className="h-4 w-4 ml-1" />
+                {user?.email?.split('@')[0]}
+              </Button>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
-                ONLINE
-              </span>
+            <div className="flex items-center gap-3">
               <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-                <RefreshCw className="h-4 w-4 mr-1" />
-                Refresh
+                <RefreshCw className="h-4 w-4 ml-1" />
+                רענן
               </Button>
-              <Button 
-                variant={showCharts ? "default" : "outline"} 
-                size="sm" 
-                onClick={() => setShowCharts(!showCharts)}
-              >
-                {showCharts ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
-                {showCharts ? 'Hide Charts' : 'Show Charts'}
-              </Button>
-              <Button variant="ghost" size="icon">
-                <Settings className="h-5 w-5" />
-              </Button>
+              <div className="text-left">
+                <h1 className="text-xl font-bold">ניהול הוצאות</h1>
+                <p className="text-sm text-muted-foreground">דאשבורד פיננסי בזמן אמת</p>
+              </div>
             </div>
           </div>
         </div>
@@ -280,8 +271,8 @@ const Dashboard = () => {
           filteredCount={displayedInvoices.length}
         />
 
-        {/* Charts Section - uses filtered invoices */}
-        <DashboardCharts invoices={displayedInvoices} isVisible={showCharts} />
+        {/* Charts Section - Collapsible like filters */}
+        <DashboardCharts invoices={displayedInvoices} />
 
         {/* Filter Panel */}
         <FilterPanel
@@ -298,13 +289,15 @@ const Dashboard = () => {
               const invoice = invoices.find(i => i.id === selectedIds[0]);
               if (invoice) setEditingInvoice(invoice);
             } else {
-              toast.info('Select one invoice to edit');
+              toast.info('בחר חשבונית אחת לעריכה');
             }
           }}
           onBulkDelete={handleBulkDelete}
           onPrint={handlePrint}
           onClearFilters={handleClearAll}
           onToggleDuplicates={handleToggleDuplicates}
+          onAddInvoice={() => setIsAddModalOpen(true)}
+          onImportExcel={() => setIsImportModalOpen(true)}
         />
 
         {/* Invoice Table */}
@@ -358,39 +351,19 @@ const Dashboard = () => {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogTitle>אישור מחיקה</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {selectedIds.length} invoice(s)? This action cannot be undone.
+              האם אתה בטוח שברצונך למחוק {selectedIds.length} חשבוניות? פעולה זו לא ניתנת לביטול.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogCancel>ביטול</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
-              Delete
+              מחק
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Floating Action Buttons */}
-      <div className="fixed bottom-6 right-6 flex flex-col gap-2 z-50">
-        <Button onClick={() => setIsAddModalOpen(true)} size="lg" className="shadow-lg">
-          <Plus className="h-5 w-5 mr-1" />
-          Add Invoice
-        </Button>
-        <Button variant="outline" onClick={() => setIsImportModalOpen(true)} className="shadow-lg bg-card">
-          <Upload className="h-4 w-4 mr-1" />
-          Import Excel
-        </Button>
-      </div>
-
-      {/* User Menu - Top Right */}
-      <div className="fixed top-4 right-4 z-50">
-        <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground">
-          <LogOut className="h-4 w-4 mr-1" />
-          {user?.email?.split('@')[0]}
-        </Button>
-      </div>
     </div>
   );
 };

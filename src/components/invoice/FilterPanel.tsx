@@ -5,7 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { FilterState, InvoiceStatus, BusinessType, DuplicatesFilterMode } from '@/types/invoice';
-import { ChevronDown, ChevronUp, Filter, Edit, Trash2, Printer, RotateCcw, Copy, Search } from 'lucide-react';
+import { ChevronDown, ChevronUp, Filter, Edit, Trash2, Printer, RotateCcw, Copy, Search, Plus, Upload } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -30,6 +30,8 @@ interface FilterPanelProps {
   onPrint: () => void;
   onClearFilters: () => void;
   onToggleDuplicates: () => void;
+  onAddInvoice: () => void;
+  onImportExcel: () => void;
 }
 
 type FilterKey = keyof FilterState;
@@ -66,8 +68,8 @@ function MultiSelectFilter<T extends string>({ label, options, selected, onChang
   const displayText = selected.length === 0
     ? label
     : selected.length <= 2
-      ? `${selected.length} selected`
-      : `${selected.length} selected`;
+      ? `${selected.length} נבחרו`
+      : `${selected.length} נבחרו`;
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -79,16 +81,17 @@ function MultiSelectFilter<T extends string>({ label, options, selected, onChang
             selected.length > 0 && 'border-primary bg-primary/5'
           )}
         >
-          <span className="truncate">{displayText}</span>
           <ChevronDown className="h-4 w-4 ml-2 shrink-0" />
+          <span className="truncate">{displayText}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-0" align="start">
+      <PopoverContent className="w-56 p-0" align="end">
         <div className="p-2 border-b">
           <div
-            className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md text-primary font-medium"
+            className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md text-primary font-medium flex-row-reverse"
             onClick={handleSelectAll}
           >
+            <span>בחר הכל</span>
             <Checkbox
               checked={isAllSelected}
               ref={(el) => {
@@ -97,18 +100,17 @@ function MultiSelectFilter<T extends string>({ label, options, selected, onChang
                 }
               }}
             />
-            <span>Select All</span>
           </div>
         </div>
         <div className="max-h-60 overflow-y-auto p-2">
           {options.map((option) => (
             <div
               key={option}
-              className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md"
+              className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-md flex-row-reverse"
               onClick={() => handleToggle(option)}
             >
-              <Checkbox checked={selected.includes(option)} />
               <span className="text-sm">{option}</span>
+              <Checkbox checked={selected.includes(option)} />
             </div>
           ))}
         </div>
@@ -131,6 +133,8 @@ const FilterPanel = ({
   onPrint,
   onClearFilters,
   onToggleDuplicates,
+  onAddInvoice,
+  onImportExcel,
 }: FilterPanelProps) => {
   const [isOpen, setIsOpen] = useState(true);
   const [showAmountFilter, setShowAmountFilter] = useState(false);
@@ -151,9 +155,9 @@ const FilterPanel = ({
   };
 
   const getDuplicatesButtonText = () => {
-    if (duplicatesMode === 'duplicates_only') return 'Showing Duplicates';
-    if (duplicatesMode === 'no_duplicates') return 'Hiding Duplicates';
-    return 'Filter Duplicates';
+    if (duplicatesMode === 'duplicates_only') return 'מציג כפילויות';
+    if (duplicatesMode === 'no_duplicates') return 'מסתיר כפילויות';
+    return 'סינון כפילויות';
   };
 
   return (
@@ -163,10 +167,10 @@ const FilterPanel = ({
           <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-accent/50 transition-colors">
             <div className="flex items-center gap-2">
               <Filter className="h-5 w-5 text-primary" />
-              <span className="font-medium">Filters & Actions</span>
+              <span className="font-medium">🔍 פילטרים ופעולות</span>
               {hasActiveFilters && (
                 <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
-                  Active
+                  פעיל
                 </span>
               )}
             </div>
@@ -176,19 +180,31 @@ const FilterPanel = ({
         
         <CollapsibleContent>
           <div className="p-4 pt-0 space-y-4">
+            {/* Add Buttons Row */}
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={onAddInvoice} size="sm">
+                <Plus className="h-4 w-4 ml-1" />
+                הוסף חשבונית
+              </Button>
+              <Button variant="outline" onClick={onImportExcel} size="sm">
+                <Upload className="h-4 w-4 ml-1" />
+                ייבוא Excel
+              </Button>
+            </div>
+
             {/* Search Bar */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Free search..."
+                placeholder="חיפוש חופשי..."
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className="pl-10"
+                className="pr-10"
               />
             </div>
 
             {/* Status Quick Filters */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 justify-end">
               {filterOptions.statuses.map((status) => (
                 <Badge
                   key={status}
@@ -208,33 +224,33 @@ const FilterPanel = ({
             </div>
 
             {/* Filters Row */}
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3 justify-end">
               <MultiSelectFilter
-                label="Intake Month"
+                label="חודש קליטה 🔥"
                 options={filterOptions.intakeMonths}
                 selected={filters.intakeMonths}
                 onChange={(val) => updateFilter('intakeMonths', val)}
               />
               <MultiSelectFilter
-                label="Document Month"
+                label="חודש מסמך 📅"
                 options={filterOptions.documentMonths}
                 selected={filters.documentMonths}
                 onChange={(val) => updateFilter('documentMonths', val)}
               />
               <MultiSelectFilter
-                label="Suppliers"
+                label="ספקים"
                 options={filterOptions.suppliers}
                 selected={filters.suppliers}
                 onChange={(val) => updateFilter('suppliers', val)}
               />
               <MultiSelectFilter
-                label="Categories"
+                label="קטגוריות"
                 options={filterOptions.categories}
                 selected={filters.categories}
                 onChange={(val) => updateFilter('categories', val)}
               />
               <MultiSelectFilter
-                label="Business Type"
+                label="סוג עסק"
                 options={filterOptions.businessTypes}
                 selected={filters.businessTypes}
                 onChange={(val) => updateFilter('businessTypes', val)}
@@ -250,14 +266,14 @@ const FilterPanel = ({
                       (filters.amountMin !== null || filters.amountMax !== null) && 'border-primary bg-primary/5'
                     )}
                   >
-                    <span>Total Amount</span>
                     <ChevronDown className="h-4 w-4 ml-2" />
+                    <span>סכום סה"כ</span>
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-64 p-4" align="start">
+                <PopoverContent className="w-64 p-4" align="end">
                   <div className="space-y-3">
                     <div>
-                      <label className="text-sm font-medium">Min Amount</label>
+                      <label className="text-sm font-medium">סכום מינימום</label>
                       <Input
                         type="number"
                         placeholder="0"
@@ -266,10 +282,10 @@ const FilterPanel = ({
                       />
                     </div>
                     <div>
-                      <label className="text-sm font-medium">Max Amount</label>
+                      <label className="text-sm font-medium">סכום מקסימום</label>
                       <Input
                         type="number"
-                        placeholder="No limit"
+                        placeholder="ללא הגבלה"
                         value={filters.amountMax ?? ''}
                         onChange={(e) => updateFilter('amountMax', e.target.value ? Number(e.target.value) : null)}
                       />
@@ -283,7 +299,7 @@ const FilterPanel = ({
                         updateFilter('amountMax', null);
                       }}
                     >
-                      Clear
+                      נקה
                     </Button>
                   </div>
                 </PopoverContent>
@@ -291,40 +307,15 @@ const FilterPanel = ({
             </div>
 
             {/* Actions Row */}
-            <div className="flex flex-wrap items-center gap-3 pt-2 border-t">
-              {selectedCount > 0 && (
-                <Badge variant="secondary" className="text-sm">
-                  {selectedCount} selected
-                </Badge>
-              )}
+            <div className="flex flex-wrap items-center gap-3 pt-2 border-t justify-end">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                onClick={onBulkEdit}
-                disabled={selectedCount !== 1}
+                onClick={onClearFilters}
+                disabled={!hasActiveFilters && searchQuery === '' && duplicatesMode === 'all'}
               >
-                <Edit className="h-4 w-4 mr-1" />
-                Edit
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={onPrint}
-                disabled={selectedCount === 0}
-              >
-                <Printer className="h-4 w-4 mr-1" />
-                Print
-              </Button>
-              <Button
-                variant={getDuplicatesButtonVariant()}
-                size="sm"
-                onClick={onToggleDuplicates}
-              >
-                <Copy className="h-4 w-4 mr-1" />
-                {getDuplicatesButtonText()}
-                {duplicatesCount > 0 && duplicatesMode === 'all' && (
-                  <Badge variant="secondary" className="ml-2">{duplicatesCount}</Badge>
-                )}
+                <RotateCcw className="h-4 w-4 ml-1" />
+                נקה הכל
               </Button>
               <Button
                 variant="outline"
@@ -333,18 +324,43 @@ const FilterPanel = ({
                 disabled={selectedCount === 0}
                 className="text-destructive hover:text-destructive"
               >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Delete ({selectedCount})
+                <Trash2 className="h-4 w-4 ml-1" />
+                מחק ({selectedCount})
               </Button>
               <Button
-                variant="ghost"
+                variant={getDuplicatesButtonVariant()}
                 size="sm"
-                onClick={onClearFilters}
-                disabled={!hasActiveFilters && searchQuery === '' && duplicatesMode === 'all'}
+                onClick={onToggleDuplicates}
               >
-                <RotateCcw className="h-4 w-4 mr-1" />
-                Clear All
+                <Copy className="h-4 w-4 ml-1" />
+                {getDuplicatesButtonText()}
+                {duplicatesCount > 0 && duplicatesMode === 'all' && (
+                  <Badge variant="secondary" className="mr-2">{duplicatesCount}</Badge>
+                )}
               </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={onPrint}
+                disabled={selectedCount === 0}
+              >
+                <Printer className="h-4 w-4 ml-1" />
+                הדפסה
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onBulkEdit}
+                disabled={selectedCount !== 1}
+              >
+                <Edit className="h-4 w-4 ml-1" />
+                עריכה
+              </Button>
+              {selectedCount > 0 && (
+                <Badge variant="secondary" className="text-sm">
+                  {selectedCount} נבחרו
+                </Badge>
+              )}
             </div>
           </div>
         </CollapsibleContent>
