@@ -322,11 +322,11 @@ const FilterPanel = ({
               variant="outline"
               size="sm"
               onClick={onBulkEdit}
-              disabled={selectedCount !== 1}
+              disabled={selectedCount === 0}
               className="flex-row-reverse"
             >
               <Edit className="h-4 w-4 ml-2" />
-              עריכה
+              עריכה {selectedCount > 1 ? `(${selectedCount})` : ''}
             </Button>
             <Button
               variant="default"

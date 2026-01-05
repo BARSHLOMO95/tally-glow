@@ -7,6 +7,7 @@ import KPICards from '@/components/invoice/KPICards';
 import FilterPanel from '@/components/invoice/FilterPanel';
 import InvoiceTable from '@/components/invoice/InvoiceTable';
 import EditInvoiceModal from '@/components/invoice/EditInvoiceModal';
+import BulkEditModal, { BulkEditData } from '@/components/invoice/BulkEditModal';
 import ImageModal from '@/components/invoice/ImageModal';
 import SupplierCardModal from '@/components/invoice/SupplierCardModal';
 import AddInvoiceModal from '@/components/invoice/AddInvoiceModal';
@@ -30,6 +31,7 @@ const Dashboard = () => {
     createInvoice,
     bulkCreateInvoices,
     updateInvoice,
+    bulkUpdateInvoices,
     deleteInvoices,
     toggleSelection,
     toggleSelectAll,
@@ -42,6 +44,7 @@ const Dashboard = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [duplicatesMode, setDuplicatesMode] = useState<DuplicatesFilterMode>('all');
 
@@ -286,8 +289,8 @@ const Dashboard = () => {
             if (selectedIds.length === 1) {
               const invoice = invoices.find(i => i.id === selectedIds[0]);
               if (invoice) setEditingInvoice(invoice);
-            } else {
-              toast.info('בחר חשבונית אחת לעריכה');
+            } else if (selectedIds.length > 1) {
+              setIsBulkEditModalOpen(true);
             }
           }}
           onBulkDelete={handleBulkDelete}
@@ -343,6 +346,14 @@ const Dashboard = () => {
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onImport={bulkCreateInvoices}
+      />
+
+      <BulkEditModal
+        isOpen={isBulkEditModalOpen}
+        onClose={() => setIsBulkEditModalOpen(false)}
+        onSave={(data: BulkEditData) => bulkUpdateInvoices(selectedIds, data)}
+        selectedCount={selectedIds.length}
+        categories={filterOptions.categories}
       />
 
       {/* Delete Confirmation Dialog */}
