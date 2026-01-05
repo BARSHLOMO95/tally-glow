@@ -60,7 +60,19 @@ const Dashboard = () => {
   };
 
   const handlePrint = () => {
-    window.print();
+    if (selectedIds.length === 0) {
+      toast.info('בחר חשבוניות להדפסה');
+      return;
+    }
+    
+    // Get selected invoices
+    const selectedInvoices = invoices.filter(inv => selectedIds.includes(inv.id));
+    
+    // Store in sessionStorage for the report page
+    sessionStorage.setItem('printInvoices', JSON.stringify(selectedInvoices));
+    
+    // Open report in new tab
+    window.open('/report', '_blank');
   };
 
   const handleCreateInvoice = (data: InvoiceFormData) => {
