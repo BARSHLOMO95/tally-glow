@@ -150,14 +150,10 @@ const ImportExcelModal = ({ isOpen, onClose, onImport }: ImportExcelModalProps) 
           const documentDate = invoice.document_date || new Date().toISOString().split('T')[0];
           const amountBeforeVat = invoice.amount_before_vat || 0;
           const businessType = invoice.business_type || 'עוסק מורשה';
-          
-          // Use VAT from Excel if provided, otherwise calculate
-          let vatAmount: number | null = invoice.vat_amount ?? null;
-          if (vatAmount === null || vatAmount === undefined) {
-            vatAmount = (businessType === 'עוסק מורשה' || businessType === 'חברה בע"מ') 
-              ? amountBeforeVat * 0.18 
-              : null;
-          }
+
+          // VAT is calculated by database trigger based on total_amount and business_type
+          // If total_amount is not provided, calculate it from amount_before_vat as a fallback
+          const totalAmount = invoice.total_amount || amountBeforeVat;
 
           parsedInvoices.push({
             intake_date: invoice.intake_date || new Date().toISOString().split('T')[0],
@@ -167,12 +163,11 @@ const ImportExcelModal = ({ isOpen, onClose, onImport }: ImportExcelModalProps) 
             document_number: documentNumber,
             document_type: invoice.document_type || 'חשבונית מס',
             category: invoice.category || 'כללי',
-            amount_before_vat: amountBeforeVat,
-            vat_amount: vatAmount,
-            total_amount: invoice.total_amount || amountBeforeVat + (vatAmount || 0),
+            total_amount: totalAmount,
             business_type: businessType,
             entry_method: invoice.entry_method || 'דיגיטלי',
             image_url: invoice.image_url || null,
+            // amount_before_vat and vat_amount will be calculated by database trigger
           });
         } catch (err) {
           parseErrors.push(`שורה ${index + 2}: שגיאה בקריאה`);

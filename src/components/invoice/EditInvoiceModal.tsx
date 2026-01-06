@@ -44,17 +44,7 @@ const EditInvoiceModal = ({ invoice, isOpen, onClose, onSave, categories }: Edit
     }
   }, [invoice]);
 
-  // Calculate VAT when amount or business type changes
-  useEffect(() => {
-    if (formData.amount_before_vat && formData.business_type) {
-      if (formData.business_type === 'עוסק מורשה' || formData.business_type === 'חברה בע"מ') {
-        const vat = Math.round(formData.amount_before_vat * 0.18 * 100) / 100;
-        setFormData(prev => ({ ...prev, vat_amount: vat }));
-      } else {
-        setFormData(prev => ({ ...prev, vat_amount: null }));
-      }
-    }
-  }, [formData.amount_before_vat, formData.business_type]);
+  // VAT is now calculated by database trigger based on total_amount and business_type
 
   const handleSave = () => {
     if (invoice) {

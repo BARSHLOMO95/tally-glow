@@ -45,14 +45,6 @@ export function useInvoices(userId: string | undefined) {
     fetchInvoices();
   }, [userId]);
 
-  // Calculate VAT based on business type
-  const calculateVat = (amountBeforeVat: number, businessType: BusinessType): number | null => {
-    if (businessType === 'עוסק מורשה' || businessType === 'חברה בע"מ') {
-      return Math.round(amountBeforeVat * 0.18 * 100) / 100;
-    }
-    return null;
-  };
-
   // Get unique values for filters
   const filterOptions = useMemo(() => {
     const intakeMonths = [...new Set(invoices.map(i => format(new Date(i.intake_date), 'MM/yy')))].sort();
@@ -105,14 +97,12 @@ export function useInvoices(userId: string | undefined) {
   const createInvoice = async (data: InvoiceFormData) => {
     if (!userId) return;
 
-    const vatAmount = calculateVat(data.amount_before_vat, data.business_type);
-    
+    // VAT is calculated by database trigger based on business_type
     const { data: newInvoice, error } = await supabase
       .from('invoices')
       .insert({
         ...data,
         user_id: userId,
-        vat_amount: vatAmount,
       })
       .select()
       .single();
@@ -130,10 +120,10 @@ export function useInvoices(userId: string | undefined) {
   const bulkCreateInvoices = async (dataList: InvoiceFormData[]) => {
     if (!userId) return;
 
+    // VAT is calculated by database trigger based on business_type
     const invoicesToInsert = dataList.map(data => ({
       ...data,
       user_id: userId,
-      vat_amount: calculateVat(data.amount_before_vat, data.business_type),
     }));
 
     const { data: newInvoices, error } = await supabase
@@ -152,17 +142,10 @@ export function useInvoices(userId: string | undefined) {
 
   // Update invoice
   const updateInvoice = async (id: string, data: Partial<InvoiceFormData>) => {
-    const vatAmount = data.amount_before_vat && data.business_type 
-      ? calculateVat(data.amount_before_vat, data.business_type)
-      : undefined;
-
-    const updateData = vatAmount !== undefined 
-      ? { ...data, vat_amount: vatAmount }
-      : data;
-
+    // VAT is calculated by database trigger based on business_type
     const { data: updatedInvoice, error } = await supabase
       .from('invoices')
-      .update(updateData)
+      .update(data)
       .eq('id', id)
       .select()
       .single();
