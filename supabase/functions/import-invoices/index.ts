@@ -79,15 +79,9 @@ Deno.serve(async (req) => {
       // Parse total amount - this is the only required amount field
       const parsedTotal = parseFloat(rawTotalAmount) || 0;
 
-      // Always calculate VAT at 18% from total
-      // total = before_vat + vat = before_vat * 1.18
-      // before_vat = total / 1.18
-      // vat = total - before_vat = total * 0.18 / 1.18
-      const finalAmountBeforeVat = Math.round((parsedTotal / 1.18) * 100) / 100;
-      const finalVatAmount = Math.round((parsedTotal - finalAmountBeforeVat) * 100) / 100;
-      const finalTotalAmount = parsedTotal;
-
-      console.log(`VAT Calculation - Total: ${parsedTotal} => Before VAT: ${finalAmountBeforeVat}, VAT: ${finalVatAmount}`);
+      // VAT calculation is now handled by database trigger based on business_type
+      // Just pass total_amount and business_type, trigger will calculate VAT
+      console.log(`Importing invoice - Total: ${parsedTotal}, Business Type: ${mapBusinessType(businessType)}`);
 
       return {
         user_id: userId,
@@ -98,12 +92,11 @@ Deno.serve(async (req) => {
         document_number: documentNumber,
         document_type: documentType,
         category: category,
-        amount_before_vat: finalAmountBeforeVat || null,
-        vat_amount: finalVatAmount || null,
-        total_amount: finalTotalAmount || null,
+        total_amount: parsedTotal || null,
         business_type: mapBusinessType(businessType),
         entry_method: entryMethod,
         image_url: imageUrl,
+        // amount_before_vat and vat_amount will be calculated by database trigger
       };
     });
 

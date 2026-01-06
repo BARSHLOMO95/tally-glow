@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,17 +41,7 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave, existingCategories }: AddInv
 
   const categories = [...new Set([...defaultCategories, ...existingCategories])];
 
-  // Calculate VAT when amount or business type changes
-  useEffect(() => {
-    if (formData.amount_before_vat && formData.business_type) {
-      if (formData.business_type === 'עוסק מורשה' || formData.business_type === 'חברה בע"מ') {
-        const vat = Math.round(formData.amount_before_vat * 0.18 * 100) / 100;
-        setFormData(prev => ({ ...prev, vat_amount: vat }));
-      } else {
-        setFormData(prev => ({ ...prev, vat_amount: null }));
-      }
-    }
-  }, [formData.amount_before_vat, formData.business_type]);
+  // VAT is now calculated by database trigger based on total_amount and business_type
 
   const handleSave = () => {
     if (!formData.supplier_name || !formData.document_number || !formData.category) {
