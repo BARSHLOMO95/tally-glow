@@ -99,11 +99,11 @@ const Dashboard = () => {
     const imagesSection = selectedInvoices
       .filter(inv => inv.image_url)
       .map(inv => `
-        <div style="page-break-inside: avoid; margin-bottom: 30px; border: 1px solid #ddd; padding: 15px;">
-          <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
+        <div style="page-break-inside: avoid; margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; text-align: center;">
+          <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px; text-align: right;">
             ${inv.supplier_name} - ${inv.document_number}
           </div>
-          <img src="${inv.image_url}" style="max-width: 100%; max-height: 800px;" onerror="this.style.display='none'" />
+          <img src="${inv.image_url}" style="max-width: 80%; max-height: 700px; display: inline-block;" onerror="this.style.display='none'" />
         </div>
       `).join('');
     
@@ -242,10 +242,10 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen w-full bg-background">
       {/* Header */}
-      <header className="bg-card border-b sticky top-0 z-40">
-        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
+      <header className="bg-card border-b sticky top-0 z-40 w-full">
+        <div className="w-full px-3 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between flex-row-reverse">
             <div className="text-right">
               <h1 className="text-lg sm:text-xl font-bold">ניהול הוצאות</h1>
@@ -274,7 +274,7 @@ const Dashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-2 sm:px-4 py-3 sm:py-6 space-y-3 sm:space-y-6">
+      <main className="w-full px-3 sm:px-6 py-3 sm:py-6 space-y-3 sm:space-y-6">
         {/* KPI Cards */}
         <KPICards 
           data={kpiData} 
