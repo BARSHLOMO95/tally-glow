@@ -53,6 +53,17 @@ Deno.serve(async (req) => {
       return 'דיגיטלי';
     };
 
+    // Map business type - normalize variations
+    const mapBusinessType = (type: string | null): string | null => {
+      if (!type) return null;
+      // Normalize "ספק חול" (without quotation mark) to "ספק חו"ל"
+      if (type === 'ספק חול' || type === 'ספק חו"ל' || type === 'ספק חו״ל') return 'ספק חו"ל';
+      if (type === 'עוסק מורשה') return 'עוסק מורשה';
+      if (type === 'עוסק פטור') return 'עוסק פטור';
+      if (type === 'חברה בע"מ' || type === 'חברה בע״מ') return 'חברה בע"מ';
+      return type;
+    };
+
     const invoicesToInsert = invoicesData.map((invoice: any) => {
       // Support both Hebrew and English field names - keep empty values as null
       const supplierName = invoice['שם הספק'] || invoice.supplier_name || null;
@@ -90,7 +101,7 @@ Deno.serve(async (req) => {
         amount_before_vat: finalAmountBeforeVat || null,
         vat_amount: finalVatAmount || null,
         total_amount: finalTotalAmount || null,
-        business_type: businessType,
+        business_type: mapBusinessType(businessType),
         entry_method: entryMethod,
         image_url: imageUrl,
       };
