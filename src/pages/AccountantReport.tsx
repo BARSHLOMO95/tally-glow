@@ -105,16 +105,16 @@ const AccountantReport = () => {
           <h2 className="text-xl font-bold mb-4 border-r-4 border-blue-600 pr-3">תמונות חשבוניות</h2>
           <div className="space-y-8">
             {invoices.filter(inv => inv.image_url).map((invoice, index) => (
-              <div key={invoice.id} className="border border-gray-300 rounded-lg p-4 break-inside-avoid">
-                <div className="flex justify-between items-center mb-3 pb-2 border-b">
+              <div key={invoice.id} className="border border-gray-300 rounded-lg p-4 break-inside-avoid text-center">
+                <div className="flex justify-between items-center mb-3 pb-2 border-b text-right">
                   <span className="font-bold">{index + 1}. {invoice.supplier_name}</span>
                   <span className="text-gray-600">מספר מסמך: {invoice.document_number}</span>
                 </div>
-                <div className="flex justify-center">
+                <div className="flex justify-center items-center">
                   <img 
                     src={invoice.image_url!} 
                     alt={`חשבונית ${invoice.document_number}`}
-                    className="max-w-full max-h-[600px] object-contain"
+                    className="max-w-[80%] max-h-[600px] object-contain mx-auto"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}
