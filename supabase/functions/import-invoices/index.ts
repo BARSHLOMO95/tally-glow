@@ -30,10 +30,26 @@ Deno.serve(async (req) => {
     }
 
     // Check if this is an image URL request (AI analysis mode)
-    if (body.image_url && openaiApiKey) {
-      console.log('AI Analysis mode - analyzing image:', body.image_url);
+    // Support both direct image_url and invoices array with image_url only
+    let imageUrlForAI: string | null = null;
+    
+    if (body.image_url) {
+      imageUrlForAI = body.image_url;
+    } else if (Array.isArray(body.invoices) && body.invoices.length === 1) {
+      const firstInvoice = body.invoices[0];
+      // If invoice only has image_url (and no other meaningful data), use AI mode
+      const hasOnlyImageUrl = firstInvoice.image_url && 
+        !firstInvoice.supplier_name && !firstInvoice['שם הספק'] &&
+        !firstInvoice.total_amount && !firstInvoice['סכום כולל מע"מ'] && !firstInvoice['סכום כולל מע״מ'];
+      if (hasOnlyImageUrl) {
+        imageUrlForAI = firstInvoice.image_url;
+      }
+    }
+
+    if (imageUrlForAI && openaiApiKey) {
+      console.log('AI Analysis mode - analyzing image:', imageUrlForAI);
       
-      const invoiceData = await analyzeInvoiceImage(body.image_url, openaiApiKey);
+      const invoiceData = await analyzeInvoiceImage(imageUrlForAI, openaiApiKey);
       console.log('AI extracted data:', JSON.stringify(invoiceData));
 
       if (!invoiceData) {
@@ -56,7 +72,7 @@ Deno.serve(async (req) => {
         total_amount: invoiceData.total_amount || null,
         business_type: invoiceData.business_type || null,
         entry_method: 'דיגיטלי',
-        image_url: body.image_url,
+        image_url: imageUrlForAI,
       };
 
       console.log('Inserting AI-extracted invoice:', JSON.stringify(invoiceToInsert));
