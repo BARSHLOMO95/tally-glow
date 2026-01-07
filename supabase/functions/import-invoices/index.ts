@@ -181,7 +181,7 @@ Deno.serve(async (req) => {
 });
 
 async function analyzeInvoiceImage(imageUrl: string, apiKey: string): Promise<any> {
-  const systemPrompt = `אתה מומחה לניתוח חשבוניות ומסמכים פיננסיים. 
+const systemPrompt = `אתה מומחה לניתוח חשבוניות ומסמכים פיננסיים. 
 נתח את התמונה וחלץ את הנתונים הבאים בפורמט JSON בלבד:
 
 {
@@ -190,7 +190,7 @@ async function analyzeInvoiceImage(imageUrl: string, apiKey: string): Promise<an
   "document_number": "מספר המסמך",
   "document_type": "חשבונית/קבלה/חשבונית מס/אחר",
   "total_amount": 123.45,
-  "category": "קטגוריה מתאימה",
+  "category": "קטגוריה מהרשימה",
   "business_type": "עוסק מורשה/עוסק פטור/חברה בע״מ/ספק חו״ל"
 }
 
@@ -199,7 +199,19 @@ async function analyzeInvoiceImage(imageUrl: string, apiKey: string): Promise<an
 - document_date בפורמט YYYY-MM-DD
 - אם לא ניתן לזהות ערך, החזר null
 - אם המסמך באנגלית או מספק זר, סמן business_type כ"ספק חו״ל"
-- החזר רק JSON תקין, ללא טקסט נוסף`;
+- החזר רק JSON תקין, ללא טקסט נוסף
+
+קטגוריות - בחר רק מהרשימה הבאה:
+- "תחזוקה" (תיקונים, חומרים)
+- "סופרים (מזון)" (רמי לוי, שופרסל, מזון)
+- "ספקים (פעילויות)" (יוגה, פיינטבול, ג'יפים, מדריכים)
+- "הנהלה וכלליות" (משרד, משפטי, ביטוח)
+- "חשמל" (חשבונות חשמל)
+- "ניקיון" (מוצרי ניקיון או שירותי ניקיון)
+- "תקשורת" (אינטרנט, טלפון)
+- "טכנולוגיה" (תוכנה, CRM, אתר)
+- "שיווק" (פרסום פייסבוק/גוגל, עיצוב)
+- "רכב" (דלק, מוסך, רישוי, תיקונים)`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
