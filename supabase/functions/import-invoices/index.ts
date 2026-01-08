@@ -53,6 +53,9 @@ Deno.serve(async (req) => {
       console.log('AI extracted data:', JSON.stringify(invoiceData));
 
       if (!invoiceData) {
+        // Send failure WhatsApp notification
+        await sendWhatsAppNotification(false, null, imageUrlForAI, 'לא ניתן היה לחלץ את פרטי המסמך מהתמונה');
+        
         return new Response(
           JSON.stringify({ error: 'Failed to extract invoice data from image' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -93,6 +96,10 @@ Deno.serve(async (req) => {
       }
 
       console.log('Successfully inserted AI-extracted invoice:', data);
+      
+      // Send success WhatsApp notification
+      await sendWhatsAppNotification(true, invoiceData, imageUrlForAI);
+      
       return new Response(
         JSON.stringify({ success: true, inserted: 1, data, extracted: invoiceData }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -320,5 +327,62 @@ Return ONLY a clean JSON object. No markdown, no notes.`;
   } catch (error) {
     console.error('Error analyzing image:', error);
     return null;
+  }
+}
+
+// WhatsApp notification function
+async function sendWhatsAppNotification(
+  success: boolean, 
+  invoiceData?: any, 
+  imageUrl?: string,
+  errorMessage?: string
+): Promise<void> {
+  const WHATSAPP_GROUP_ID = '120363235685145891@g.us';
+  const WHATSAPP_PHONE = '7103171806';
+  const WHATSAPP_API_KEY = '45043bb0bb274c07aeecfcfa97c1e6df438af6c7a3614a70b6';
+  
+  let message: string;
+  
+  if (success && invoiceData) {
+    message = `📄 מסמך נקלט בהצלחה
+
+מספר מסמך: ${invoiceData.document_number || 'לא זוהה'}
+ספק: ${invoiceData.supplier_name || 'לא זוהה'}
+סוג מסמך: ${invoiceData.document_type || 'לא זוהה'}
+קטגוריה: ${invoiceData.category || 'לא זוהה'}
+סכום כולל מע״מ: ${invoiceData.total_amount || 0} ₪
+
+🔗 לצפייה במסמך:
+${imageUrl || 'לא זמין'}`;
+  } else {
+    message = `❌ מסמך לא נקלט בהצלחה
+
+${errorMessage || 'לא ניתן היה לחלץ את פרטי המסמך מהתמונה. אנא ודא שהתמונה ברורה ומכילה חשבונית תקינה.'}
+
+🔗 לצפייה במסמך:
+${imageUrl || 'לא זמין'}`;
+  }
+
+  try {
+    // Using Green API for WhatsApp messaging
+    const response = await fetch(`https://api.green-api.com/waInstance${WHATSAPP_PHONE}/sendMessage/${WHATSAPP_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        chatId: WHATSAPP_GROUP_ID,
+        message: message,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('WhatsApp API error:', response.status, errorText);
+    } else {
+      console.log('WhatsApp notification sent successfully');
+    }
+  } catch (error) {
+    console.error('Error sending WhatsApp notification:', error);
   }
 }
