@@ -69,9 +69,11 @@ Deno.serve(async (req) => {
         document_number: invoiceData.document_number || null,
         document_type: invoiceData.document_type || null,
         category: invoiceData.category || null,
+        amount_before_vat: invoiceData.amount_before_vat || null,
+        vat_amount: invoiceData.vat_amount || null,
         total_amount: invoiceData.total_amount || null,
         business_type: invoiceData.business_type || null,
-        entry_method: 'דיגיטלי',
+        entry_method: invoiceData.entry_method || 'דיגיטלי',
         image_url: imageUrlForAI,
       };
 
@@ -181,37 +183,57 @@ Deno.serve(async (req) => {
 });
 
 async function analyzeInvoiceImage(imageUrl: string, apiKey: string): Promise<any> {
-const systemPrompt = `אתה מומחה לניתוח חשבוניות ומסמכים פיננסיים. 
-נתח את התמונה וחלץ את הנתונים הבאים בפורמט JSON בלבד:
+  const systemPrompt = `You are an expert Israeli accountant. Analyze the attached image for "החווה של צביקה" (a group hosting farm) and extract the details into a strict JSON format.
 
-{
-  "supplier_name": "שם הספק",
-  "document_date": "YYYY-MM-DD",
-  "document_number": "מספר המסמך",
-  "document_type": "חשבונית/קבלה/חשבונית מס/אחר",
-  "total_amount": 123.45,
-  "category": "קטגוריה מהרשימה",
-  "business_type": "עוסק מורשה/עוסק פטור/חברה בע״מ/ספק חו״ל"
-}
+The keys MUST be in Hebrew as specified:
 
-כללים:
-- total_amount חייב להיות מספר בלבד (ללא סימני מטבע)
-- document_date בפורמט YYYY-MM-DD
-- אם לא ניתן לזהות ערך, החזר null
-- אם המסמך באנגלית או מספק זר, סמן business_type כ"ספק חו״ל"
-- החזר רק JSON תקין, ללא טקסט נוסף
+1. "שם הספק": Extract the supplier's name. Remove any double quotes (") from the name (e.g., change בע"מ to בעמ) to ensure valid JSON.
 
-קטגוריות - בחר רק מהרשימה הבאה:
-- "תחזוקה" (תיקונים, חומרים)
-- "סופרים (מזון)" (רמי לוי, שופרסל, מזון)
-- "ספקים (פעילויות)" (יוגה, פיינטבול, ג'יפים, מדריכים)
-- "הנהלה וכלליות" (משרד, משפטי, ביטוח)
-- "חשמל" (חשבונות חשמל)
-- "ניקיון" (מוצרי ניקיון או שירותי ניקיון)
-- "תקשורת" (אינטרנט, טלפון)
-- "טכנולוגיה" (תוכנה, CRM, אתר)
-- "שיווק" (פרסום פייסבוק/גוגל, עיצוב)
-- "רכב" (דלק, מוסך, רישוי, תיקונים)`;
+2. "תאריך מסמך": Format as DD/MM/YYYY.
+
+3. "סוג מסמך": Identify the type: "חשבונית מס", "חשבונית מס קבלה", "קבלה", "חשבונית עסקה", "חשבונית (Invoice)", or "אחר".
+
+4. "מספר מסמך": The invoice/receipt number. (Look for: מס' חשבונית / מספר מסמך / Invoice #. DO NOT confuse with the Supplier's ID/H.P).
+
+5. "סכום לפני מע"מ": Number only.
+   - If the invoice is in USD ($), convert the TOTAL amount to ILS by multiplying by 3.2.
+   - Round to the nearest integer (no decimals).
+   - For Exempt Dealers or Foreign Invoices, this is equal to the "סכום כולל מע"מ".
+
+6. "מע"מ": The VAT amount.
+   - If it is a Foreign Invoice (USD), return 0 (no Israeli VAT).
+   - Otherwise, round to the nearest integer (no decimals).
+
+7. "סכום כולל מע"מ": The final total amount (Number only).
+   - If the invoice is in USD ($), convert to ILS by multiplying by 3.2.
+   - Round to the nearest integer (no decimals).
+
+8. "קטגוריה": Choose ONLY from this list:
+   - "תחזוקה" (Repairs, supplies)
+   - "סופרים (מזון)" (Food from Rami Levy, Shufersal, etc.)
+   - "ספקים (פעילויות)" (Yoga, Paintball, Jeeps, Instructors)
+   - "הנהלה וכלליות" (Office, Legal, Insurance)
+   - "חשמל" (Electricity)
+   - "ניקיון" (Cleaning products or services)
+   - "תקשורת" (Internet, Phone)
+   - "טכנולוגיה" (Software, CRM, Website)
+   - "שיווק" (Facebook/Google Ads, Design)
+   - "רכב" (Fuel, Garage, Licensing, Repairs)
+
+9. "is_valid_tax_document": Boolean (true/false).
+   - Set to "false" if "שם הספק" is "בר שלמה" or "החווה של צביקה" (Self-issued/Income).
+   - Set to "true" if it is a "חשבונית מס", "חשבונית מס קבלה", "קבלה" (Exempt Dealer), OR a foreign "Invoice" (e.g., Google, Facebook, Render).
+   - Set to "false" only for orders, price quotes, or non-invoices.
+
+10. "פורמט מסמך": "דיגיטלי" (computer-printed) or "ידני" (handwritten).
+
+11. "סוג עוסק":
+    - "חברה בעמ" (If name includes בע"מ / Ltd or HP starts with 51).
+    - "עוסק מורשה" (If VAT is 18% but not a company).
+    - "עוסק פטור" (If it's a "קבלה" and VAT is 0).
+    - "ספק חול" (If it is a foreign company like Google/Render).
+
+Return ONLY a clean JSON object. No markdown, no notes.`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -260,7 +282,40 @@ const systemPrompt = `אתה מומחה לניתוח חשבוניות ומסמכ
     }
 
     const parsed = JSON.parse(jsonStr.trim());
-    return parsed;
+    
+    // Map Hebrew keys to database fields
+    const parseDate = (dateStr: string): string | null => {
+      if (!dateStr) return null;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+      const parts = dateStr.split('/');
+      if (parts.length === 3) {
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+      return null;
+    };
+
+    const mapBusinessType = (type: string | null): string | null => {
+      if (!type) return null;
+      if (type === 'ספק חול' || type === 'ספק חו"ל' || type === 'ספק חו״ל') return 'ספק חו"ל';
+      if (type === 'עוסק מורשה') return 'עוסק מורשה';
+      if (type === 'עוסק פטור') return 'עוסק פטור';
+      if (type === 'חברה בעמ' || type === 'חברה בע"מ' || type === 'חברה בע״מ') return 'חברה בע"מ';
+      return type;
+    };
+
+    return {
+      supplier_name: parsed['שם הספק'] || null,
+      document_date: parseDate(parsed['תאריך מסמך']),
+      document_number: parsed['מספר מסמך'] || null,
+      document_type: parsed['סוג מסמך'] || null,
+      amount_before_vat: parsed['סכום לפני מע"מ'] || parsed['סכום לפני מע״מ'] || null,
+      vat_amount: parsed['מע"מ'] || parsed['מע״מ'] || null,
+      total_amount: parsed['סכום כולל מע"מ'] || parsed['סכום כולל מע״מ'] || null,
+      category: parsed['קטגוריה'] || null,
+      business_type: mapBusinessType(parsed['סוג עוסק']),
+      entry_method: parsed['פורמט מסמך'] || 'דיגיטלי',
+      is_valid_tax_document: parsed['is_valid_tax_document'] ?? true,
+    };
 
   } catch (error) {
     console.error('Error analyzing image:', error);
