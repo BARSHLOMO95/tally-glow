@@ -198,7 +198,7 @@ The keys MUST be in Hebrew as specified:
 
 2. "תאריך מסמך": Format as DD/MM/YYYY.
 
-3. "סוג מסמך": Identify the type: "חשבונית מס", "חשבונית מס קבלה", "קבלה", "חשבונית עסקה", "חשבונית (Invoice)", or "אחר".
+3. "סוג מסמך": Identify the type. ONLY these are valid accounting documents: "חשבונית מס", "חשבונית מס קבלה", "קבלה". Any other type (like "חשבונית עסקה", "הזמנה", "הצעת מחיר", etc.) should be marked as "אחר" (not a valid accounting document).
 
 4. "מספר מסמך": The invoice/receipt number. (Look for: מס' חשבונית / מספר מסמך / Invoice #. DO NOT confuse with the Supplier's ID/H.P).
 
@@ -228,9 +228,9 @@ The keys MUST be in Hebrew as specified:
    - "רכב" (Fuel, Garage, Licensing, Repairs)
 
 9. "is_valid_tax_document": Boolean (true/false).
+   - Set to "true" ONLY if "סוג מסמך" is exactly "חשבונית מס", "חשבונית מס קבלה", or "קבלה".
    - Set to "false" if "שם הספק" is "בר שלמה" or "החווה של צביקה" (Self-issued/Income).
-   - Set to "true" if it is a "חשבונית מס", "חשבונית מס קבלה", "קבלה" (Exempt Dealer), OR a foreign "Invoice" (e.g., Google, Facebook, Render).
-   - Set to "false" only for orders, price quotes, or non-invoices.
+   - Set to "false" for any other document type (חשבונית עסקה, הזמנה, הצעת מחיר, etc.).
 
 10. "פורמט מסמך": "דיגיטלי" (computer-printed) or "ידני" (handwritten).
 
