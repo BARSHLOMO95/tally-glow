@@ -18,7 +18,7 @@ interface EditInvoiceModalProps {
 const statusOptions: InvoiceStatus[] = ['חדש', 'בתהליך', 'טופל'];
 const businessTypeOptions: BusinessType[] = ['עוסק מורשה', 'עוסק פטור', 'חברה בע"מ', 'ספק חו"ל'];
 const entryMethodOptions: EntryMethod[] = ['ידני', 'דיגיטלי'];
-const documentTypeOptions = ['חשבונית מס', 'חשבונית מס קבלה', 'קבלה', 'חשבון עסקה', 'תעודת משלוח'];
+const documentTypeOptions = ['חשבונית מס', 'חשבונית מס קבלה', 'קבלה'];
 
 const EditInvoiceModal = ({ invoice, isOpen, onClose, onSave, categories }: EditInvoiceModalProps) => {
   const [formData, setFormData] = useState<Partial<InvoiceFormData>>({});
