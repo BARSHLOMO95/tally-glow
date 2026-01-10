@@ -11,6 +11,8 @@ export function useInvoices(userId: string | undefined) {
   const [filters, setFilters] = useState<FilterState>({
     intakeMonths: [],
     documentMonths: [],
+    intakeYears: [],
+    documentYears: [],
     statuses: [],
     suppliers: [],
     categories: [],
@@ -53,16 +55,34 @@ export function useInvoices(userId: string | undefined) {
     return null;
   };
 
+  // Sort months chronologically descending (newest first)
+  const sortMonthsChronologically = (months: string[]): string[] => {
+    return months.sort((a, b) => {
+      const [monthA, yearA] = a.split('/').map(Number);
+      const [monthB, yearB] = b.split('/').map(Number);
+      // Compare by year first, then by month (descending)
+      if (yearA !== yearB) return yearB - yearA;
+      return monthB - monthA;
+    });
+  };
+
   // Get unique values for filters
   const filterOptions = useMemo(() => {
-    const intakeMonths = [...new Set(invoices.map(i => format(new Date(i.intake_date), 'MM/yy')))].sort();
-    const documentMonths = [...new Set(invoices.map(i => format(new Date(i.document_date), 'MM/yy')))].sort();
+    const intakeMonthsSet = [...new Set(invoices.map(i => format(new Date(i.intake_date), 'MM/yy')))];
+    const documentMonthsSet = [...new Set(invoices.map(i => format(new Date(i.document_date), 'MM/yy')))];
+    
+    // Get unique years sorted descending (newest first)
+    const intakeYears = [...new Set(invoices.map(i => format(new Date(i.intake_date), 'yyyy')))].sort((a, b) => Number(b) - Number(a));
+    const documentYears = [...new Set(invoices.map(i => format(new Date(i.document_date), 'yyyy')))].sort((a, b) => Number(b) - Number(a));
+    
     const suppliers = [...new Set(invoices.map(i => i.supplier_name))].sort();
     const categories = [...new Set(invoices.map(i => i.category))].sort();
     
     return {
-      intakeMonths,
-      documentMonths,
+      intakeMonths: sortMonthsChronologically(intakeMonthsSet),
+      documentMonths: sortMonthsChronologically(documentMonthsSet),
+      intakeYears,
+      documentYears,
       statuses: ['חדש', 'בתהליך', 'טופל'] as InvoiceStatus[],
       suppliers,
       categories,
@@ -75,9 +95,13 @@ export function useInvoices(userId: string | undefined) {
     return invoices.filter(invoice => {
       const intakeMonth = format(new Date(invoice.intake_date), 'MM/yy');
       const documentMonth = format(new Date(invoice.document_date), 'MM/yy');
+      const intakeYear = format(new Date(invoice.intake_date), 'yyyy');
+      const documentYear = format(new Date(invoice.document_date), 'yyyy');
 
       if (filters.intakeMonths.length > 0 && !filters.intakeMonths.includes(intakeMonth)) return false;
       if (filters.documentMonths.length > 0 && !filters.documentMonths.includes(documentMonth)) return false;
+      if (filters.intakeYears.length > 0 && !filters.intakeYears.includes(intakeYear)) return false;
+      if (filters.documentYears.length > 0 && !filters.documentYears.includes(documentYear)) return false;
       if (filters.statuses.length > 0 && !filters.statuses.includes(invoice.status)) return false;
       if (filters.suppliers.length > 0 && !filters.suppliers.includes(invoice.supplier_name)) return false;
       if (filters.categories.length > 0 && !filters.categories.includes(invoice.category)) return false;
@@ -233,6 +257,8 @@ export function useInvoices(userId: string | undefined) {
     setFilters({
       intakeMonths: [],
       documentMonths: [],
+      intakeYears: [],
+      documentYears: [],
       statuses: [],
       suppliers: [],
       categories: [],
