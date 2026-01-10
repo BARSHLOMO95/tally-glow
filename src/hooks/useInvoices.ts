@@ -66,21 +66,37 @@ export function useInvoices(userId: string | undefined) {
     });
   };
 
-  // Get unique values for filters
+  // Get unique values for filters - months are dependent on selected years
   const filterOptions = useMemo(() => {
-    const intakeMonthsSet = [...new Set(invoices.map(i => format(new Date(i.intake_date), 'MM/yy')))];
-    const documentMonthsSet = [...new Set(invoices.map(i => format(new Date(i.document_date), 'MM/yy')))];
+    // Get all unique months
+    const allIntakeMonths = [...new Set(invoices.map(i => format(new Date(i.intake_date), 'MM/yy')))];
+    const allDocumentMonths = [...new Set(invoices.map(i => format(new Date(i.document_date), 'MM/yy')))];
     
     // Get unique years sorted descending (newest first)
     const intakeYears = [...new Set(invoices.map(i => format(new Date(i.intake_date), 'yyyy')))].sort((a, b) => Number(b) - Number(a));
     const documentYears = [...new Set(invoices.map(i => format(new Date(i.document_date), 'yyyy')))].sort((a, b) => Number(b) - Number(a));
     
+    // Filter months based on selected years (dependent filtering)
+    const filteredIntakeMonths = filters.intakeYears.length > 0
+      ? allIntakeMonths.filter(month => {
+          const yearShort = month.split('/')[1]; // "yy" format
+          return filters.intakeYears.some(year => year.endsWith(yearShort));
+        })
+      : allIntakeMonths;
+    
+    const filteredDocumentMonths = filters.documentYears.length > 0
+      ? allDocumentMonths.filter(month => {
+          const yearShort = month.split('/')[1]; // "yy" format
+          return filters.documentYears.some(year => year.endsWith(yearShort));
+        })
+      : allDocumentMonths;
+    
     const suppliers = [...new Set(invoices.map(i => i.supplier_name))].sort();
     const categories = [...new Set(invoices.map(i => i.category))].sort();
     
     return {
-      intakeMonths: sortMonthsChronologically(intakeMonthsSet),
-      documentMonths: sortMonthsChronologically(documentMonthsSet),
+      intakeMonths: sortMonthsChronologically(filteredIntakeMonths),
+      documentMonths: sortMonthsChronologically(filteredDocumentMonths),
       intakeYears,
       documentYears,
       statuses: ['חדש', 'בתהליך', 'טופל'] as InvoiceStatus[],
@@ -88,7 +104,32 @@ export function useInvoices(userId: string | undefined) {
       categories,
       businessTypes: ['עוסק מורשה', 'עוסק פטור', 'חברה בע"מ', 'ספק חו"ל'] as BusinessType[],
     };
-  }, [invoices]);
+  }, [invoices, filters.intakeYears, filters.documentYears]);
+
+  // Clear months that are no longer valid when year filter changes
+  useEffect(() => {
+    if (filters.intakeYears.length > 0) {
+      const validMonths = filters.intakeMonths.filter(month => {
+        const yearShort = month.split('/')[1];
+        return filters.intakeYears.some(year => year.endsWith(yearShort));
+      });
+      if (validMonths.length !== filters.intakeMonths.length) {
+        setFilters(prev => ({ ...prev, intakeMonths: validMonths }));
+      }
+    }
+  }, [filters.intakeYears]);
+
+  useEffect(() => {
+    if (filters.documentYears.length > 0) {
+      const validMonths = filters.documentMonths.filter(month => {
+        const yearShort = month.split('/')[1];
+        return filters.documentYears.some(year => year.endsWith(yearShort));
+      });
+      if (validMonths.length !== filters.documentMonths.length) {
+        setFilters(prev => ({ ...prev, documentMonths: validMonths }));
+      }
+    }
+  }, [filters.documentYears]);
 
   // Filter invoices
   const filteredInvoices = useMemo(() => {
