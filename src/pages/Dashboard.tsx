@@ -6,6 +6,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import KPICards from '@/components/invoice/KPICards';
 import FilterPanel from '@/components/invoice/FilterPanel';
 import InvoiceTable from '@/components/invoice/InvoiceTable';
+import InvoiceGrid from '@/components/invoice/InvoiceGrid';
 import EditInvoiceModal from '@/components/invoice/EditInvoiceModal';
 import BulkEditModal, { BulkEditData } from '@/components/invoice/BulkEditModal';
 import ImageModal from '@/components/invoice/ImageModal';
@@ -15,8 +16,10 @@ import ImportExcelModal from '@/components/invoice/ImportExcelModal';
 import DashboardCharts from '@/components/invoice/DashboardCharts';
 import DuplicatesModal from '@/components/invoice/DuplicatesModal';
 import { Invoice, InvoiceFormData, DuplicatesFilterMode } from '@/types/invoice';
-import { LogOut, Plus, Loader2, Upload, RefreshCw, Settings } from 'lucide-react';
+import { LogOut, Plus, Loader2, Upload, RefreshCw, LayoutGrid, LayoutList } from 'lucide-react';
 import { toast } from 'sonner';
+
+type ViewMode = 'list' | 'grid';
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -49,6 +52,7 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [duplicatesMode, setDuplicatesMode] = useState<DuplicatesFilterMode>('all');
   const [isDuplicatesModalOpen, setIsDuplicatesModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -252,6 +256,28 @@ const Dashboard = () => {
               <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">דאשבורד פיננסי בזמן אמת</p>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-row-reverse">
+              {/* View Toggle */}
+              <div className="flex items-center border rounded-lg p-0.5 bg-muted/50">
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className="px-2 h-7"
+                  title="תצוגת רשימה"
+                >
+                  <LayoutList className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className="px-2 h-7"
+                  title="תצוגת כרטיסים"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+              </div>
+              
               <Button onClick={() => setIsAddModalOpen(true)} size="sm" className="flex-row-reverse px-2 sm:px-3">
                 <Plus className="h-4 w-4 sm:ml-2" />
                 <span className="hidden sm:inline">הוסף חשבונית</span>
@@ -310,17 +336,29 @@ const Dashboard = () => {
           onOpenDuplicatesModal={() => setIsDuplicatesModalOpen(true)}
         />
 
-        {/* Invoice Table */}
-        <InvoiceTable
-          invoices={displayedInvoices}
-          selectedIds={selectedIds}
-          duplicateIds={duplicatesInfo.ids}
-          onToggleSelection={toggleSelection}
-          onToggleSelectAll={toggleSelectAll}
-          onRowClick={(invoice) => setEditingInvoice(invoice)}
-          onSupplierClick={(name) => setSupplierCardName(name)}
-          onImageClick={(url) => setImageModalUrl(url)}
-        />
+        {/* Invoice View - Table or Grid */}
+        {viewMode === 'list' ? (
+          <InvoiceTable
+            invoices={displayedInvoices}
+            selectedIds={selectedIds}
+            duplicateIds={duplicatesInfo.ids}
+            onToggleSelection={toggleSelection}
+            onToggleSelectAll={toggleSelectAll}
+            onRowClick={(invoice) => setEditingInvoice(invoice)}
+            onSupplierClick={(name) => setSupplierCardName(name)}
+            onImageClick={(url) => setImageModalUrl(url)}
+          />
+        ) : (
+          <InvoiceGrid
+            invoices={displayedInvoices}
+            selectedIds={selectedIds}
+            duplicateIds={duplicatesInfo.ids}
+            onToggleSelection={toggleSelection}
+            onRowClick={(invoice) => setEditingInvoice(invoice)}
+            onSupplierClick={(name) => setSupplierCardName(name)}
+            onImageClick={(url) => setImageModalUrl(url)}
+          />
+        )}
       </main>
 
       {/* Modals */}
