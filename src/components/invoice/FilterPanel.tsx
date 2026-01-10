@@ -16,6 +16,8 @@ interface FilterPanelProps {
   filterOptions: {
     intakeMonths: string[];
     documentMonths: string[];
+    intakeYears: string[];
+    documentYears: string[];
     statuses: InvoiceStatus[];
     suppliers: string[];
     categories: string[];
@@ -217,10 +219,22 @@ const FilterPanel = ({
             {/* Filters Row */}
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3 justify-start">
               <MultiSelectFilter
+                label="שנת קליטה 📆"
+                options={filterOptions.intakeYears}
+                selected={filters.intakeYears}
+                onChange={(val) => updateFilter('intakeYears', val)}
+              />
+              <MultiSelectFilter
                 label="חודש קליטה 🔥"
                 options={filterOptions.intakeMonths}
                 selected={filters.intakeMonths}
                 onChange={(val) => updateFilter('intakeMonths', val)}
+              />
+              <MultiSelectFilter
+                label="שנת מסמך 🗓️"
+                options={filterOptions.documentYears}
+                selected={filters.documentYears}
+                onChange={(val) => updateFilter('documentYears', val)}
               />
               <MultiSelectFilter
                 label="חודש מסמך 📅"

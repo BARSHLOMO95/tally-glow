@@ -41,6 +41,8 @@ export interface InvoiceFormData {
 export interface FilterState {
   intakeMonths: string[];
   documentMonths: string[];
+  intakeYears: string[];
+  documentYears: string[];
   statuses: InvoiceStatus[];
   suppliers: string[];
   categories: string[];
