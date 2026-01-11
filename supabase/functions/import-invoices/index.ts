@@ -54,7 +54,8 @@ Deno.serve(async (req) => {
 
       if (!invoiceData) {
         // Send failure WhatsApp notification
-        await sendWhatsAppNotification(false, null, imageUrlForAI, 'לא ניתן היה לחלץ את פרטי המסמך מהתמונה');
+        const userSettings = await getUserSettings(supabase, userId);
+        await sendWhatsAppNotification(false, null, imageUrlForAI, 'לא ניתן היה לחלץ את פרטי המסמך מהתמונה', userSettings);
         
         return new Response(
           JSON.stringify({ error: 'Failed to extract invoice data from image' }),
@@ -98,7 +99,8 @@ Deno.serve(async (req) => {
       console.log('Successfully inserted AI-extracted invoice:', data);
       
       // Send success WhatsApp notification
-      await sendWhatsAppNotification(true, invoiceData, imageUrlForAI);
+      const userSettings = await getUserSettings(supabase, userId);
+      await sendWhatsAppNotification(true, invoiceData, imageUrlForAI, undefined, userSettings);
       
       return new Response(
         JSON.stringify({ success: true, inserted: 1, data, extracted: invoiceData }),
@@ -173,6 +175,14 @@ Deno.serve(async (req) => {
     }
 
     console.log('Successfully inserted:', data?.length, 'invoices');
+
+    // Send WhatsApp notification for regular imports
+    if (data && data.length > 0) {
+      const userSettings = await getUserSettings(supabase, userId);
+      for (const invoice of data) {
+        await sendWhatsAppNotification(true, invoice, invoice.image_url, undefined, userSettings);
+      }
+    }
 
     return new Response(
       JSON.stringify({ success: true, inserted: data?.length || 0, data }),
@@ -330,21 +340,50 @@ Return ONLY a clean JSON object. No markdown, no notes.`;
   }
 }
 
+// Get user settings from database
+async function getUserSettings(supabase: any, userId: string): Promise<any> {
+  try {
+    const { data, error } = await supabase
+      .from('user_settings')
+      .select('whatsapp_number, whatsapp_group_id, company_name')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching user settings:', error);
+      return null;
+    }
+    return data;
+  } catch (error) {
+    console.error('Error fetching user settings:', error);
+    return null;
+  }
+}
+
 // WhatsApp notification function
 async function sendWhatsAppNotification(
   success: boolean, 
   invoiceData?: any, 
   imageUrl?: string,
-  errorMessage?: string
+  errorMessage?: string,
+  userSettings?: any
 ): Promise<void> {
-  const WHATSAPP_GROUP_ID = '120363235685145891@g.us';
-  const WHATSAPP_PHONE = '7103171806';
-  const WHATSAPP_API_KEY = '45043bb0bb274c07aeecfcfa97c1e6df438af6c7a3614a70b6';
+  // Use user settings if available, otherwise use defaults
+  const WHATSAPP_GROUP_ID = userSettings?.whatsapp_group_id || Deno.env.get('WHATSAPP_GROUP_ID') || '120363235685145891@g.us';
+  const WHATSAPP_PHONE = userSettings?.whatsapp_number || Deno.env.get('WHATSAPP_PHONE') || '7103171806';
+  const WHATSAPP_API_KEY = Deno.env.get('WHATSAPP_API_KEY') || '45043bb0bb274c07aeecfcfa97c1e6df438af6c7a3614a70b6';
   
+  // Skip if no WhatsApp configuration
+  if (!WHATSAPP_GROUP_ID || !WHATSAPP_PHONE) {
+    console.log('WhatsApp notification skipped - no configuration');
+    return;
+  }
+  
+  const companyName = userSettings?.company_name || 'המערכת';
   let message: string;
   
   if (success && invoiceData) {
-    message = `📄 מסמך נקלט בהצלחה
+    message = `📄 מסמך נקלט בהצלחה - ${companyName}
 
 מספר מסמך: ${invoiceData.document_number || 'לא זוהה'}
 ספק: ${invoiceData.supplier_name || 'לא זוהה'}
@@ -355,7 +394,7 @@ async function sendWhatsAppNotification(
 🔗 לצפייה במסמך:
 ${imageUrl || 'לא זמין'}`;
   } else {
-    message = `❌ מסמך לא נקלט בהצלחה
+    message = `❌ מסמך לא נקלט בהצלחה - ${companyName}
 
 ${errorMessage || 'לא ניתן היה לחלץ את פרטי המסמך מהתמונה. אנא ודא שהתמונה ברורה ומכילה חשבונית תקינה.'}
 
@@ -380,7 +419,7 @@ ${imageUrl || 'לא זמין'}`;
       const errorText = await response.text();
       console.error('WhatsApp API error:', response.status, errorText);
     } else {
-      console.log('WhatsApp notification sent successfully');
+      console.log('WhatsApp notification sent successfully to', WHATSAPP_GROUP_ID);
     }
   } catch (error) {
     console.error('Error sending WhatsApp notification:', error);
