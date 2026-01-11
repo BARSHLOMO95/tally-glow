@@ -74,6 +74,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_settings: {
+        Row: {
+          business_number: string | null
+          company_name: string | null
+          created_at: string
+          custom_categories: string[] | null
+          default_business_type: string | null
+          id: string
+          updated_at: string
+          user_id: string
+          whatsapp_group_id: string | null
+          whatsapp_number: string | null
+        }
+        Insert: {
+          business_number?: string | null
+          company_name?: string | null
+          created_at?: string
+          custom_categories?: string[] | null
+          default_business_type?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+          whatsapp_group_id?: string | null
+          whatsapp_number?: string | null
+        }
+        Update: {
+          business_number?: string | null
+          company_name?: string | null
+          created_at?: string
+          custom_categories?: string[] | null
+          default_business_type?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+          whatsapp_group_id?: string | null
+          whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
