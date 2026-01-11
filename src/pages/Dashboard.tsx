@@ -16,12 +16,14 @@ import ImportExcelModal from '@/components/invoice/ImportExcelModal';
 import DashboardCharts from '@/components/invoice/DashboardCharts';
 import DuplicatesModal from '@/components/invoice/DuplicatesModal';
 import { Invoice, InvoiceFormData, DuplicatesFilterMode } from '@/types/invoice';
-import { LogOut, Plus, Loader2, Upload, RefreshCw, LayoutGrid, LayoutList } from 'lucide-react';
+import { LogOut, Plus, Loader2, Upload, RefreshCw, LayoutGrid, LayoutList, Settings } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 type ViewMode = 'list' | 'grid';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const {
     invoices,
@@ -289,6 +291,9 @@ const Dashboard = () => {
               <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="flex-row-reverse px-2 sm:px-3">
                 <RefreshCw className="h-4 w-4 sm:ml-2" />
                 <span className="hidden sm:inline">רענן</span>
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => navigate('/settings')} className="text-muted-foreground" title="הגדרות">
+                <Settings className="h-4 w-4" />
               </Button>
               <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground flex-row-reverse px-2 sm:px-3">
                 <LogOut className="h-4 w-4 sm:ml-2" />
