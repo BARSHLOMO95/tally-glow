@@ -320,16 +320,27 @@ Return ONLY a clean JSON object. No markdown, no notes.`;
       return type;
     };
 
+    const documentType = parsed['סוג מסמך'] || null;
+    let businessType = mapBusinessType(parsed['סוג עוסק']);
+    
+    // Validation: Tax invoices cannot be from exempt dealers
+    // עוסק פטור cannot issue חשבונית מס or חשבונית מס קבלה - only קבלה
+    if (businessType === 'עוסק פטור' && 
+        (documentType === 'חשבונית מס' || documentType === 'חשבונית מס קבלה')) {
+      console.log('Correcting business_type: Tax invoice cannot be from עוסק פטור, changing to עוסק מורשה');
+      businessType = 'עוסק מורשה';
+    }
+
     return {
       supplier_name: parsed['שם הספק'] || null,
       document_date: parseDate(parsed['תאריך מסמך']),
       document_number: parsed['מספר מסמך'] || null,
-      document_type: parsed['סוג מסמך'] || null,
+      document_type: documentType,
       amount_before_vat: parsed['סכום לפני מע"מ'] || parsed['סכום לפני מע״מ'] || null,
       vat_amount: parsed['מע"מ'] || parsed['מע״מ'] || null,
       total_amount: parsed['סכום כולל מע"מ'] || parsed['סכום כולל מע״מ'] || null,
       category: parsed['קטגוריה'] || null,
-      business_type: mapBusinessType(parsed['סוג עוסק']),
+      business_type: businessType,
       entry_method: parsed['פורמט מסמך'] || 'דיגיטלי',
       is_valid_tax_document: parsed['is_valid_tax_document'] ?? true,
     };
