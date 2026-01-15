@@ -52,36 +52,28 @@ Deno.serve(async (req) => {
       const invoiceData = await analyzeInvoiceImage(imageUrlForAI, openaiApiKey);
       console.log('AI extracted data:', JSON.stringify(invoiceData));
 
-      if (!invoiceData) {
-        // Send failure WhatsApp notification
-        const userSettings = await getUserSettings(supabase, userId);
-        await sendWhatsAppNotification(false, null, imageUrlForAI, 'לא ניתן היה לחלץ את פרטי המסמך מהתמונה', userSettings);
-        
-        return new Response(
-          JSON.stringify({ error: 'Failed to extract invoice data from image' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Insert the extracted invoice
+      // Determine if extraction succeeded or failed
+      const extractionFailed = !invoiceData;
+      
+      // Build invoice record - use empty fields if extraction failed
       const invoiceToInsert = {
         user_id: userId,
         intake_date: new Date().toISOString(),
-        document_date: invoiceData.document_date || null,
-        status: 'חדש',
-        supplier_name: invoiceData.supplier_name || null,
-        document_number: invoiceData.document_number || null,
-        document_type: invoiceData.document_type || null,
-        category: invoiceData.category || null,
-        amount_before_vat: invoiceData.amount_before_vat || null,
-        vat_amount: invoiceData.vat_amount || null,
-        total_amount: invoiceData.total_amount || null,
-        business_type: invoiceData.business_type || null,
-        entry_method: invoiceData.entry_method || 'דיגיטלי',
+        document_date: invoiceData?.document_date || null,
+        status: extractionFailed ? 'ממתין לבדיקה ידנית' : 'חדש',
+        supplier_name: invoiceData?.supplier_name || null,
+        document_number: invoiceData?.document_number || null,
+        document_type: invoiceData?.document_type || null,
+        category: invoiceData?.category || null,
+        amount_before_vat: invoiceData?.amount_before_vat || null,
+        vat_amount: invoiceData?.vat_amount || null,
+        total_amount: invoiceData?.total_amount || null,
+        business_type: invoiceData?.business_type || null,
+        entry_method: invoiceData?.entry_method || 'דיגיטלי',
         image_url: imageUrlForAI,
       };
 
-      console.log('Inserting AI-extracted invoice:', JSON.stringify(invoiceToInsert));
+      console.log('Inserting invoice:', JSON.stringify(invoiceToInsert), extractionFailed ? '(extraction failed - pending manual review)' : '(AI extracted)');
 
       const { data, error } = await supabase
         .from('invoices')
@@ -96,14 +88,24 @@ Deno.serve(async (req) => {
         );
       }
 
-      console.log('Successfully inserted AI-extracted invoice:', data);
+      console.log('Successfully inserted invoice:', data);
       
-      // Send success WhatsApp notification
+      // Send WhatsApp notification
       const userSettings = await getUserSettings(supabase, userId);
-      await sendWhatsAppNotification(true, invoiceData, imageUrlForAI, undefined, userSettings);
+      if (extractionFailed) {
+        await sendWhatsAppNotification(false, null, imageUrlForAI, 'המסמך נשמר אך לא ניתן היה לחלץ את הפרטים - ממתין לבדיקה ידנית', userSettings);
+      } else {
+        await sendWhatsAppNotification(true, invoiceData, imageUrlForAI, undefined, userSettings);
+      }
       
       return new Response(
-        JSON.stringify({ success: true, inserted: 1, data, extracted: invoiceData }),
+        JSON.stringify({ 
+          success: true, 
+          inserted: 1, 
+          data, 
+          extracted: invoiceData,
+          pending_manual_review: extractionFailed 
+        }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
