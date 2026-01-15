@@ -373,7 +373,7 @@ async function getUserSettings(supabase: any, userId: string): Promise<any> {
   }
 }
 
-// WhatsApp notification function
+// WhatsApp notification function - using Green-API
 async function sendWhatsAppNotification(
   success: boolean, 
   invoiceData?: any, 
@@ -381,40 +381,54 @@ async function sendWhatsAppNotification(
   errorMessage?: string,
   userSettings?: any
 ): Promise<void> {
-  // Use user settings if available, otherwise use defaults
-  const WHATSAPP_INSTANCE_ID = userSettings?.whatsapp_number || Deno.env.get('WHATSAPP_PHONE') || '7103171806';
-  const WHATSAPP_API_KEY = Deno.env.get('WHATSAPP_API_KEY') || '45043bb0bb274c07aeecfcfa97c1e6df438af6c7a3614a70b6';
+  // Green-API credentials (hardcoded as specified)
+  const INSTANCE_ID = '7103131302';
+  const API_TOKEN = '7df3b4758f35446bab49f8200939bc9982cd8015603d4526b0';
   
-  // Determine the recipient: user's phone_number for direct message, or group_id for group
+  // Get user's phone number from settings
   const userPhoneNumber = userSettings?.phone_number;
-  const groupId = userSettings?.whatsapp_group_id || Deno.env.get('WHATSAPP_GROUP_ID');
   
-  // Prefer sending to user's phone, fallback to group
-  let chatId: string | null = null;
-  if (userPhoneNumber) {
-    // Format phone for WhatsApp: add @c.us suffix
-    chatId = `${userPhoneNumber}@c.us`;
-  } else if (groupId) {
-    chatId = groupId;
-  }
-  
-  // Skip if no WhatsApp configuration
-  if (!chatId) {
-    console.log('WhatsApp notification skipped - no phone_number or group_id configured');
+  if (!userPhoneNumber) {
+    console.log('WhatsApp notification skipped - no phone_number configured in user settings');
     return;
   }
   
+  // Format phone for WhatsApp chatId: phone@c.us
+  // Remove any non-numeric characters and ensure proper format
+  const cleanPhone = userPhoneNumber.replace(/\D/g, '');
+  const chatId = `${cleanPhone}@c.us`;
+  
   const companyName = userSettings?.company_name || 'המערכת';
+  
+  // Build message with available fields, marking missing ones
+  const getFieldValue = (value: any, fieldName: string): string => {
+    if (value === null || value === undefined || value === '' || value === 0) {
+      return `חסר מידע: ${fieldName}`;
+    }
+    return String(value);
+  };
+  
   let message: string;
   
   if (success && invoiceData) {
+    const docNumber = getFieldValue(invoiceData.document_number, 'מספר מסמך');
+    const supplier = getFieldValue(invoiceData.supplier_name, 'שם ספק');
+    const docType = getFieldValue(invoiceData.document_type, 'סוג מסמך');
+    const category = getFieldValue(invoiceData.category, 'קטגוריה');
+    const totalAmount = invoiceData.total_amount ? `${invoiceData.total_amount} ₪` : 'חסר מידע: סכום';
+    const docDate = getFieldValue(invoiceData.document_date, 'תאריך מסמך');
+    const businessType = getFieldValue(invoiceData.business_type, 'סוג עוסק');
+    
     message = `📄 מסמך נקלט בהצלחה - ${companyName}
 
-מספר מסמך: ${invoiceData.document_number || 'לא זוהה'}
-ספק: ${invoiceData.supplier_name || 'לא זוהה'}
-סוג מסמך: ${invoiceData.document_type || 'לא זוהה'}
-קטגוריה: ${invoiceData.category || 'לא זוהה'}
-סכום כולל מע״מ: ${invoiceData.total_amount || 0} ₪
+📋 פרטי המסמך:
+• מספר מסמך: ${docNumber}
+• ספק: ${supplier}
+• תאריך: ${docDate}
+• סוג מסמך: ${docType}
+• סוג עוסק: ${businessType}
+• קטגוריה: ${category}
+• סכום כולל מע״מ: ${totalAmount}
 
 🔗 לצפייה במסמך:
 ${imageUrl || 'לא זמין'}`;
@@ -428,8 +442,10 @@ ${imageUrl || 'לא זמין'}`;
   }
 
   try {
-    // Using Green API for WhatsApp messaging
-    const response = await fetch(`https://api.green-api.com/waInstance${WHATSAPP_INSTANCE_ID}/sendMessage/${WHATSAPP_API_KEY}`, {
+    // Green-API endpoint
+    const apiUrl = `https://api.green-api.com/waInstance${INSTANCE_ID}/sendMessage/${API_TOKEN}`;
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -444,7 +460,8 @@ ${imageUrl || 'לא זמין'}`;
       const errorText = await response.text();
       console.error('WhatsApp API error:', response.status, errorText);
     } else {
-      console.log('WhatsApp notification sent successfully to', chatId);
+      const result = await response.json();
+      console.log('WhatsApp notification sent successfully to', chatId, 'Response:', JSON.stringify(result));
     }
   } catch (error) {
     console.error('Error sending WhatsApp notification:', error);
