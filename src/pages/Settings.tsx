@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { ArrowRight, Settings as SettingsIcon, MessageSquare, Building2, Tags, Plus, X, Save, Loader2 } from 'lucide-react';
-import { BUSINESS_TYPES } from '@/types/settings';
+import { ArrowRight, Settings as SettingsIcon, MessageSquare, Building2, Tags, Plus, X, Save, Loader2, Phone, AlertCircle } from 'lucide-react';
+import { BUSINESS_TYPES, isValidPhoneNumber } from '@/types/settings';
+import { toast } from 'sonner';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -19,11 +20,13 @@ const Settings = () => {
   
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [whatsappGroupId, setWhatsappGroupId] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [businessNumber, setBusinessNumber] = useState('');
   const [defaultBusinessType, setDefaultBusinessType] = useState('');
   const [newCategory, setNewCategory] = useState('');
   const [saving, setSaving] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -35,17 +38,38 @@ const Settings = () => {
     if (settings) {
       setWhatsappNumber(settings.whatsapp_number || '');
       setWhatsappGroupId(settings.whatsapp_group_id || '');
+      setPhoneNumber(settings.phone_number || '');
       setCompanyName(settings.company_name || '');
       setBusinessNumber(settings.business_number || '');
       setDefaultBusinessType(settings.default_business_type || '');
     }
   }, [settings]);
 
+  const validatePhone = (phone: string): boolean => {
+    if (!phone.trim()) {
+      setPhoneError('מספר טלפון הוא שדה חובה');
+      return false;
+    }
+    if (!isValidPhoneNumber(phone)) {
+      setPhoneError('מספר טלפון לא תקין. השתמש בפורמט בינלאומי (לדוגמה: 972501234567)');
+      return false;
+    }
+    setPhoneError('');
+    return true;
+  };
+
   const handleSaveGeneral = async () => {
+    // Validate phone number before saving
+    if (!validatePhone(phoneNumber)) {
+      toast.error('יש לתקן את מספר הטלפון לפני שמירה');
+      return;
+    }
+    
     setSaving(true);
     await updateSettings({
       whatsapp_number: whatsappNumber || null,
       whatsapp_group_id: whatsappGroupId || null,
+      phone_number: phoneNumber,
       company_name: companyName || null,
       business_number: businessNumber || null,
       default_business_type: defaultBusinessType || null,
@@ -84,31 +108,71 @@ const Settings = () => {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        {/* Phone Number - Required */}
+        <Card className={phoneError ? 'border-destructive' : ''}>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Phone className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">מספר טלפון</CardTitle>
+              <Badge variant="destructive" className="mr-2">חובה</Badge>
+            </div>
+            <CardDescription>
+              מספר הטלפון שלך לקבלת התראות WhatsApp על מסמכים חדשים
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="phone-number">מספר טלפון (פורמט E.164)</Label>
+              <Input
+                id="phone-number"
+                placeholder="972501234567"
+                value={phoneNumber}
+                onChange={(e) => {
+                  setPhoneNumber(e.target.value);
+                  if (phoneError) validatePhone(e.target.value);
+                }}
+                dir="ltr"
+                className={`text-left ${phoneError ? 'border-destructive' : ''}`}
+              />
+              {phoneError ? (
+                <div className="flex items-center gap-1 text-destructive text-sm">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{phoneError}</span>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  הכנס את המספר בפורמט בינלאומי ללא + או רווחים (לדוגמה: 972501234567)
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* WhatsApp Settings */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
               <MessageSquare className="h-5 w-5 text-green-500" />
-              <CardTitle className="text-lg">הגדרות WhatsApp</CardTitle>
+              <CardTitle className="text-lg">הגדרות WhatsApp מתקדמות</CardTitle>
             </div>
             <CardDescription>
-              הגדר את מספר הטלפון וקבוצת WhatsApp לשליחת התראות
+              הגדרות Green API לשליחת התראות (אופציונלי)
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="whatsapp-number">מספר WhatsApp</Label>
+                <Label htmlFor="whatsapp-number">מזהה Instance (Green API)</Label>
                 <Input
                   id="whatsapp-number"
-                  placeholder="972501234567"
+                  placeholder="7103171806"
                   value={whatsappNumber}
                   onChange={(e) => setWhatsappNumber(e.target.value)}
                   dir="ltr"
                   className="text-left"
                 />
                 <p className="text-xs text-muted-foreground">
-                  הכנס את המספר בפורמט בינלאומי ללא + או רווחים
+                  מזהה ה-Instance מ-Green API
                 </p>
               </div>
               <div className="space-y-2">

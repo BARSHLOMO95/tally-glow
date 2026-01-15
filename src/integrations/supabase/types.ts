@@ -259,6 +259,7 @@ export type Database = {
           custom_categories: string[] | null
           default_business_type: string | null
           id: string
+          phone_number: string | null
           updated_at: string
           user_id: string
           whatsapp_group_id: string | null
@@ -271,6 +272,7 @@ export type Database = {
           custom_categories?: string[] | null
           default_business_type?: string | null
           id?: string
+          phone_number?: string | null
           updated_at?: string
           user_id: string
           whatsapp_group_id?: string | null
@@ -283,6 +285,7 @@ export type Database = {
           custom_categories?: string[] | null
           default_business_type?: string | null
           id?: string
+          phone_number?: string | null
           updated_at?: string
           user_id?: string
           whatsapp_group_id?: string | null
