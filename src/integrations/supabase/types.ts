@@ -302,7 +302,7 @@ export type Database = {
     }
     Enums: {
       business_type: "עוסק מורשה" | "עוסק פטור" | 'חברה בע"מ' | 'ספק חו"ל'
-      invoice_status: "חדש" | "בתהליך" | "טופל"
+      invoice_status: "חדש" | "בתהליך" | "טופל" | "ממתין לבדיקה ידנית"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -431,7 +431,7 @@ export const Constants = {
   public: {
     Enums: {
       business_type: ["עוסק מורשה", "עוסק פטור", 'חברה בע"מ', 'ספק חו"ל'],
-      invoice_status: ["חדש", "בתהליך", "טופל"],
+      invoice_status: ["חדש", "בתהליך", "טופל", "ממתין לבדיקה ידנית"],
     },
   },
 } as const
