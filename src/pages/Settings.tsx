@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { ArrowRight, Settings as SettingsIcon, MessageSquare, Building2, Tags, Plus, X, Save, Loader2, Phone, AlertCircle } from 'lucide-react';
 import { BUSINESS_TYPES, isValidPhoneNumber } from '@/types/settings';
 import { toast } from 'sonner';
+import { UploadLinksManager } from '@/components/UploadLinksManager';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -97,7 +98,7 @@ const Settings = () => {
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
             <ArrowRight className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2">
@@ -108,6 +109,9 @@ const Settings = () => {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        {/* Upload Links Manager */}
+        <UploadLinksManager />
+
         {/* Phone Number - Required */}
         <Card className={phoneError ? 'border-destructive' : ''}>
           <CardHeader>
