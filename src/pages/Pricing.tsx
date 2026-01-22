@@ -65,6 +65,12 @@ const Pricing = () => {
   }, []);
 
   const handleUpgrade = async (plan: Plan) => {
+    // If still loading auth, wait
+    if (authLoading) {
+      toast.info('טוען...');
+      return;
+    }
+    
     if (!user) {
       navigate('/auth?redirect=/pricing');
       return;
