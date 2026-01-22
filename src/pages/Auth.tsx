@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
+import { badgeVariants } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { FileText, Loader2, Crown, Sparkles } from 'lucide-react';
@@ -223,10 +224,15 @@ const Auth = () => {
                 <span className="text-sm font-medium">רוצה יותר מ-10 מסמכים?</span>
               </div>
               <Link to="/pricing">
-                <Badge variant="secondary" className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors">
+                <span
+                  className={cn(
+                    badgeVariants({ variant: 'secondary' }),
+                    'cursor-pointer transition-colors hover:bg-primary hover:text-primary-foreground'
+                  )}
+                >
                   <Crown className="w-3 h-3 ml-1" />
                   צפה בתוכניות
-                </Badge>
+                </span>
               </Link>
             </div>
           </div>
