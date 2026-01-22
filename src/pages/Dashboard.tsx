@@ -1,8 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useInvoices } from '@/hooks/useInvoices';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import KPICards from '@/components/invoice/KPICards';
 import FilterPanel from '@/components/invoice/FilterPanel';
 import InvoiceTable from '@/components/invoice/InvoiceTable';
@@ -16,7 +20,7 @@ import ImportExcelModal from '@/components/invoice/ImportExcelModal';
 import DashboardCharts from '@/components/invoice/DashboardCharts';
 import DuplicatesModal from '@/components/invoice/DuplicatesModal';
 import { Invoice, InvoiceFormData, DuplicatesFilterMode } from '@/types/invoice';
-import { LogOut, Plus, Loader2, Upload, RefreshCw, LayoutGrid, LayoutList, Settings } from 'lucide-react';
+import { LogOut, Plus, Loader2, Upload, RefreshCw, LayoutGrid, LayoutList, Settings, Crown, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -25,6 +29,7 @@ type ViewMode = 'list' | 'grid';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { subscription, plan, usage, getRemainingDocuments } = useSubscription();
   const {
     invoices,
     filteredInvoices,
@@ -306,6 +311,40 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="w-full px-3 sm:px-6 py-3 sm:py-6 space-y-3 sm:space-y-6">
+        {/* Subscription Banner */}
+        {subscription?.status !== 'active' && (
+          <Card className="bg-gradient-to-l from-primary/10 via-purple-500/10 to-pink-500/10 border-primary/20">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/20 rounded-full">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium">תוכנית חינמית</p>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>{usage?.document_count || 0} / {plan?.document_limit || 10} מסמכים החודש</span>
+                      <Progress 
+                        value={((usage?.document_count || 0) / (plan?.document_limit || 10)) * 100} 
+                        className="w-20 h-2"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant="secondary" className="bg-amber-500/20 text-amber-700 border-amber-500/30">
+                    {getRemainingDocuments()} מסמכים נותרו
+                  </Badge>
+                  <Button onClick={() => navigate('/pricing')} size="sm" className="gap-2">
+                    <Crown className="h-4 w-4" />
+                    שדרג עכשיו
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* KPI Cards */}
         <KPICards 
           data={kpiData} 
