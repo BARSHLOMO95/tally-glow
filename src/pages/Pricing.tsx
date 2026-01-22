@@ -32,6 +32,7 @@ const Pricing = () => {
   const [loading, setLoading] = useState(true);
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly');
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [autoCheckoutAttempted, setAutoCheckoutAttempted] = useState(false);
 
   useEffect(() => {
     const checkoutStatus = searchParams.get('checkout');
@@ -72,7 +73,9 @@ const Pricing = () => {
     }
     
     if (!user) {
-      navigate('/auth?redirect=/pricing');
+      // Preserve intended checkout after login
+      const redirect = encodeURIComponent(`/pricing?checkoutPlan=${plan.id}`);
+      navigate(`/auth?redirect=${redirect}`);
       return;
     }
 
@@ -92,6 +95,21 @@ const Pricing = () => {
       setCheckoutLoading(null);
     }
   };
+
+  // If user was sent to auth first, auto-start checkout when returning to pricing
+  useEffect(() => {
+    const checkoutPlanId = searchParams.get('checkoutPlan');
+    if (!checkoutPlanId) return;
+    if (autoCheckoutAttempted) return;
+    if (authLoading || loading || subLoading) return;
+    if (!user) return;
+
+    const planToCheckout = plans.find(p => p.id === checkoutPlanId);
+    if (!planToCheckout) return;
+
+    setAutoCheckoutAttempted(true);
+    void handleUpgrade(planToCheckout);
+  }, [searchParams, autoCheckoutAttempted, authLoading, loading, subLoading, user, plans]);
 
   const getPlanIcon = (index: number) => {
     const icons = [Zap, Sparkles, Crown];
