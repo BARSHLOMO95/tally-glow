@@ -295,7 +295,7 @@ const Landing = () => {
                   <CardTitle className="text-2xl">חינם</CardTitle>
                   <CardDescription>להתחלה</CardDescription>
                   <div className="mt-4">
-                    <span className="text-4xl font-bold">₪0</span>
+                    <span className="text-4xl font-bold">$0</span>
                     <span className="text-muted-foreground">/לחודש</span>
                   </div>
                 </CardHeader>
@@ -338,7 +338,7 @@ const Landing = () => {
                     <CardDescription>{plan.description}</CardDescription>
                     <div className="mt-4">
                       <span className="text-4xl font-bold">
-                        ₪{billingInterval === 'monthly' ? plan.price_monthly : plan.price_yearly}
+                        ${billingInterval === 'monthly' ? plan.price_monthly : plan.price_yearly}
                       </span>
                       <span className="text-muted-foreground">
                         /{billingInterval === 'monthly' ? 'חודש' : 'שנה'}

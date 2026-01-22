@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { FileText, Loader2 } from 'lucide-react';
+import { FileText, Loader2, Crown, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const authSchema = z.object({
@@ -19,10 +20,13 @@ const authSchema = z.object({
 
 const Auth = () => {
   const { user, loading, signIn, signUp } = useAuth();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  const redirectTo = searchParams.get('redirect') || '/dashboard';
 
   if (loading) {
     return (
@@ -33,7 +37,7 @@ const Auth = () => {
   }
 
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={redirectTo} replace />;
   }
 
   const handleSubmit = async (action: 'signIn' | 'signUp') => {
@@ -71,7 +75,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}${redirectTo}`,
         },
       });
       
@@ -210,6 +214,23 @@ const Auth = () => {
             </TabsContent>
           </Tabs>
         </CardContent>
+        <CardFooter className="flex flex-col gap-3 pt-0">
+          <Separator />
+          <div className="w-full p-3 rounded-lg bg-gradient-to-l from-primary/10 via-purple-500/10 to-pink-500/10 border border-primary/20">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium">רוצה יותר מ-10 מסמכים?</span>
+              </div>
+              <Link to="/pricing">
+                <Badge variant="secondary" className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors">
+                  <Crown className="w-3 h-3 ml-1" />
+                  צפה בתוכניות
+                </Badge>
+              </Link>
+            </div>
+          </div>
+        </CardFooter>
       </Card>
     </div>
   );
