@@ -90,6 +90,9 @@ Deno.serve(async (req) => {
 
       console.log('Successfully inserted invoice:', data);
       
+      // Increment document usage
+      await incrementDocumentUsage(supabase, userId, 1);
+      
       // Send WhatsApp notification
       const userSettings = await getUserSettings(supabase, userId);
       if (extractionFailed) {
@@ -177,6 +180,11 @@ Deno.serve(async (req) => {
     }
 
     console.log('Successfully inserted:', data?.length, 'invoices');
+
+    // Increment document usage
+    if (data && data.length > 0) {
+      await incrementDocumentUsage(supabase, userId, data.length);
+    }
 
     // Send WhatsApp notification for regular imports
     if (data && data.length > 0) {
@@ -350,6 +358,43 @@ Return ONLY a clean JSON object. No markdown, no notes.`;
   } catch (error) {
     console.error('Error analyzing image:', error);
     return null;
+  }
+}
+
+// Increment document usage for user
+async function incrementDocumentUsage(supabase: any, userId: string, count: number): Promise<void> {
+  try {
+    const now = new Date();
+    const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    
+    // Get current usage
+    const { data: existing } = await supabase
+      .from('document_usage')
+      .select('document_count')
+      .eq('user_id', userId)
+      .eq('month_year', monthYear)
+      .maybeSingle();
+    
+    const currentCount = existing?.document_count || 0;
+    
+    // Upsert usage
+    const { error } = await supabase
+      .from('document_usage')
+      .upsert({
+        user_id: userId,
+        month_year: monthYear,
+        document_count: currentCount + count,
+      }, {
+        onConflict: 'user_id,month_year',
+      });
+
+    if (error) {
+      console.error('Error incrementing document usage:', error);
+    } else {
+      console.log(`Document usage incremented: ${currentCount} -> ${currentCount + count} for user ${userId}`);
+    }
+  } catch (error) {
+    console.error('Error incrementing document usage:', error);
   }
 }
 
