@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { fullSync } = await req.json().catch(() => ({ fullSync: false }));
+    const { timeRange = 'month' } = await req.json().catch(() => ({ timeRange: 'month' }));
 
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
@@ -96,11 +96,8 @@ Deno.serve(async (req) => {
         .eq('id', connection.id);
     }
 
-    // Search for invoice emails
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    
-    const afterDate = fullSync ? oneYearAgo : (connection.last_sync_at ? new Date(connection.last_sync_at) : oneYearAgo);
+    // Calculate date based on time range
+    const afterDate = calculateAfterDate(timeRange as string);
     const query = buildSearchQuery(afterDate);
     
     console.log('Searching Gmail with query:', query);
@@ -162,6 +159,21 @@ async function refreshAccessToken(refreshToken: string) {
     }),
   });
   return response.json();
+}
+
+function calculateAfterDate(timeRange: string): Date {
+  const now = new Date();
+  switch (timeRange) {
+    case 'week':
+      return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    case 'month':
+      return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    case 'year':
+    default:
+      const yearAgo = new Date();
+      yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+      return yearAgo;
+  }
 }
 
 function buildSearchQuery(afterDate: Date): string {

@@ -30,12 +30,6 @@ const Settings = () => {
   const [phoneError, setPhoneError] = useState('');
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-    }
-  }, [user, authLoading, navigate]);
-
-  useEffect(() => {
     if (settings) {
       setWhatsappNumber(settings.whatsapp_number || '');
       setWhatsappGroupId(settings.whatsapp_group_id || '');
@@ -45,6 +39,12 @@ const Settings = () => {
       setDefaultBusinessType(settings.default_business_type || '');
     }
   }, [settings]);
+
+  // Redirect to auth only after loading is complete and no user
+  if (!authLoading && !user) {
+    navigate('/auth', { replace: true });
+    return null;
+  }
 
   const validatePhone = (phone: string): boolean => {
     if (!phone.trim()) {
