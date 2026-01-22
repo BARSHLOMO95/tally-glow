@@ -13,7 +13,7 @@ import { ArrowRight, Settings as SettingsIcon, MessageSquare, Building2, Tags, P
 import { BUSINESS_TYPES, isValidPhoneNumber } from '@/types/settings';
 import { toast } from 'sonner';
 import { UploadLinksManager } from '@/components/UploadLinksManager';
-
+import { GmailConnection } from '@/components/GmailConnection';
 const Settings = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -109,9 +109,11 @@ const Settings = () => {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        {/* Gmail Connection */}
+        <GmailConnection />
+
         {/* Upload Links Manager */}
         <UploadLinksManager />
-
         {/* Phone Number - Required */}
         <Card className={phoneError ? 'border-destructive' : ''}>
           <CardHeader>
