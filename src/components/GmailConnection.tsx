@@ -4,8 +4,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Mail, Loader2, RefreshCw, Unlink, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Mail, Loader2, RefreshCw, Unlink, CheckCircle, AlertCircle, Clock, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+
+type TimeRange = 'week' | 'month' | 'year';
 
 interface GmailConnectionData {
   id: string;
@@ -21,6 +24,7 @@ export function GmailConnection() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const shouldSyncAfterConnect = useRef(false);
 
   const fetchConnection = useCallback(async () => {
@@ -40,14 +44,14 @@ export function GmailConnection() {
     setLoading(false);
   }, [user]);
 
-  const handleSync = useCallback(async (fullSync: boolean = false) => {
+  const handleSync = useCallback(async (syncTimeRange?: TimeRange) => {
     setSyncing(true);
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
       const response = await supabase.functions.invoke('gmail-sync', {
-        body: { fullSync },
+        body: { timeRange: syncTimeRange || timeRange },
         headers: {
           Authorization: `Bearer ${session?.access_token}`,
         },
@@ -72,7 +76,7 @@ export function GmailConnection() {
     } finally {
       setSyncing(false);
     }
-  }, [fetchConnection]);
+  }, [fetchConnection, timeRange]);
 
   useEffect(() => {
     fetchConnection();
@@ -82,7 +86,7 @@ export function GmailConnection() {
   useEffect(() => {
     if (shouldSyncAfterConnect.current && connection?.is_active) {
       shouldSyncAfterConnect.current = false;
-      handleSync(true);
+      handleSync('year');
     }
   }, [connection, handleSync]);
 
@@ -234,25 +238,32 @@ export function GmailConnection() {
               )}
             </div>
             
-            <div className="flex gap-2">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">טווח זמן לסריקה:</span>
+                <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="week">שבוע</SelectItem>
+                    <SelectItem value="month">חודש</SelectItem>
+                    <SelectItem value="year">שנה</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <Button
-                onClick={() => handleSync(false)}
+                onClick={() => handleSync()}
                 disabled={syncing}
-                className="flex-1"
+                className="w-full"
               >
                 {syncing ? (
                   <Loader2 className="h-4 w-4 ml-2 animate-spin" />
                 ) : (
                   <RefreshCw className="h-4 w-4 ml-2" />
                 )}
-                סנכרון חשבוניות חדשות
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleSync(true)}
-                disabled={syncing}
-              >
-                סנכרון שנה אחורה
+                סנכרון חשבוניות
               </Button>
             </div>
             
