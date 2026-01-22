@@ -166,6 +166,39 @@ export function useInvoices(userId: string | undefined) {
     return { totalWithVat, totalBeforeVat, totalVat, uniqueSuppliers };
   }, [filteredInvoices]);
 
+  // Helper function to increment document usage
+  const incrementDocumentUsage = async (count: number = 1) => {
+    if (!userId) return;
+    
+    const now = new Date();
+    const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    
+    // Get current usage
+    const { data: existing } = await supabase
+      .from('document_usage')
+      .select('document_count')
+      .eq('user_id', userId)
+      .eq('month_year', monthYear)
+      .maybeSingle();
+    
+    const currentCount = existing?.document_count || 0;
+    
+    // Upsert usage
+    const { error } = await supabase
+      .from('document_usage')
+      .upsert({
+        user_id: userId,
+        month_year: monthYear,
+        document_count: currentCount + count,
+      }, {
+        onConflict: 'user_id,month_year',
+      });
+
+    if (error) {
+      console.error('Error incrementing document usage:', error);
+    }
+  };
+
   // Create invoice
   const createInvoice = async (data: InvoiceFormData) => {
     if (!userId) return;
@@ -187,6 +220,7 @@ export function useInvoices(userId: string | undefined) {
       console.error(error);
     } else {
       setInvoices(prev => [newInvoice as Invoice, ...prev]);
+      await incrementDocumentUsage(1);
       toast.success('החשבונית נוצרה בהצלחה');
     }
   };
@@ -211,6 +245,7 @@ export function useInvoices(userId: string | undefined) {
       console.error(error);
     } else {
       setInvoices(prev => [...(newInvoices as Invoice[]), ...prev]);
+      await incrementDocumentUsage(newInvoices?.length || 0);
       toast.success(`${newInvoices?.length || 0} חשבוניות יובאו בהצלחה`);
     }
   };
