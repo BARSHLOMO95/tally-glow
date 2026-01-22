@@ -209,9 +209,9 @@ const Pricing = () => {
                 </CardHeader>
 
                 <CardContent className="text-center">
-                  <div className="mb-6">
+                <div className="mb-6">
                     <span className="text-4xl font-bold">
-                      {price === 0 ? 'חינם' : `₪${price}`}
+                      {price === 0 ? 'חינם' : `$${price}`}
                     </span>
                     {price !== 0 && (
                       <span className="text-muted-foreground">
