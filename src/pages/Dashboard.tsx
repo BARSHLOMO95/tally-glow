@@ -128,42 +128,16 @@ const Dashboard = () => {
     const imagesSection = selectedInvoices
       .filter(inv => inv.image_url)
       .map(inv => {
-        const isPdf = inv.image_url?.toLowerCase().includes('.pdf');
-        const isExternalLink = !inv.image_url?.includes('supabase.co/storage');
-        
-        if (isPdf) {
-          // For PDFs - embed using iframe for better print support
-          return `
-            <div style="page-break-inside: avoid; margin-bottom: 30px; border: 1px solid #ddd; padding: 15px;">
-              <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px; text-align: right;">
-                ${inv.supplier_name} - ${inv.document_number}
-              </div>
-              <iframe src="${inv.image_url}#toolbar=0&navpanes=0" style="width: 100%; height: 800px; border: none;" title="PDF Document"></iframe>
+        // All types - render as image for consistent print layout
+        return `
+          <div style="page-break-inside: avoid; margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; text-align: center;">
+            <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px; text-align: right;">
+              ${inv.supplier_name} - ${inv.document_number}
             </div>
-          `;
-        } else if (isExternalLink) {
-          // External links (usually images from Gmail) - try to show as image first
-          return `
-            <div style="page-break-inside: avoid; margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; text-align: center;">
-              <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px; text-align: right;">
-                ${inv.supplier_name} - ${inv.document_number}
-              </div>
-              <img src="${inv.image_url}" style="max-width: 80%; max-height: 700px; display: inline-block;" 
-                onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='block';" />
-              <iframe src="${inv.image_url}" style="display: none; width: 100%; height: 800px; border: none;" title="External Document"></iframe>
-            </div>
-          `;
-        } else {
-          // Regular images - show the actual image
-          return `
-            <div style="page-break-inside: avoid; margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; text-align: center;">
-              <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px; text-align: right;">
-                ${inv.supplier_name} - ${inv.document_number}
-              </div>
-              <img src="${inv.image_url}" style="max-width: 80%; max-height: 700px; display: inline-block;" onerror="this.parentElement.innerHTML='<p style=\\'color:#666;\\'>לא ניתן להציג תמונה - <a href=\\'${inv.image_url}\\' target=\\'_blank\\'>לחץ כאן</a></p>'" />
-            </div>
-          `;
-        }
+            <img src="${inv.image_url}" style="max-width: 80%; max-height: 700px; display: inline-block;" 
+              onerror="this.parentElement.innerHTML='<p style=\\'color:#666;\\'>לא ניתן להציג תמונה - <a href=\\'${inv.image_url}\\' target=\\'_blank\\'>לחץ כאן לצפייה</a></p>'" />
+          </div>
+        `;
       }).join('');
     
     const htmlContent = `
