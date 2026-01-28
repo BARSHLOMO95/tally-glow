@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { X, Download, ExternalLink, FileText } from 'lucide-react';
+import { X, Download, ExternalLink, FileText, ImageOff } from 'lucide-react';
 
 interface ImageModalProps {
   imageUrl: string | null;
@@ -9,10 +10,19 @@ interface ImageModalProps {
 }
 
 const ImageModal = ({ imageUrl, isOpen, onClose }: ImageModalProps) => {
+  const [imageError, setImageError] = useState(false);
+
   if (!imageUrl) return null;
 
   const isPdf = imageUrl.toLowerCase().endsWith('.pdf') || imageUrl.toLowerCase().includes('.pdf');
-  const isExternalLink = !imageUrl.includes('supabase.co/storage');
+  
+  // Check if it's a known image format
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
+  const isKnownImage = imageExtensions.some(ext => imageUrl.toLowerCase().includes(ext));
+  
+  // If not PDF and not a known image extension, try to display as image anyway
+  // Many URLs don't have extensions but are still images
+  const shouldTryAsImage = !isPdf;
 
   const handleDownload = () => {
     window.open(imageUrl, '_blank');
@@ -22,8 +32,20 @@ const ImageModal = ({ imageUrl, isOpen, onClose }: ImageModalProps) => {
     window.open(imageUrl, '_blank');
   };
 
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  // Reset error state when URL changes
+  const handleDialogChange = (open: boolean) => {
+    if (!open) {
+      setImageError(false);
+      onClose();
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleDialogChange}>
       <DialogContent className="max-w-4xl p-0 bg-black/90 border-none">
         <DialogTitle className="sr-only">תצוגת מסמך</DialogTitle>
         <DialogDescription className="sr-only">תצוגה מקדימה של המסמך או התמונה</DialogDescription>
@@ -62,7 +84,7 @@ const ImageModal = ({ imageUrl, isOpen, onClose }: ImageModalProps) => {
             <div className="flex flex-col items-center justify-center min-h-[60vh] p-8">
               <FileText className="h-24 w-24 text-white/60 mb-4" />
               <p className="text-white text-lg mb-4 text-center">קובץ PDF</p>
-              <div className="flex gap-3">
+              <div className="flex gap-3 mb-6">
                 <Button
                   variant="secondary"
                   onClick={handleOpenInNewTab}
@@ -81,47 +103,33 @@ const ImageModal = ({ imageUrl, isOpen, onClose }: ImageModalProps) => {
                 </Button>
               </div>
               
-              {/* Also try to embed the PDF */}
+              {/* Embed the PDF */}
               <iframe
                 src={imageUrl}
-                className="w-full h-[50vh] mt-6 rounded-lg border border-white/20"
+                className="w-full h-[50vh] rounded-lg border border-white/20"
                 title="PDF Preview"
               />
             </div>
-          ) : isExternalLink ? (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] p-8">
-              <ExternalLink className="h-24 w-24 text-white/60 mb-4" />
-              <p className="text-white text-lg mb-4 text-center">קישור חיצוני</p>
+          ) : shouldTryAsImage && !imageError ? (
+            <img
+              src={imageUrl}
+              alt="תמונת חשבונית"
+              className="w-full max-h-[80vh] object-contain"
+              onError={handleImageError}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center min-h-[40vh] p-8">
+              <ImageOff className="h-16 w-16 text-white/60 mb-4" />
+              <p className="text-white text-lg mb-4 text-center">לא ניתן להציג את הקובץ</p>
               <Button
                 variant="secondary"
                 onClick={handleOpenInNewTab}
                 className="gap-2"
               >
                 <ExternalLink className="h-4 w-4" />
-                פתח קישור
+                פתח בחלון חדש
               </Button>
             </div>
-          ) : (
-            <img
-              src={imageUrl}
-              alt="תמונת חשבונית"
-              className="w-full max-h-[80vh] object-contain"
-              onError={(e) => {
-                // If image fails to load, show a fallback
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                target.parentElement?.classList.add('min-h-[40vh]', 'flex', 'items-center', 'justify-center');
-                const fallback = document.createElement('div');
-                fallback.className = 'text-white text-center';
-                fallback.innerHTML = `
-                  <p class="mb-4">לא ניתן להציג את התמונה</p>
-                  <button onclick="window.open('${imageUrl}', '_blank')" class="px-4 py-2 bg-white/20 rounded hover:bg-white/30">
-                    פתח בחלון חדש
-                  </button>
-                `;
-                target.parentElement?.appendChild(fallback);
-              }}
-            />
           )}
         </div>
       </DialogContent>
