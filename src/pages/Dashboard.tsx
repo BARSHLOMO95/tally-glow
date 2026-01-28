@@ -131,34 +131,28 @@ const Dashboard = () => {
         const isPdf = inv.image_url?.toLowerCase().includes('.pdf');
         const isExternalLink = !inv.image_url?.includes('supabase.co/storage');
         
-        if (isPdf) {
-          // For PDFs, embed them using object tag or show a link
+        if (isPdf || isExternalLink) {
+          // For PDFs and external links - show a clean styled card with link
+          const icon = isPdf ? '📄' : '🔗';
+          const label = isPdf ? 'קובץ PDF' : 'קישור חיצוני';
           return `
-            <div style="page-break-inside: avoid; margin-bottom: 30px; border: 1px solid #ddd; padding: 15px;">
-              <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px; text-align: right;">
-                ${inv.supplier_name} - ${inv.document_number}
+            <div style="page-break-inside: avoid; margin-bottom: 20px; border: 2px solid #e5e7eb; border-radius: 8px; padding: 20px; background: #f9fafb;">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-direction: row-reverse;">
+                <div style="text-align: right;">
+                  <div style="font-weight: bold; font-size: 16px; margin-bottom: 4px;">${inv.supplier_name}</div>
+                  <div style="color: #6b7280; font-size: 14px;">אסמכתא: ${inv.document_number}</div>
+                  <div style="color: #6b7280; font-size: 14px;">סכום: ${formatCurrency(inv.total_amount)}</div>
+                </div>
+                <div style="text-align: center; padding: 15px 25px; background: #2563eb; border-radius: 6px;">
+                  <a href="${inv.image_url}" target="_blank" style="color: white; text-decoration: none; font-weight: 500;">
+                    ${icon} ${label}
+                  </a>
+                </div>
               </div>
-              <object data="${inv.image_url}" type="application/pdf" width="100%" height="600px" style="display: block; margin: 0 auto;">
-                <p style="text-align: center; color: #666;">
-                  <a href="${inv.image_url}" target="_blank" style="color: #2563eb;">📄 לחץ כאן לצפייה ב-PDF</a>
-                </p>
-              </object>
-            </div>
-          `;
-        } else if (isExternalLink) {
-          // External links - show as link
-          return `
-            <div style="page-break-inside: avoid; margin-bottom: 30px; border: 1px solid #ddd; padding: 15px;">
-              <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px; text-align: right;">
-                ${inv.supplier_name} - ${inv.document_number}
-              </div>
-              <p style="text-align: center;">
-                <a href="${inv.image_url}" target="_blank" style="color: #2563eb;">🔗 לחץ כאן לצפייה בקישור</a>
-              </p>
             </div>
           `;
         } else {
-          // Regular images
+          // Regular images - show the actual image
           return `
             <div style="page-break-inside: avoid; margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; text-align: center;">
               <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px; text-align: right;">
