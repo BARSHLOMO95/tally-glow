@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useUserRole } from '@/hooks/useUserRole';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Card, CardContent } from '@/components/ui/card';
@@ -20,7 +21,7 @@ import ImportExcelModal from '@/components/invoice/ImportExcelModal';
 import DashboardCharts from '@/components/invoice/DashboardCharts';
 import DuplicatesModal from '@/components/invoice/DuplicatesModal';
 import { Invoice, InvoiceFormData, DuplicatesFilterMode } from '@/types/invoice';
-import { LogOut, Plus, Loader2, Upload, RefreshCw, LayoutGrid, LayoutList, Settings, Crown, Sparkles } from 'lucide-react';
+import { LogOut, Plus, Loader2, Upload, RefreshCw, LayoutGrid, LayoutList, Settings, Crown, Sparkles, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -29,6 +30,7 @@ type ViewMode = 'list' | 'grid';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { isAdmin } = useUserRole();
   const { subscription, plan, usage, getRemainingDocuments } = useSubscription();
   const {
     invoices,
@@ -298,6 +300,11 @@ const Dashboard = () => {
                 <RefreshCw className="h-4 w-4 sm:ml-2" />
                 <span className="hidden sm:inline">רענן</span>
               </Button>
+              {isAdmin && (
+                <Button variant="ghost" size="icon" onClick={() => navigate('/admin')} className="text-primary" title="ממשק מנהל">
+                  <Shield className="h-4 w-4" />
+                </Button>
+              )}
               <Button variant="ghost" size="icon" onClick={() => navigate('/settings')} className="text-muted-foreground" title="הגדרות">
                 <Settings className="h-4 w-4" />
               </Button>

@@ -10,6 +10,7 @@ import AccountantReport from "./pages/AccountantReport";
 import Settings from "./pages/Settings";
 import Pricing from "./pages/Pricing";
 import PublicUpload from "./pages/PublicUpload";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/report" element={<AccountantReport />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/pricing" element={<Pricing />} />
+          <Route path="/admin" element={<Admin />} />
           <Route path="/upload/:linkCode" element={<PublicUpload />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
