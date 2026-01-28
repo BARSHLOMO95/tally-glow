@@ -108,15 +108,26 @@ Deno.serve(async (req) => {
     let processedCount = 0;
     let invoicesCreated = 0;
 
-    for (const messageId of messages.slice(0, 50)) { // Limit to 50 per sync
+    const messagesToProcess = messages.slice(0, 30); // Limit to 30 per sync
+    console.log(`Starting to process ${messagesToProcess.length} messages`);
+
+    for (const messageId of messagesToProcess) {
       try {
+        console.log(`Processing message: ${messageId}`);
         const result = await processMessage(supabaseAdmin, accessToken, messageId, user.id);
         processedCount++;
-        if (result.created) invoicesCreated++;
+        if (result.created) {
+          invoicesCreated++;
+          console.log(`Created invoice from message ${messageId}`);
+        } else {
+          console.log(`No invoice created from message ${messageId} - ${result.reason || 'no attachments/links'}`);
+        }
       } catch (error) {
         console.error(`Error processing message ${messageId}:`, error);
       }
     }
+
+    console.log(`Sync complete: processed=${processedCount}, created=${invoicesCreated}`);
 
     // Update last sync time
     await supabaseAdmin
@@ -215,12 +226,17 @@ async function processMessage(
   accessToken: string,
   messageId: string,
   userId: string
-): Promise<{ created: boolean }> {
+): Promise<{ created: boolean; reason?: string }> {
   // Get full message
   const response = await fetch(
     `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=full`,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
+  
+  if (!response.ok) {
+    console.error(`Failed to fetch message ${messageId}: ${response.status}`);
+    return { created: false, reason: `fetch failed: ${response.status}` };
+  }
   
   const message = await response.json();
   
@@ -230,36 +246,48 @@ async function processMessage(
   const from = headers.find((h: any) => h.name === 'From')?.value || '';
   const date = headers.find((h: any) => h.name === 'Date')?.value || '';
   
+  console.log(`Message subject: "${subject.substring(0, 50)}..." from: ${from.substring(0, 30)}`);
+  
   // Check for attachments (PDF, images)
   const attachments = findAttachments(message.payload);
+  console.log(`Found ${attachments.length} attachments in message`);
   
   // Check for invoice links in body
   const body = extractBody(message.payload);
   const invoiceLinks = findInvoiceLinks(body);
+  console.log(`Found ${invoiceLinks.length} invoice links in message`);
   
   if (attachments.length === 0 && invoiceLinks.length === 0) {
-    return { created: false };
+    return { created: false, reason: 'no attachments or links' };
   }
 
   // Process attachments
   for (const attachment of attachments) {
+    console.log(`Processing attachment: ${attachment.filename} (${attachment.mimeType})`);
     const attachmentData = await getAttachment(accessToken, messageId, attachment.attachmentId);
     if (attachmentData) {
+      console.log(`Got attachment data, size: ${attachmentData.length} bytes`);
       const imageUrl = await uploadToStorage(supabase, userId, attachmentData, attachment.filename);
       if (imageUrl) {
+        console.log(`Uploaded to storage: ${imageUrl}`);
         await createInvoiceFromImage(supabase, userId, imageUrl, from, date);
         return { created: true };
+      } else {
+        console.error(`Failed to upload attachment: ${attachment.filename}`);
       }
+    } else {
+      console.error(`Failed to get attachment data: ${attachment.filename}`);
     }
   }
 
   // Process invoice links
   for (const link of invoiceLinks) {
+    console.log(`Creating invoice from link: ${link.substring(0, 50)}...`);
     await createInvoiceFromLink(supabase, userId, link, from, date);
     return { created: true };
   }
 
-  return { created: false };
+  return { created: false, reason: 'failed to process attachments/links' };
 }
 
 function findAttachments(payload: any): Array<{ filename: string; attachmentId: string; mimeType: string }> {
