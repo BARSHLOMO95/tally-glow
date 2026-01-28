@@ -179,8 +179,9 @@ const Dashboard = () => {
     }
   };
 
-  const handleCreateInvoice = (data: InvoiceFormData) => {
-    createInvoice(data);
+  const handleInvoiceAdded = () => {
+    // Refresh the page to reload invoices
+    window.location.reload();
   };
 
   // Calculate duplicates
@@ -430,7 +431,7 @@ const Dashboard = () => {
       <AddInvoiceModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onSave={handleCreateInvoice}
+        onSave={handleInvoiceAdded}
         existingCategories={filterOptions.categories}
       />
 
