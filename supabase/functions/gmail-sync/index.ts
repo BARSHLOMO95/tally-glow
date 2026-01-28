@@ -9,7 +9,7 @@ const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID')!;
 const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')!;
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
 // Invoice-related keywords in Hebrew and English
 const INVOICE_KEYWORDS = [
@@ -270,7 +270,8 @@ async function processMessage(
       const imageUrl = await uploadToStorage(supabase, userId, attachmentData, attachment.filename);
       if (imageUrl) {
         console.log(`Uploaded to storage: ${imageUrl}`);
-        await createInvoiceFromImage(supabase, userId, imageUrl, from, date);
+        // Pass the binary data for AI extraction (especially important for PDFs)
+        await createInvoiceFromImage(supabase, userId, imageUrl, from, date, attachmentData, attachment.mimeType);
         return { created: true };
       } else {
         console.error(`Failed to upload attachment: ${attachment.filename}`);
@@ -401,10 +402,24 @@ async function createInvoiceFromImage(
   userId: string,
   imageUrl: string,
   fromEmail: string,
-  emailDate: string
+  emailDate: string,
+  fileData?: Uint8Array,
+  mimeType?: string
 ): Promise<void> {
-  // Extract data using OpenAI Vision
-  const extractedData = await extractInvoiceData(imageUrl);
+  console.log(`Creating invoice from image, URL: ${imageUrl.substring(0, 80)}...`);
+  
+  // Extract data using AI - pass base64 for PDFs since URL won't work
+  let extractedData: any = {};
+  
+  if (fileData && mimeType) {
+    // For files we have the binary data - convert to base64 and send
+    extractedData = await extractInvoiceDataFromBytes(fileData, mimeType);
+  } else {
+    // For image URLs, try direct extraction
+    extractedData = await extractInvoiceDataFromUrl(imageUrl);
+  }
+  
+  console.log('Extracted data:', JSON.stringify(extractedData));
   
   // Parse supplier from email if not extracted
   const supplierName = extractedData.supplier_name || parseSupplierFromEmail(fromEmail);
@@ -412,18 +427,24 @@ async function createInvoiceFromImage(
   // Parse date
   const documentDate = extractedData.document_date || parseDate(emailDate);
   
-  await supabase.from('invoices').insert({
+  const { error: insertError } = await supabase.from('invoices').insert({
     user_id: userId,
     supplier_name: supplierName,
     document_number: extractedData.document_number || '',
     document_date: documentDate,
     total_amount: extractedData.total_amount || 0,
     category: extractedData.category || 'אחר',
-    business_type: 'עוסק מורשה',
+    business_type: extractedData.business_type || 'עוסק מורשה',
     image_url: imageUrl,
     entry_method: 'gmail_sync',
     status: extractedData.total_amount ? 'חדש' : 'ממתין לבדיקה ידנית',
   });
+  
+  if (insertError) {
+    console.error('Error inserting invoice:', insertError);
+  } else {
+    console.log('Invoice inserted successfully');
+  }
 }
 
 async function createInvoiceFromLink(
@@ -450,32 +471,41 @@ async function createInvoiceFromLink(
   });
 }
 
-async function extractInvoiceData(imageUrl: string): Promise<any> {
+// Extract from URL (for images)
+async function extractInvoiceDataFromUrl(imageUrl: string): Promise<any> {
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    if (!LOVABLE_API_KEY) {
+      console.error('LOVABLE_API_KEY not configured');
+      return {};
+    }
+    
+    console.log('Extracting invoice data from URL using Lovable AI...');
+    
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',
-            content: `You are an invoice data extraction assistant. Extract the following from the invoice image:
-- supplier_name: The company/business name that issued the invoice
+            content: `You are an invoice data extraction assistant for Israeli invoices. Extract the following from the invoice:
+- supplier_name: The company/business name that issued the invoice (in Hebrew if available)
 - document_number: Invoice number or receipt number
 - document_date: Date in YYYY-MM-DD format
-- total_amount: Total amount in numbers only
+- total_amount: Total amount in numbers only (the final total including VAT)
 - category: One of these categories only: ${VALID_CATEGORIES.join(', ')}
+- business_type: One of: עוסק מורשה, עוסק פטור, חברה בע"מ, ספק חו"ל
 
-Respond in JSON format only.`
+Respond in JSON format only. If you cannot extract a field, use null.`
           },
           {
             role: 'user',
             content: [
-              { type: 'text', text: 'Extract invoice data from this image:' },
+              { type: 'text', text: 'Extract invoice data from this document:' },
               { type: 'image_url', image_url: { url: imageUrl } }
             ]
           }
@@ -484,8 +514,14 @@ Respond in JSON format only.`
       }),
     });
 
+    if (!response.ok) {
+      console.error('Lovable AI error:', response.status, await response.text());
+      return {};
+    }
+
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || '{}';
+    console.log('AI response:', content);
     
     // Parse JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -493,7 +529,91 @@ Respond in JSON format only.`
       return JSON.parse(jsonMatch[0]);
     }
   } catch (error) {
-    console.error('Error extracting invoice data:', error);
+    console.error('Error extracting invoice data from URL:', error);
+  }
+  return {};
+}
+
+// Extract from binary data (for PDFs and images)
+async function extractInvoiceDataFromBytes(data: Uint8Array, mimeType: string): Promise<any> {
+  try {
+    if (!LOVABLE_API_KEY) {
+      console.error('LOVABLE_API_KEY not configured');
+      return {};
+    }
+    
+    console.log(`Extracting invoice data from ${mimeType} using Lovable AI (base64)...`);
+    
+    // Convert to base64
+    let binary = '';
+    const bytes = new Uint8Array(data);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64Data = btoa(binary);
+    
+    // Determine media type for Gemini
+    let mediaType = mimeType;
+    if (mimeType.includes('pdf')) {
+      mediaType = 'application/pdf';
+    } else if (mimeType.includes('image')) {
+      mediaType = mimeType.includes('png') ? 'image/png' : 'image/jpeg';
+    }
+    
+    const dataUrl = `data:${mediaType};base64,${base64Data}`;
+    console.log(`Created data URL with media type: ${mediaType}, size: ${base64Data.length} chars`);
+    
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an invoice data extraction assistant for Israeli invoices. Extract the following from the invoice:
+- supplier_name: The company/business name that issued the invoice (in Hebrew if available)
+- document_number: Invoice number or receipt number
+- document_date: Date in YYYY-MM-DD format
+- total_amount: Total amount in numbers only (the final total including VAT)
+- category: One of these categories only: ${VALID_CATEGORIES.join(', ')}
+- business_type: One of: עוסק מורשה, עוסק פטור, חברה בע"מ, ספק חו"ל
+
+Respond in JSON format only. If you cannot extract a field, use null.`
+          },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Extract invoice data from this document:' },
+              { type: 'image_url', image_url: { url: dataUrl } }
+            ]
+          }
+        ],
+        max_tokens: 500,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Lovable AI error:', response.status, errorText);
+      return {};
+    }
+
+    const result = await response.json();
+    const content = result.choices?.[0]?.message?.content || '{}';
+    console.log('AI response:', content);
+    
+    // Parse JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+  } catch (error) {
+    console.error('Error extracting invoice data from bytes:', error);
   }
   return {};
 }
