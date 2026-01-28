@@ -6,9 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowRight, Shield, Users, FileText, CreditCard, Search, Loader2, RefreshCw } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ArrowRight, Shield, Users, FileText, CreditCard, Search, Loader2, RefreshCw, Plus, Coins } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface User {
@@ -22,6 +24,7 @@ interface UserWithStats extends User {
   invoice_count: number;
   subscription_status: string;
   company_name: string | null;
+  current_month_usage: number;
 }
 
 const Admin = () => {
@@ -37,6 +40,12 @@ const Admin = () => {
     activeSubscriptions: 0,
     monthlyRevenue: 0,
   });
+  
+  // Add credits modal
+  const [creditsModalOpen, setCreditsModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserWithStats | null>(null);
+  const [creditsToAdd, setCreditsToAdd] = useState('10');
+  const [addingCredits, setAddingCredits] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -76,6 +85,10 @@ const Admin = () => {
 
   const fetchData = async () => {
     try {
+      // Get current month
+      const now = new Date();
+      const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
       // Fetch invoices count
       const { count: invoiceCount } = await supabase
         .from('invoices')
@@ -114,6 +127,12 @@ const Admin = () => {
         .from('invoices')
         .select('user_id');
 
+      // Fetch current month document usage
+      const { data: documentUsage } = await supabase
+        .from('document_usage')
+        .select('user_id, document_count')
+        .eq('month_year', monthYear);
+
       // Build user stats
       const userMap = new Map<string, UserWithStats>();
       
@@ -121,6 +140,7 @@ const Admin = () => {
         const settings = userSettings?.find(s => s.user_id === c.user_id);
         const sub = customerSubscriptions?.find(s => s.customer_id === c.id);
         const invoices = invoiceCounts?.filter(i => i.user_id === c.user_id) || [];
+        const usage = documentUsage?.find(u => u.user_id === c.user_id);
         
         userMap.set(c.user_id, {
           id: c.user_id,
@@ -130,6 +150,7 @@ const Admin = () => {
           invoice_count: invoices.length,
           subscription_status: sub?.status || 'free',
           company_name: settings?.company_name || null,
+          current_month_usage: usage?.document_count || 0,
         });
       });
 
@@ -144,6 +165,65 @@ const Admin = () => {
     } catch (error) {
       console.error('Error fetching admin data:', error);
       toast.error('שגיאה בטעינת נתונים');
+    }
+  };
+
+  const handleOpenCreditsModal = (u: UserWithStats) => {
+    setSelectedUser(u);
+    setCreditsToAdd('10');
+    setCreditsModalOpen(true);
+  };
+
+  const handleAddCredits = async () => {
+    if (!selectedUser) return;
+    
+    const credits = parseInt(creditsToAdd);
+    if (isNaN(credits) || credits <= 0) {
+      toast.error('יש להזין מספר חיובי');
+      return;
+    }
+
+    setAddingCredits(true);
+    
+    try {
+      const now = new Date();
+      const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      
+      // Check if usage record exists
+      const { data: existing } = await supabase
+        .from('document_usage')
+        .select('id, document_count')
+        .eq('user_id', selectedUser.id)
+        .eq('month_year', monthYear)
+        .maybeSingle();
+
+      if (existing) {
+        // Decrease usage (add credits = reduce used count, but not below 0)
+        const newCount = Math.max(0, existing.document_count - credits);
+        await supabase
+          .from('document_usage')
+          .update({ document_count: newCount })
+          .eq('id', existing.id);
+      } else {
+        // Create new record with negative count (credits available)
+        // Actually, we'll set it to 0 since there's no existing usage
+        await supabase
+          .from('document_usage')
+          .insert({ 
+            user_id: selectedUser.id, 
+            month_year: monthYear, 
+            document_count: 0 
+          });
+      }
+
+      toast.success(`נוספו ${credits} קרדיטים למשתמש ${selectedUser.email}`);
+      setCreditsModalOpen(false);
+      await fetchData();
+    } catch (error) {
+      console.error('Error adding credits:', error);
+      toast.error('שגיאה בהוספת קרדיטים');
+    } finally {
+      setAddingCredits(false);
     }
   };
 
@@ -270,8 +350,10 @@ const Admin = () => {
                       <TableHead>אימייל</TableHead>
                       <TableHead>שם חברה</TableHead>
                       <TableHead>מסמכים</TableHead>
+                      <TableHead>שימוש החודש</TableHead>
                       <TableHead>סטטוס מנוי</TableHead>
                       <TableHead>תאריך הצטרפות</TableHead>
+                      <TableHead>פעולות</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -280,15 +362,30 @@ const Admin = () => {
                         <TableCell className="font-medium">{u.email}</TableCell>
                         <TableCell>{u.company_name || '-'}</TableCell>
                         <TableCell>{u.invoice_count}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {u.current_month_usage} / {u.subscription_status === 'active' ? '50' : '10'}
+                          </Badge>
+                        </TableCell>
                         <TableCell>{getStatusBadge(u.subscription_status)}</TableCell>
                         <TableCell>
                           {new Date(u.created_at).toLocaleDateString('he-IL')}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenCreditsModal(u)}
+                          >
+                            <Coins className="h-4 w-4 ml-1" />
+                            הוסף קרדיטים
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
                     {filteredUsers.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                           לא נמצאו משתמשים
                         </TableCell>
                       </TableRow>
@@ -328,6 +425,73 @@ const Admin = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Add Credits Modal */}
+      <Dialog open={creditsModalOpen} onOpenChange={setCreditsModalOpen}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Coins className="h-5 w-5 text-primary" />
+              הוספת קרדיטים
+            </DialogTitle>
+            <DialogDescription>
+              הוספת קרדיטים למשתמש: <strong>{selectedUser?.email}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="bg-muted/50 p-3 rounded-lg space-y-1">
+              <p className="text-sm text-muted-foreground">שימוש נוכחי החודש:</p>
+              <p className="text-lg font-bold">
+                {selectedUser?.current_month_usage || 0} / {selectedUser?.subscription_status === 'active' ? '50' : '10'}
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="credits">כמות קרדיטים להוספה</Label>
+              <Input
+                id="credits"
+                type="number"
+                min="1"
+                value={creditsToAdd}
+                onChange={(e) => setCreditsToAdd(e.target.value)}
+                placeholder="10"
+              />
+              <p className="text-xs text-muted-foreground">
+                הקרדיטים יופחתו מהשימוש הנוכחי (לא יורד מתחת ל-0)
+              </p>
+            </div>
+            
+            <div className="flex gap-2">
+              {[5, 10, 25, 50].map(amount => (
+                <Button
+                  key={amount}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCreditsToAdd(String(amount))}
+                  className={creditsToAdd === String(amount) ? 'border-primary' : ''}
+                >
+                  +{amount}
+                </Button>
+              ))}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreditsModalOpen(false)}>
+              ביטול
+            </Button>
+            <Button onClick={handleAddCredits} disabled={addingCredits}>
+              {addingCredits ? (
+                <Loader2 className="h-4 w-4 ml-1 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4 ml-1" />
+              )}
+              הוסף קרדיטים
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
