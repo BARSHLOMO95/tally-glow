@@ -1,14 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Mail, Loader2, RefreshCw, Unlink, CheckCircle, AlertCircle, Clock, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 
-type TimeRange = 'week' | 'month' | 'year';
+type TimeRange = 'week' | 'month' | '3months' | 'year';
 
 interface GmailConnectionData {
   id: string;
@@ -18,14 +17,20 @@ interface GmailConnectionData {
   created_at: string;
 }
 
+const TIME_RANGE_OPTIONS: { value: TimeRange; label: string }[] = [
+  { value: 'week', label: 'שבוע אחורה' },
+  { value: 'month', label: 'חודש אחורה' },
+  { value: '3months', label: '3 חודשים אחורה' },
+  { value: 'year', label: 'שנה אחורה' },
+];
+
 export function GmailConnection() {
   const { user } = useAuth();
   const [connection, setConnection] = useState<GmailConnectionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [connecting, setConnecting] = useState(false);
-  const [timeRange, setTimeRange] = useState<TimeRange>('month');
-  const shouldSyncAfterConnect = useRef(false);
+  const [showImportOptions, setShowImportOptions] = useState(false);
 
   const fetchConnection = useCallback(async () => {
     if (!user) return;
@@ -38,20 +43,25 @@ export function GmailConnection() {
 
     if (!error && data) {
       setConnection(data);
+      // Show import options if connected but never synced
+      if (data.is_active && !data.last_sync_at) {
+        setShowImportOptions(true);
+      }
     } else {
       setConnection(null);
     }
     setLoading(false);
   }, [user]);
 
-  const handleSync = useCallback(async (syncTimeRange?: TimeRange) => {
+  const handleSync = useCallback(async (syncTimeRange: TimeRange) => {
     setSyncing(true);
+    setShowImportOptions(false);
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
       const response = await supabase.functions.invoke('gmail-sync', {
-        body: { timeRange: syncTimeRange || timeRange },
+        body: { timeRange: syncTimeRange },
         headers: {
           Authorization: `Bearer ${session?.access_token}`,
         },
@@ -76,19 +86,11 @@ export function GmailConnection() {
     } finally {
       setSyncing(false);
     }
-  }, [fetchConnection, timeRange]);
+  }, [fetchConnection]);
 
   useEffect(() => {
     fetchConnection();
   }, [fetchConnection]);
-
-  // Handle initial sync after connection
-  useEffect(() => {
-    if (shouldSyncAfterConnect.current && connection?.is_active) {
-      shouldSyncAfterConnect.current = false;
-      handleSync('year');
-    }
-  }, [connection, handleSync]);
 
   // Handle OAuth callback
   useEffect(() => {
@@ -118,7 +120,8 @@ export function GmailConnection() {
 
           if (response.data?.success) {
             toast.success(`Gmail מחובר בהצלחה: ${response.data.email}`);
-            shouldSyncAfterConnect.current = true;
+            // Show import options after successful connection
+            setShowImportOptions(true);
             await fetchConnection();
           }
         } catch (error) {
@@ -185,6 +188,7 @@ export function GmailConnection() {
       }
 
       setConnection(null);
+      setShowImportOptions(false);
       toast.success('Gmail נותק בהצלחה');
     } catch (error) {
       console.error('Gmail disconnect error:', error);
@@ -197,6 +201,59 @@ export function GmailConnection() {
       <Card>
         <CardContent className="py-6 flex items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Import options view - shown after connection or when never synced
+  if (showImportOptions && connection?.is_active) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Mail className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">ייבוא חשבוניות מ-Gmail</CardTitle>
+          </div>
+          <CardDescription>
+            החשבון {connection.email} מחובר. בחר כמה זמן אחורה לסרוק:
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            {TIME_RANGE_OPTIONS.map((option) => (
+              <Button
+                key={option.value}
+                variant="outline"
+                onClick={() => handleSync(option.value)}
+                disabled={syncing}
+                className="h-auto py-4 flex flex-col items-center gap-1"
+              >
+                {syncing ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Calendar className="h-5 w-5 text-primary" />
+                )}
+                <span className="font-medium">{option.label}</span>
+              </Button>
+            ))}
+          </div>
+          
+          <div className="flex items-start gap-2 p-3 bg-accent/50 rounded-lg border border-accent">
+            <AlertCircle className="h-5 w-5 text-accent-foreground flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-accent-foreground">
+              ככל שטווח הזמן גדול יותר, כך ייסרקו יותר מיילים ויותר חשבוניות ייובאו.
+              וודא שיש לך מספיק מכסה בתוכנית שלך.
+            </div>
+          </div>
+
+          <Button
+            variant="ghost"
+            onClick={() => setShowImportOptions(false)}
+            className="w-full text-muted-foreground"
+          >
+            דלג - אייבא מאוחר יותר
+          </Button>
         </CardContent>
       </Card>
     );
@@ -238,34 +295,13 @@ export function GmailConnection() {
               )}
             </div>
             
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">טווח זמן לסריקה:</span>
-                <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="week">שבוע</SelectItem>
-                    <SelectItem value="month">חודש</SelectItem>
-                    <SelectItem value="year">שנה</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button
-                onClick={() => handleSync()}
-                disabled={syncing}
-                className="w-full"
-              >
-                {syncing ? (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4 ml-2" />
-                )}
-                סנכרון חשבוניות
-              </Button>
-            </div>
+            <Button
+              onClick={() => setShowImportOptions(true)}
+              className="w-full"
+            >
+              <RefreshCw className="h-4 w-4 ml-2" />
+              סנכרון חשבוניות
+            </Button>
             
             <Button
               variant="ghost"
@@ -287,14 +323,6 @@ export function GmailConnection() {
                 <li>לינקים לחשבוניות בתוכן המייל</li>
                 <li>זיהוי אוטומטי של מיילים עם מילות מפתח (חשבונית, קבלה...)</li>
               </ul>
-            </div>
-            
-            <div className="flex items-start gap-2 p-3 bg-accent/50 rounded-lg border border-accent">
-              <AlertCircle className="h-5 w-5 text-accent-foreground flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-accent-foreground">
-                <strong>הערה:</strong> בהתחברות הראשונה יסונכרנו חשבוניות משנה אחרונה.
-                וודא שיש לך מספיק מכסה בתוכנית שלך.
-              </div>
             </div>
             
             <Button

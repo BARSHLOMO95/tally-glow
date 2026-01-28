@@ -168,6 +168,8 @@ function calculateAfterDate(timeRange: string): Date {
       return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     case 'month':
       return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    case '3months':
+      return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
     case 'year':
     default:
       const yearAgo = new Date();
