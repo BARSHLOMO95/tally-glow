@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useSettings } from '@/hooks/useSettings';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,6 +33,7 @@ const Dashboard = () => {
   const { user, signOut } = useAuth();
   const { isAdmin } = useUserRole();
   const { subscription, plan, usage, getRemainingDocuments } = useSubscription();
+  const { settings } = useSettings();
   const {
     invoices,
     filteredInvoices,
@@ -50,6 +52,20 @@ const Dashboard = () => {
     toggleSelectAll,
     clearFilters,
   } = useInvoices(user?.id);
+
+  // Merge categories from settings with existing invoice categories
+  const allCategories = useMemo(() => {
+    const settingsCategories = settings?.custom_categories || [];
+    const invoiceCategories = filterOptions.categories;
+    // Combine and deduplicate, prioritizing settings order
+    const combined = [...settingsCategories];
+    invoiceCategories.forEach(cat => {
+      if (!combined.includes(cat)) {
+        combined.push(cat);
+      }
+    });
+    return combined;
+  }, [settings?.custom_categories, filterOptions.categories]);
 
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [imageModalUrl, setImageModalUrl] = useState<string | null>(null);
@@ -419,7 +435,7 @@ const Dashboard = () => {
         isOpen={!!editingInvoice}
         onClose={() => setEditingInvoice(null)}
         onSave={updateInvoice}
-        categories={filterOptions.categories}
+        categories={allCategories}
       />
 
       <ImageModal
@@ -439,7 +455,7 @@ const Dashboard = () => {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSave={handleInvoiceAdded}
-        existingCategories={filterOptions.categories}
+        existingCategories={allCategories}
       />
 
       <ImportExcelModal
@@ -453,7 +469,7 @@ const Dashboard = () => {
         onClose={() => setIsBulkEditModalOpen(false)}
         onSave={(data: BulkEditData) => bulkUpdateInvoices(selectedIds, data)}
         selectedCount={selectedIds.length}
-        categories={filterOptions.categories}
+        categories={allCategories}
       />
 
       <DuplicatesModal
