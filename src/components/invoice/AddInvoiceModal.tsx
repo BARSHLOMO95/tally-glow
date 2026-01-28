@@ -100,7 +100,7 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave, existingCategories }: AddInv
 
       // Call import-invoices to analyze the image
       const { data, error } = await supabase.functions.invoke('import-invoices', {
-        body: { image_url: imageUrl }
+        body: { image_url: imageUrl, user_id: user.id }
       });
 
       if (error) {
