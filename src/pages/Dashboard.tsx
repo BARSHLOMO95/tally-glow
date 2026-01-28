@@ -128,30 +128,18 @@ const Dashboard = () => {
     const imagesSection = selectedInvoices
       .filter(inv => inv.image_url)
       .map(inv => {
-        const isPdf = inv.image_url?.toLowerCase().includes('.pdf');
-        
-        if (isPdf) {
-          // For PDFs - use embed tag for print support
-          return `
-            <div style="page-break-inside: avoid; page-break-before: always; margin-bottom: 30px; text-align: center;">
-              <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px; text-align: right;">
-                ${inv.supplier_name} - ${inv.document_number}
-              </div>
-              <embed src="${inv.image_url}" type="application/pdf" style="width: 100%; height: 100vh; min-height: 800px;" />
+        // All attachments render as images for consistent print layout
+        // For PDFs and external links, this may not display but provides consistent layout
+        return `
+          <div style="page-break-inside: avoid; margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; text-align: center;">
+            <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px; text-align: right;">
+              ${inv.supplier_name} - ${inv.document_number}
             </div>
-          `;
-        } else {
-          // For images - use img tag
-          return `
-            <div style="page-break-inside: avoid; margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; text-align: center;">
-              <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px; text-align: right;">
-                ${inv.supplier_name} - ${inv.document_number}
-              </div>
-              <img src="${inv.image_url}" style="max-width: 80%; max-height: 700px; display: inline-block;" crossorigin="anonymous"
-                onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='${inv.image_url}';" />
-            </div>
-          `;
-        }
+            <img src="${inv.image_url}" style="max-width: 80%; max-height: 700px; display: inline-block;" 
+              crossorigin="anonymous"
+              onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='${inv.image_url}';" />
+          </div>
+        `;
       }).join('');
     
     const htmlContent = `
