@@ -131,24 +131,26 @@ const Dashboard = () => {
         const isPdf = inv.image_url?.toLowerCase().includes('.pdf');
         const isExternalLink = !inv.image_url?.includes('supabase.co/storage');
         
-        if (isPdf || isExternalLink) {
-          // For PDFs and external links - show a clean styled card with link
-          const icon = isPdf ? '📄' : '🔗';
-          const label = isPdf ? 'קובץ PDF' : 'קישור חיצוני';
+        if (isPdf) {
+          // For PDFs - embed using iframe for better print support
           return `
-            <div style="page-break-inside: avoid; margin-bottom: 20px; border: 2px solid #e5e7eb; border-radius: 8px; padding: 20px; background: #f9fafb;">
-              <div style="display: flex; justify-content: space-between; align-items: center; flex-direction: row-reverse;">
-                <div style="text-align: right;">
-                  <div style="font-weight: bold; font-size: 16px; margin-bottom: 4px;">${inv.supplier_name}</div>
-                  <div style="color: #6b7280; font-size: 14px;">אסמכתא: ${inv.document_number}</div>
-                  <div style="color: #6b7280; font-size: 14px;">סכום: ${formatCurrency(inv.total_amount)}</div>
-                </div>
-                <div style="text-align: center; padding: 15px 25px; background: #2563eb; border-radius: 6px;">
-                  <a href="${inv.image_url}" target="_blank" style="color: white; text-decoration: none; font-weight: 500;">
-                    ${icon} ${label}
-                  </a>
-                </div>
+            <div style="page-break-inside: avoid; margin-bottom: 30px; border: 1px solid #ddd; padding: 15px;">
+              <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px; text-align: right;">
+                ${inv.supplier_name} - ${inv.document_number}
               </div>
+              <iframe src="${inv.image_url}#toolbar=0&navpanes=0" style="width: 100%; height: 800px; border: none;" title="PDF Document"></iframe>
+            </div>
+          `;
+        } else if (isExternalLink) {
+          // External links (usually images from Gmail) - try to show as image first
+          return `
+            <div style="page-break-inside: avoid; margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; text-align: center;">
+              <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px; text-align: right;">
+                ${inv.supplier_name} - ${inv.document_number}
+              </div>
+              <img src="${inv.image_url}" style="max-width: 80%; max-height: 700px; display: inline-block;" 
+                onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='block';" />
+              <iframe src="${inv.image_url}" style="display: none; width: 100%; height: 800px; border: none;" title="External Document"></iframe>
             </div>
           `;
         } else {
