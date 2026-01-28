@@ -1,23 +1,30 @@
 import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image, Upload, X, CheckCircle } from 'lucide-react';
+import { Loader2, Image, Upload, X, CheckCircle, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useSubscription } from '@/hooks/useSubscription';
 
 interface AddInvoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: () => void; // Changed to just refresh the list
+  onSave: () => void;
   existingCategories: string[];
 }
 
 const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const { canUploadDocument, getRemainingDocuments, subscription, plan } = useSubscription();
+  
+  const remaining = getRemainingDocuments();
+  const isLimitReached = !canUploadDocument();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -139,8 +146,32 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
             className="hidden"
           />
           
-          {isSuccess ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
+          {isLimitReached ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
+              <div className="p-4 rounded-full bg-destructive/10">
+                <AlertTriangle className="h-12 w-12 text-destructive" />
+              </div>
+              <div>
+                <p className="text-lg font-medium">הגעת למגבלת המסמכים החודשית</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {subscription?.status === 'active' 
+                    ? `מגבלת התוכנית שלך היא ${plan?.document_limit} מסמכים בחודש`
+                    : 'בתוכנית החינמית ניתן להעלות עד 10 מסמכים בחודש'
+                  }
+                </p>
+              </div>
+              <Button 
+                onClick={() => {
+                  handleClose();
+                  navigate('/pricing');
+                }}
+                className="mt-2"
+              >
+                שדרג עכשיו
+              </Button>
+            </div>
+          ) : isSuccess ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
               <CheckCircle className="h-16 w-16 text-green-600 mb-4" />
               <p className="text-lg font-medium">החשבונית נשלחה בהצלחה!</p>
               <p className="text-sm text-muted-foreground">המערכת מנתחת את הנתונים</p>
@@ -166,6 +197,9 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
               <p className="text-sm text-muted-foreground text-center">
                 {uploadedFile?.name}
               </p>
+              <p className="text-xs text-muted-foreground text-center">
+                נותרו {remaining === Infinity ? '∞' : remaining} מסמכים החודש
+              </p>
             </div>
           ) : (
             <div 
@@ -175,11 +209,14 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
               <Image className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-base font-medium mb-1">לחץ להעלאת תמונה</p>
               <p className="text-sm text-muted-foreground">או צלם חשבונית מהמצלמה</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                נותרו {remaining === Infinity ? '∞' : remaining} מסמכים החודש
+              </p>
             </div>
           )}
         </div>
 
-        {!isSuccess && (
+        {!isSuccess && !isLimitReached && (
           <div className="flex gap-3 mt-6 justify-end">
             <Button variant="outline" onClick={handleClose} disabled={isUploading}>
               <X className="h-4 w-4 ml-1" />
