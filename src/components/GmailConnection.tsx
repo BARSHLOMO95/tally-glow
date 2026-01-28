@@ -293,6 +293,13 @@ export function GmailConnection() {
                   </span>
                 </div>
               )}
+              <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                <span className="text-sm text-muted-foreground">סנכרון אוטומטי:</span>
+                <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">
+                  <RefreshCw className="h-3 w-3 ml-1" />
+                  פעיל - כל יום ב-8:00
+                </Badge>
+              </div>
             </div>
             
             <Button
