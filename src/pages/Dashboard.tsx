@@ -127,14 +127,48 @@ const Dashboard = () => {
     
     const imagesSection = selectedInvoices
       .filter(inv => inv.image_url)
-      .map(inv => `
-        <div style="page-break-inside: avoid; margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; text-align: center;">
-          <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px; text-align: right;">
-            ${inv.supplier_name} - ${inv.document_number}
-          </div>
-          <img src="${inv.image_url}" style="max-width: 80%; max-height: 700px; display: inline-block;" onerror="this.style.display='none'" />
-        </div>
-      `).join('');
+      .map(inv => {
+        const isPdf = inv.image_url?.toLowerCase().includes('.pdf');
+        const isExternalLink = !inv.image_url?.includes('supabase.co/storage');
+        
+        if (isPdf) {
+          // For PDFs, embed them using object tag or show a link
+          return `
+            <div style="page-break-inside: avoid; margin-bottom: 30px; border: 1px solid #ddd; padding: 15px;">
+              <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px; text-align: right;">
+                ${inv.supplier_name} - ${inv.document_number}
+              </div>
+              <object data="${inv.image_url}" type="application/pdf" width="100%" height="600px" style="display: block; margin: 0 auto;">
+                <p style="text-align: center; color: #666;">
+                  <a href="${inv.image_url}" target="_blank" style="color: #2563eb;">📄 לחץ כאן לצפייה ב-PDF</a>
+                </p>
+              </object>
+            </div>
+          `;
+        } else if (isExternalLink) {
+          // External links - show as link
+          return `
+            <div style="page-break-inside: avoid; margin-bottom: 30px; border: 1px solid #ddd; padding: 15px;">
+              <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px; text-align: right;">
+                ${inv.supplier_name} - ${inv.document_number}
+              </div>
+              <p style="text-align: center;">
+                <a href="${inv.image_url}" target="_blank" style="color: #2563eb;">🔗 לחץ כאן לצפייה בקישור</a>
+              </p>
+            </div>
+          `;
+        } else {
+          // Regular images
+          return `
+            <div style="page-break-inside: avoid; margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; text-align: center;">
+              <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px; text-align: right;">
+                ${inv.supplier_name} - ${inv.document_number}
+              </div>
+              <img src="${inv.image_url}" style="max-width: 80%; max-height: 700px; display: inline-block;" onerror="this.parentElement.innerHTML='<p style=\\'color:#666;\\'>לא ניתן להציג תמונה - <a href=\\'${inv.image_url}\\' target=\\'_blank\\'>לחץ כאן</a></p>'" />
+            </div>
+          `;
+        }
+      }).join('');
     
     const htmlContent = `
       <!DOCTYPE html>
