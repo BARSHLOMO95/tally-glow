@@ -19,7 +19,7 @@ interface InvoiceTableProps {
   onToggleSelectAll: () => void;
   onRowClick: (invoice: Invoice) => void;
   onSupplierClick: (supplierName: string) => void;
-  onImageClick: (imageUrl: string) => void;
+  onImageClick: (imageUrl: string, previewImageUrl?: string | null) => void;
 }
 
 type SortField = 'intake_date' | 'document_date' | 'status' | 'supplier_name' | 'document_number' | 'document_type' | 'category' | 'amount_before_vat' | 'vat_amount' | 'total_amount' | 'business_type' | 'entry_method';
@@ -472,13 +472,13 @@ const InvoiceTable = ({
                     )}
                   </TableCell>
                   <TableCell className="py-4 px-2 text-center">
-                    {invoice.image_url ? (
+                    {(invoice.image_url || invoice.preview_image_url) ? (
                       <button
                         data-image
                         className="text-blue-500 hover:text-blue-600 transition-colors"
                         onClick={(e) => {
                           e.stopPropagation();
-                          onImageClick(invoice.image_url!);
+                          onImageClick(invoice.image_url!, invoice.preview_image_url);
                         }}
                       >
                         <FileImage className="h-5 w-5" />

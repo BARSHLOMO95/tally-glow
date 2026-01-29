@@ -37,6 +37,7 @@ interface StorageResult {
 
 interface InvoiceMetadata {
   storageUrl: string | null;
+  previewImageUrl: string | null;
   fileName: string;
   mimeType: string;
   fileSource: FileSource;
@@ -93,11 +94,105 @@ Deno.serve(async (req) => {
   }
 });
 
+// ============= PDF PREVIEW GENERATION =============
+// Must be declared before it's used
+async function generatePdfPreview(
+  supabase: any,
+  userId: string,
+  pdfData: Uint8Array,
+  filename: string
+): Promise<string | null> {
+  try {
+    if (!LOVABLE_API_KEY) {
+      console.log('LOVABLE_API_KEY not available for PDF preview generation');
+      return null;
+    }
+    
+    console.log(`Generating preview for PDF: ${filename}, size: ${pdfData.length} bytes`);
+    
+    // Convert PDF to base64 for AI processing
+    let binary = '';
+    for (let i = 0; i < pdfData.length; i++) {
+      binary += String.fromCharCode(pdfData[i]);
+    }
+    const base64Data = btoa(binary);
+    const dataUrl = `data:application/pdf;base64,${base64Data}`;
+    
+    // Use Gemini image generation model to create a preview
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-3-pro-image-preview',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { 
+                type: 'text', 
+                text: 'Create a clean, simple preview thumbnail image of this invoice/receipt document. Show the main elements: header with company name, key amounts, and date. Use a white background with black text in a clean layout. Make it look like a professional document thumbnail.'
+              },
+              { type: 'image_url', image_url: { url: dataUrl } }
+            ]
+          }
+        ],
+        max_tokens: 1000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('PDF preview generation failed:', response.status, errorText);
+      return null;
+    }
+
+    const result = await response.json();
+    const content = result.choices?.[0]?.message?.content;
+    
+    // Check if the response contains a generated image URL
+    if (content && typeof content === 'string' && content.includes('http')) {
+      const urlMatch = content.match(/https?:\/\/[^\s<>"{}|\\^`\[\]]+/);
+      if (urlMatch) {
+        const imageResponse = await fetch(urlMatch[0]);
+        if (imageResponse.ok) {
+          const imageBuffer = await imageResponse.arrayBuffer();
+          const imageData = new Uint8Array(imageBuffer);
+          
+          const timestamp = Date.now();
+          const previewPath = `${userId}/previews/${timestamp}_preview.png`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('invoices')
+            .upload(previewPath, imageData, {
+              contentType: 'image/png',
+              upsert: false,
+            });
+          
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage.from('invoices').getPublicUrl(previewPath);
+            console.log(`PDF preview created: ${urlData.publicUrl}`);
+            return urlData.publicUrl;
+          }
+        }
+      }
+    }
+    
+    console.log('Could not generate PDF preview image, will use PDF viewer as fallback');
+    return null;
+    
+  } catch (error) {
+    console.error('Error generating PDF preview:', error);
+    return null;
+  }
+}
+
 // ============= RETRY HANDLER =============
 async function handleRetry(supabase: any, userId: string, invoiceId?: string): Promise<Response> {
   console.log(`Retry request for user ${userId}, invoiceId: ${invoiceId || 'all failed'}`);
   
-  // Build query for failed invoices
   let query = supabase
     .from('invoices')
     .select('*')
@@ -134,18 +229,23 @@ async function handleRetry(supabase: any, userId: string, invoiceId?: string): P
   let stillFailed = 0;
   
   for (const invoice of failedInvoices) {
-    // Only retry if we have original_url (for external links)
     if (invoice.original_url && invoice.file_source === 'gmail_external_link') {
       console.log(`Retrying download for invoice ${invoice.id} from ${invoice.original_url}`);
       
       const result = await downloadAndUploadFromLink(supabase, userId, invoice.original_url);
       
       if (result.success && result.storageUrl) {
-        // Update invoice with successful upload
+        // Generate PDF preview if it's a PDF
+        let previewImageUrl: string | null = null;
+        if (result.mimeType?.includes('pdf') && result.fileData) {
+          previewImageUrl = await generatePdfPreview(supabase, userId, result.fileData, `retry_${invoice.id}.pdf`);
+        }
+        
         const { error: updateError } = await supabase
           .from('invoices')
           .update({
             image_url: result.storageUrl,
+            preview_image_url: previewImageUrl,
             storage_status: 'success',
             storage_error: null,
             mime_type: result.mimeType,
@@ -158,7 +258,6 @@ async function handleRetry(supabase: any, userId: string, invoiceId?: string): P
           console.log(`Successfully retried invoice ${invoice.id}`);
         }
       } else {
-        // Update with new error
         await supabase
           .from('invoices')
           .update({
@@ -170,7 +269,6 @@ async function handleRetry(supabase: any, userId: string, invoiceId?: string): P
         console.log(`Retry still failed for invoice ${invoice.id}: ${result.error}`);
       }
     } else {
-      // For attachments, we can't retry without the original Gmail data
       console.log(`Cannot retry invoice ${invoice.id} - no original_url or not an external link`);
       stillFailed++;
     }
@@ -188,7 +286,6 @@ async function handleRetry(supabase: any, userId: string, invoiceId?: string): P
 
 // ============= SYNC HANDLER =============
 async function handleSync(supabaseAdmin: any, userId: string, authHeader: string, timeRange: string): Promise<Response> {
-  // Get Gmail connection
   const { data: connection, error: connError } = await supabaseAdmin
     .from('gmail_connections')
     .select('*')
@@ -203,7 +300,6 @@ async function handleSync(supabaseAdmin: any, userId: string, authHeader: string
     });
   }
 
-  // Refresh token if expired
   let accessToken = connection.access_token;
   if (new Date(connection.token_expires_at) <= new Date()) {
     const refreshed = await refreshAccessToken(connection.refresh_token);
@@ -231,7 +327,6 @@ async function handleSync(supabaseAdmin: any, userId: string, authHeader: string
       .eq('id', connection.id);
   }
 
-  // Calculate date based on time range
   const afterDate = calculateAfterDate(timeRange);
   const query = buildSearchQuery(afterDate);
   
@@ -264,13 +359,11 @@ async function handleSync(supabaseAdmin: any, userId: string, authHeader: string
 
   console.log(`Sync complete: processed=${processedCount}, created=${invoicesCreated}`);
 
-  // Update last sync time
   await supabaseAdmin
     .from('gmail_connections')
     .update({ last_sync_at: new Date().toISOString() })
     .eq('id', connection.id);
 
-  // Update document usage
   if (invoicesCreated > 0) {
     await incrementDocumentUsage(supabaseAdmin, userId, invoicesCreated);
   }
@@ -375,11 +468,9 @@ async function processMessage(
   
   console.log(`Message subject: "${subject.substring(0, 50)}..." from: ${from.substring(0, 30)}`);
   
-  // Check for attachments (PDF, images)
   const attachments = findAttachments(message.payload);
   console.log(`Found ${attachments.length} attachments in message`);
   
-  // Check for invoice links in body
   const body = extractBody(message.payload);
   const invoiceLinks = findInvoiceLinks(body);
   console.log(`Found ${invoiceLinks.length} invoice links in message`);
@@ -388,7 +479,6 @@ async function processMessage(
     return { created: false, reason: 'no attachments or links' };
   }
 
-  // Process attachments first (priority over links)
   for (const attachment of attachments) {
     console.log(`Processing attachment: ${attachment.filename} (${attachment.mimeType})`);
     const result = await processAttachment(supabase, accessToken, messageId, userId, attachment, from, date);
@@ -397,7 +487,6 @@ async function processMessage(
     }
   }
 
-  // Process invoice links if no attachments worked
   for (const link of invoiceLinks) {
     console.log(`Processing link: ${link.substring(0, 50)}...`);
     const result = await processExternalLink(supabase, userId, link, from, date);
@@ -419,14 +508,13 @@ async function processAttachment(
   fromEmail: string,
   emailDate: string
 ): Promise<{ created: boolean; reason?: string }> {
-  // Download attachment from Gmail API
   const attachmentData = await getAttachmentFromGmail(accessToken, messageId, attachment.attachmentId);
   
   if (!attachmentData) {
     console.error(`Failed to download attachment: ${attachment.filename}`);
-    // Create invoice with failed status - can't retry without original data
     await createInvoice(supabase, userId, {
       storageUrl: null,
+      previewImageUrl: null,
       fileName: attachment.filename,
       mimeType: attachment.mimeType,
       fileSource: 'gmail_attachment',
@@ -439,13 +527,21 @@ async function processAttachment(
   
   console.log(`Downloaded attachment: ${attachment.filename}, size: ${attachmentData.length} bytes`);
   
-  // Upload to Storage
   const uploadResult = await uploadToStorage(supabase, userId, attachmentData, attachment.filename, attachment.mimeType);
   
   if (uploadResult.success && uploadResult.storageUrl) {
     console.log(`Uploaded to storage: ${uploadResult.storageUrl}`);
+    
+    // Generate PDF preview if it's a PDF
+    let previewImageUrl: string | null = null;
+    if (attachment.mimeType.includes('pdf')) {
+      console.log('Generating PDF preview image...');
+      previewImageUrl = await generatePdfPreview(supabase, userId, attachmentData, attachment.filename);
+    }
+    
     await createInvoice(supabase, userId, {
       storageUrl: uploadResult.storageUrl,
+      previewImageUrl,
       fileName: attachment.filename,
       mimeType: attachment.mimeType,
       fileSource: 'gmail_attachment',
@@ -457,9 +553,9 @@ async function processAttachment(
     return { created: true };
   } else {
     console.error(`Failed to upload attachment: ${uploadResult.error}`);
-    // Create invoice with failed status
     await createInvoice(supabase, userId, {
       storageUrl: null,
+      previewImageUrl: null,
       fileName: attachment.filename,
       mimeType: attachment.mimeType,
       fileSource: 'gmail_attachment',
@@ -486,10 +582,20 @@ async function processExternalLink(
   
   if (downloadResult.success && downloadResult.storageUrl) {
     console.log(`Successfully uploaded from link: ${downloadResult.storageUrl}`);
+    
+    // Generate PDF preview if it's a PDF
+    let previewImageUrl: string | null = null;
+    const mimeType = downloadResult.mimeType || 'application/pdf';
+    if (mimeType.includes('pdf') && downloadResult.fileData) {
+      console.log('Generating PDF preview image from link...');
+      previewImageUrl = await generatePdfPreview(supabase, userId, downloadResult.fileData, `link_${Date.now()}.pdf`);
+    }
+    
     await createInvoice(supabase, userId, {
       storageUrl: downloadResult.storageUrl,
+      previewImageUrl,
       fileName: `gmail_link_${Date.now()}`,
-      mimeType: downloadResult.mimeType || 'application/pdf',
+      mimeType,
       fileSource: 'gmail_external_link',
       storageStatus: 'success',
       originalUrl: link,
@@ -499,14 +605,14 @@ async function processExternalLink(
     return { created: true };
   } else {
     console.log(`Failed to download from link: ${downloadResult.error}`);
-    // Create invoice with failed status but keep original_url for retry
     await createInvoice(supabase, userId, {
       storageUrl: null,
+      previewImageUrl: null,
       fileName: `gmail_link_${Date.now()}`,
       mimeType: 'application/pdf',
       fileSource: 'gmail_external_link',
       storageStatus: 'failed',
-      originalUrl: link, // Keep for retry!
+      originalUrl: link,
       storageError: downloadResult.error || 'Download failed',
     }, fromEmail, emailDate);
     return { created: true, reason: 'link download failed' };
@@ -532,7 +638,6 @@ async function getAttachmentFromGmail(
     
     const data = await response.json();
     if (data.data) {
-      // Convert base64url to standard base64
       const base64 = data.data.replace(/-/g, '+').replace(/_/g, '/');
       const binary = atob(base64);
       const bytes = new Uint8Array(binary.length);
@@ -554,7 +659,6 @@ async function downloadAndUploadFromLink(
   link: string
 ): Promise<StorageResult> {
   try {
-    // Attempt to download the file with proper headers
     const response = await fetch(link, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; InvoiceBot/1.0)',
@@ -569,7 +673,6 @@ async function downloadAndUploadFromLink(
     
     const contentType = response.headers.get('content-type') || '';
     
-    // Validate content type
     const isPdf = contentType.includes('pdf') || link.toLowerCase().includes('.pdf');
     const isImage = contentType.includes('image') || 
       /\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i.test(link);
@@ -581,11 +684,9 @@ async function downloadAndUploadFromLink(
       return { success: false, error: `Unsupported content type: ${contentType}` };
     }
     
-    // Download the file content
     const arrayBuffer = await response.arrayBuffer();
     const fileData = new Uint8Array(arrayBuffer);
     
-    // Validate file size
     if (fileData.length > 10 * 1024 * 1024) {
       return { success: false, error: 'File too large (>10MB)' };
     }
@@ -594,7 +695,6 @@ async function downloadAndUploadFromLink(
       return { success: false, error: 'File too small (<1KB), might be invalid' };
     }
     
-    // Determine extension and mime type
     let extension = 'pdf';
     let mimeType = 'application/pdf';
     
@@ -614,13 +714,11 @@ async function downloadAndUploadFromLink(
       }
     }
     
-    // Create unique filename
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substring(2, 8);
     const filename = `gmail_link_${timestamp}_${randomId}.${extension}`;
     const path = `${userId}/${filename}`;
     
-    // Upload to Supabase storage
     const { error } = await supabase.storage
       .from('invoices')
       .upload(path, fileData, {
@@ -661,7 +759,6 @@ async function uploadToStorage(
     const safeName = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
     const path = `${userId}/${timestamp}_${safeName}`;
     
-    // Determine content type
     let contentType = mimeType;
     if (!contentType || contentType === '') {
       if (filename.toLowerCase().endsWith('.pdf')) {
@@ -705,7 +802,6 @@ async function createInvoice(
 ): Promise<void> {
   console.log(`Creating invoice: ${metadata.fileName}, source: ${metadata.fileSource}, status: ${metadata.storageStatus}`);
   
-  // Extract data using AI if we have file data and storage succeeded
   let extractedData: any = {};
   
   if (metadata.fileData && metadata.mimeType && metadata.storageStatus === 'success') {
@@ -716,7 +812,6 @@ async function createInvoice(
   const supplierName = extractedData.supplier_name || parseSupplierFromEmail(fromEmail);
   const documentDate = extractedData.document_date || parseDate(emailDate);
   
-  // Determine status based on storage and extraction success
   let status: string;
   if (metadata.storageStatus === 'failed') {
     status = 'ממתין לבדיקה ידנית';
@@ -736,9 +831,10 @@ async function createInvoice(
     business_type: extractedData.business_type || 'עוסק מורשה',
     // Only set image_url if storage succeeded - this controls printability!
     image_url: metadata.storageStatus === 'success' ? metadata.storageUrl : null,
+    // NEW: Set preview_image_url for PDF previews
+    preview_image_url: metadata.previewImageUrl,
     entry_method: 'gmail_sync',
     status,
-    // Full metadata
     file_name: metadata.fileName,
     mime_type: metadata.mimeType,
     file_source: metadata.fileSource,
@@ -750,7 +846,7 @@ async function createInvoice(
   if (insertError) {
     console.error('Error inserting invoice:', insertError);
   } else {
-    console.log(`Invoice created: storage_status=${metadata.storageStatus}, has_image_url=${!!metadata.storageUrl}`);
+    console.log(`Invoice created: storage_status=${metadata.storageStatus}, has_image_url=${!!metadata.storageUrl}, has_preview=${!!metadata.previewImageUrl}`);
   }
 }
 
@@ -764,7 +860,6 @@ async function extractInvoiceDataFromBytes(data: Uint8Array, mimeType: string): 
     
     console.log(`Extracting invoice data from ${mimeType} using Lovable AI...`);
     
-    // Convert to base64
     let binary = '';
     const bytes = new Uint8Array(data);
     const len = bytes.byteLength;
@@ -773,7 +868,6 @@ async function extractInvoiceDataFromBytes(data: Uint8Array, mimeType: string): 
     }
     const base64Data = btoa(binary);
     
-    // Determine media type
     let mediaType = mimeType;
     if (mimeType.includes('pdf')) {
       mediaType = 'application/pdf';

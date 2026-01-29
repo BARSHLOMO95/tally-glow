@@ -19,7 +19,7 @@ interface InvoiceGridProps {
   onToggleSelection: (id: string) => void;
   onRowClick: (invoice: Invoice) => void;
   onSupplierClick: (name: string) => void;
-  onImageClick: (url: string) => void;
+  onImageClick: (url: string, previewUrl?: string | null) => void;
 }
 
 const statusColors: Record<string, string> = {
@@ -120,14 +120,15 @@ const InvoiceGrid = ({
               <CardContent className="p-0" onClick={() => onRowClick(invoice)}>
                 {/* Preview area - Image or Icon */}
                 <div className="relative h-32 bg-muted/50 rounded-t-lg flex items-center justify-center overflow-hidden">
-                  {invoice.image_url ? (
+                  {/* Prioritize preview_image_url for PDFs, then image_url */}
+                  {(invoice.preview_image_url || invoice.image_url) ? (
                     <img
-                      src={invoice.image_url}
+                      src={invoice.preview_image_url || invoice.image_url || ''}
                       alt={invoice.document_number}
                       className="w-full h-full object-cover"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onImageClick(invoice.image_url!);
+                        onImageClick(invoice.image_url!, invoice.preview_image_url);
                       }}
                     />
                   ) : (
