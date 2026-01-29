@@ -130,6 +130,7 @@ export type Database = {
           intake_date: string | null
           mime_type: string | null
           original_url: string | null
+          preview_image_url: string | null
           status: Database["public"]["Enums"]["invoice_status"] | null
           storage_error: string | null
           storage_status: string | null
@@ -155,6 +156,7 @@ export type Database = {
           intake_date?: string | null
           mime_type?: string | null
           original_url?: string | null
+          preview_image_url?: string | null
           status?: Database["public"]["Enums"]["invoice_status"] | null
           storage_error?: string | null
           storage_status?: string | null
@@ -180,6 +182,7 @@ export type Database = {
           intake_date?: string | null
           mime_type?: string | null
           original_url?: string | null
+          preview_image_url?: string | null
           status?: Database["public"]["Enums"]["invoice_status"] | null
           storage_error?: string | null
           storage_status?: string | null

@@ -20,9 +20,10 @@ export interface Invoice {
   business_type: BusinessType;
   entry_method: EntryMethod;
   image_url: string | null;
+  preview_image_url: string | null; // Preview image for PDFs
   created_at: string;
   updated_at: string;
-  // New file metadata fields
+  // File metadata fields
   file_name: string | null;
   mime_type: string | null;
   file_source: FileSource | null;

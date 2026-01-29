@@ -68,7 +68,7 @@ const Dashboard = () => {
   }, [settings?.custom_categories, filterOptions.categories]);
 
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
-  const [imageModalUrl, setImageModalUrl] = useState<string | null>(null);
+  const [imageModalData, setImageModalData] = useState<{ url: string; previewUrl?: string | null } | null>(null);
   const [supplierCardName, setSupplierCardName] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -126,18 +126,18 @@ const Dashboard = () => {
     `).join('');
     
     const imagesSection = selectedInvoices
-      .filter(inv => inv.image_url)
+      .filter(inv => inv.image_url || inv.preview_image_url)
       .map(inv => {
-        // All attachments render as images for consistent print layout
-        // For PDFs and external links, this may not display but provides consistent layout
+        // Prioritize preview_image_url for PDFs, then image_url
+        const displayUrl = inv.preview_image_url || inv.image_url;
         return `
           <div style="page-break-inside: avoid; margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; text-align: center;">
             <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px; text-align: right;">
               ${inv.supplier_name} - ${inv.document_number}
             </div>
-            <img src="${inv.image_url}" style="max-width: 80%; max-height: 700px; display: inline-block;" 
+            <img src="${displayUrl}" style="max-width: 80%; max-height: 700px; display: inline-block;" 
               crossorigin="anonymous"
-              onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='${inv.image_url}';" />
+              onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='${displayUrl}';" />
           </div>
         `;
       }).join('');
@@ -420,7 +420,7 @@ const Dashboard = () => {
             onToggleSelectAll={toggleSelectAll}
             onRowClick={(invoice) => setEditingInvoice(invoice)}
             onSupplierClick={(name) => setSupplierCardName(name)}
-            onImageClick={(url) => setImageModalUrl(url)}
+            onImageClick={(url, previewUrl) => setImageModalData({ url, previewUrl })}
           />
         ) : (
           <InvoiceGrid
@@ -430,7 +430,7 @@ const Dashboard = () => {
             onToggleSelection={toggleSelection}
             onRowClick={(invoice) => setEditingInvoice(invoice)}
             onSupplierClick={(name) => setSupplierCardName(name)}
-            onImageClick={(url) => setImageModalUrl(url)}
+            onImageClick={(url, previewUrl) => setImageModalData({ url, previewUrl })}
           />
         )}
       </main>
@@ -445,9 +445,10 @@ const Dashboard = () => {
       />
 
       <ImageModal
-        imageUrl={imageModalUrl}
-        isOpen={!!imageModalUrl}
-        onClose={() => setImageModalUrl(null)}
+        imageUrl={imageModalData?.url || null}
+        previewImageUrl={imageModalData?.previewUrl}
+        isOpen={!!imageModalData}
+        onClose={() => setImageModalData(null)}
       />
 
       <SupplierCardModal
