@@ -265,16 +265,36 @@ async function processMessage(
   for (const attachment of attachments) {
     console.log(`Processing attachment: ${attachment.filename} (${attachment.mimeType})`);
     const attachmentData = await getAttachment(accessToken, messageId, attachment.attachmentId);
+    
     if (attachmentData) {
       console.log(`Got attachment data, size: ${attachmentData.length} bytes`);
-      const imageUrl = await uploadToStorage(supabase, userId, attachmentData, attachment.filename);
-      if (imageUrl) {
-        console.log(`Uploaded to storage: ${imageUrl}`);
-        // Pass the binary data for AI extraction (especially important for PDFs)
-        await createInvoiceFromImage(supabase, userId, imageUrl, from, date, attachmentData, attachment.mimeType);
+      const uploadResult = await uploadToStorageWithMetadata(supabase, userId, attachmentData, attachment.filename, attachment.mimeType);
+      
+      if (uploadResult.success && uploadResult.storageUrl) {
+        console.log(`Uploaded to storage: ${uploadResult.storageUrl}`);
+        await createInvoiceFromAttachment(supabase, userId, {
+          storageUrl: uploadResult.storageUrl,
+          fileName: attachment.filename,
+          mimeType: attachment.mimeType,
+          fileSource: 'gmail',
+          storageStatus: 'success',
+          originalUrl: null,
+          fileData: attachmentData,
+        }, from, date);
         return { created: true };
       } else {
-        console.error(`Failed to upload attachment: ${attachment.filename}`);
+        console.error(`Failed to upload attachment: ${attachment.filename}, reason: ${uploadResult.reason}`);
+        // Create invoice with failed status - no image_url for display
+        await createInvoiceFromAttachment(supabase, userId, {
+          storageUrl: null,
+          fileName: attachment.filename,
+          mimeType: attachment.mimeType,
+          fileSource: 'gmail',
+          storageStatus: 'failed',
+          originalUrl: null, // No original URL for attachments
+          fileData: attachmentData,
+        }, from, date);
+        return { created: true };
       }
     } else {
       console.error(`Failed to get attachment data: ${attachment.filename}`);
@@ -366,60 +386,80 @@ async function getAttachment(accessToken: string, messageId: string, attachmentI
   return null;
 }
 
-async function uploadToStorage(
+// Upload to storage with metadata tracking
+async function uploadToStorageWithMetadata(
   supabase: any,
   userId: string,
   data: Uint8Array,
-  filename: string
-): Promise<string | null> {
+  filename: string,
+  mimeType: string
+): Promise<{ success: boolean; storageUrl?: string; reason?: string }> {
   try {
     const timestamp = Date.now();
     const safeName = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
     const path = `${userId}/${timestamp}_${safeName}`;
     
+    // Determine content type from mimeType or filename
+    let contentType = mimeType;
+    if (!contentType || contentType === '') {
+      if (filename.toLowerCase().endsWith('.pdf')) {
+        contentType = 'application/pdf';
+      } else if (filename.toLowerCase().match(/\.(jpg|jpeg)$/)) {
+        contentType = 'image/jpeg';
+      } else if (filename.toLowerCase().endsWith('.png')) {
+        contentType = 'image/png';
+      } else {
+        contentType = 'application/octet-stream';
+      }
+    }
+    
     const { error } = await supabase.storage
       .from('invoices')
       .upload(path, data, {
-        contentType: filename.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
+        contentType,
         upsert: false,
       });
 
     if (error) {
       console.error('Upload error:', error);
-      return null;
+      return { success: false, reason: error.message };
     }
 
     const { data: urlData } = supabase.storage.from('invoices').getPublicUrl(path);
-    return urlData.publicUrl;
+    return { success: true, storageUrl: urlData.publicUrl };
   } catch (error) {
     console.error('Error uploading to storage:', error);
-    return null;
+    return { success: false, reason: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
-async function createInvoiceFromImage(
+// Create invoice from Gmail attachment with full metadata
+interface AttachmentMetadata {
+  storageUrl: string | null;
+  fileName: string;
+  mimeType: string;
+  fileSource: string;
+  storageStatus: 'success' | 'failed' | 'pending';
+  originalUrl: string | null;
+  fileData?: Uint8Array;
+}
+
+async function createInvoiceFromAttachment(
   supabase: any,
   userId: string,
-  imageUrl: string,
+  metadata: AttachmentMetadata,
   fromEmail: string,
-  emailDate: string,
-  fileData?: Uint8Array,
-  mimeType?: string
+  emailDate: string
 ): Promise<void> {
-  console.log(`Creating invoice from image, URL: ${imageUrl.substring(0, 80)}...`);
+  console.log(`Creating invoice from attachment: ${metadata.fileName}, status: ${metadata.storageStatus}`);
   
-  // Extract data using AI - pass base64 for PDFs since URL won't work
+  // Extract data using AI if we have file data
   let extractedData: any = {};
   
-  if (fileData && mimeType) {
-    // For files we have the binary data - convert to base64 and send
-    extractedData = await extractInvoiceDataFromBytes(fileData, mimeType);
-  } else {
-    // For image URLs, try direct extraction
-    extractedData = await extractInvoiceDataFromUrl(imageUrl);
+  if (metadata.fileData && metadata.mimeType && metadata.storageStatus === 'success') {
+    extractedData = await extractInvoiceDataFromBytes(metadata.fileData, metadata.mimeType);
+    console.log('Extracted data:', JSON.stringify(extractedData));
   }
-  
-  console.log('Extracted data:', JSON.stringify(extractedData));
   
   // Parse supplier from email if not extracted
   const supplierName = extractedData.supplier_name || parseSupplierFromEmail(fromEmail);
@@ -435,16 +475,45 @@ async function createInvoiceFromImage(
     total_amount: extractedData.total_amount || 0,
     category: extractedData.category || 'אחר',
     business_type: extractedData.business_type || 'עוסק מורשה',
-    image_url: imageUrl,
+    // Only set image_url if storage succeeded
+    image_url: metadata.storageStatus === 'success' ? metadata.storageUrl : null,
     entry_method: 'gmail_sync',
-    status: extractedData.total_amount ? 'חדש' : 'ממתין לבדיקה ידנית',
+    status: metadata.storageStatus === 'failed' ? 'ממתין לבדיקה ידנית' : (extractedData.total_amount ? 'חדש' : 'ממתין לבדיקה ידנית'),
+    // New metadata fields
+    file_name: metadata.fileName,
+    mime_type: metadata.mimeType,
+    file_source: metadata.fileSource,
+    storage_status: metadata.storageStatus,
+    original_url: metadata.originalUrl,
   });
   
   if (insertError) {
     console.error('Error inserting invoice:', insertError);
   } else {
-    console.log('Invoice inserted successfully');
+    console.log('Invoice inserted successfully with storage_status:', metadata.storageStatus);
   }
+}
+
+// Legacy function - kept for backwards compatibility but delegates to new function
+async function createInvoiceFromImage(
+  supabase: any,
+  userId: string,
+  imageUrl: string,
+  fromEmail: string,
+  emailDate: string,
+  fileData?: Uint8Array,
+  mimeType?: string
+): Promise<void> {
+  // Delegate to the new attachment function
+  await createInvoiceFromAttachment(supabase, userId, {
+    storageUrl: imageUrl,
+    fileName: 'uploaded_file',
+    mimeType: mimeType || 'image/jpeg',
+    fileSource: 'gmail',
+    storageStatus: 'success',
+    originalUrl: null,
+    fileData,
+  }, fromEmail, emailDate);
 }
 
 async function createInvoiceFromLink(
@@ -462,12 +531,18 @@ async function createInvoiceFromLink(
   const supplierName = parseSupplierFromEmail(fromEmail);
   const documentDate = parseDate(emailDate);
   
-  let finalImageUrl = link; // Fallback to original link if download fails
   let extractedData: any = {};
+  let storageStatus: 'success' | 'failed' = 'failed';
+  let storageUrl: string | null = null;
+  let fileName = 'external_link_file';
+  let mimeType = 'application/pdf';
   
   if (downloadResult.success && downloadResult.storageUrl) {
-    finalImageUrl = downloadResult.storageUrl;
-    console.log(`Successfully uploaded link content to storage: ${finalImageUrl}`);
+    storageUrl = downloadResult.storageUrl;
+    storageStatus = 'success';
+    mimeType = downloadResult.mimeType || 'application/pdf';
+    fileName = `gmail_link_${Date.now()}`;
+    console.log(`Successfully uploaded link content to storage: ${storageUrl}`);
     
     // Try to extract data if we have the file content
     if (downloadResult.fileData && downloadResult.mimeType) {
@@ -475,7 +550,7 @@ async function createInvoiceFromLink(
       console.log('Extracted data from downloaded file:', JSON.stringify(extractedData));
     }
   } else {
-    console.log(`Could not download from link, saving original URL. Reason: ${downloadResult.reason}`);
+    console.log(`Could not download from link, marking as failed. Reason: ${downloadResult.reason}`);
   }
   
   const { error: insertError } = await supabase.from('invoices').insert({
@@ -486,13 +561,22 @@ async function createInvoiceFromLink(
     total_amount: extractedData.total_amount || 0,
     category: extractedData.category || 'אחר',
     business_type: extractedData.business_type || 'עוסק מורשה',
-    image_url: finalImageUrl,
+    // Only set image_url if storage succeeded
+    image_url: storageStatus === 'success' ? storageUrl : null,
     entry_method: 'gmail_sync',
-    status: extractedData.total_amount ? 'חדש' : 'ממתין לבדיקה ידנית',
+    status: storageStatus === 'failed' ? 'ממתין לבדיקה ידנית' : (extractedData.total_amount ? 'חדש' : 'ממתין לבדיקה ידנית'),
+    // New metadata fields
+    file_name: fileName,
+    mime_type: mimeType,
+    file_source: 'gmail_link',
+    storage_status: storageStatus,
+    original_url: link, // Always save original link for reference/retry
   });
   
   if (insertError) {
     console.error('Error inserting invoice from link:', insertError);
+  } else {
+    console.log(`Invoice from link inserted with storage_status: ${storageStatus}`);
   }
 }
 
