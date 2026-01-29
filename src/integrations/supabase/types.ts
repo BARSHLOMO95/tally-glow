@@ -123,10 +123,15 @@ export type Database = {
           document_number: string | null
           document_type: string | null
           entry_method: string | null
+          file_name: string | null
+          file_source: string | null
           id: string
           image_url: string | null
           intake_date: string | null
+          mime_type: string | null
+          original_url: string | null
           status: Database["public"]["Enums"]["invoice_status"] | null
+          storage_status: string | null
           supplier_name: string | null
           total_amount: number | null
           updated_at: string
@@ -142,10 +147,15 @@ export type Database = {
           document_number?: string | null
           document_type?: string | null
           entry_method?: string | null
+          file_name?: string | null
+          file_source?: string | null
           id?: string
           image_url?: string | null
           intake_date?: string | null
+          mime_type?: string | null
+          original_url?: string | null
           status?: Database["public"]["Enums"]["invoice_status"] | null
+          storage_status?: string | null
           supplier_name?: string | null
           total_amount?: number | null
           updated_at?: string
@@ -161,10 +171,15 @@ export type Database = {
           document_number?: string | null
           document_type?: string | null
           entry_method?: string | null
+          file_name?: string | null
+          file_source?: string | null
           id?: string
           image_url?: string | null
           intake_date?: string | null
+          mime_type?: string | null
+          original_url?: string | null
           status?: Database["public"]["Enums"]["invoice_status"] | null
+          storage_status?: string | null
           supplier_name?: string | null
           total_amount?: number | null
           updated_at?: string
