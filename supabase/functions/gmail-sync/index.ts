@@ -454,21 +454,148 @@ async function createInvoiceFromLink(
   fromEmail: string,
   emailDate: string
 ): Promise<void> {
+  console.log(`Attempting to download file from link: ${link.substring(0, 80)}...`);
+  
+  // Try to download the file from the link and upload to storage
+  const downloadResult = await downloadAndUploadFromLink(supabase, userId, link);
+  
   const supplierName = parseSupplierFromEmail(fromEmail);
   const documentDate = parseDate(emailDate);
   
-  await supabase.from('invoices').insert({
+  let finalImageUrl = link; // Fallback to original link if download fails
+  let extractedData: any = {};
+  
+  if (downloadResult.success && downloadResult.storageUrl) {
+    finalImageUrl = downloadResult.storageUrl;
+    console.log(`Successfully uploaded link content to storage: ${finalImageUrl}`);
+    
+    // Try to extract data if we have the file content
+    if (downloadResult.fileData && downloadResult.mimeType) {
+      extractedData = await extractInvoiceDataFromBytes(downloadResult.fileData, downloadResult.mimeType);
+      console.log('Extracted data from downloaded file:', JSON.stringify(extractedData));
+    }
+  } else {
+    console.log(`Could not download from link, saving original URL. Reason: ${downloadResult.reason}`);
+  }
+  
+  const { error: insertError } = await supabase.from('invoices').insert({
     user_id: userId,
-    supplier_name: supplierName,
-    document_number: '',
-    document_date: documentDate,
-    total_amount: 0,
-    category: 'אחר',
-    business_type: 'עוסק מורשה',
-    image_url: link,
+    supplier_name: extractedData.supplier_name || supplierName,
+    document_number: extractedData.document_number || '',
+    document_date: extractedData.document_date || documentDate,
+    total_amount: extractedData.total_amount || 0,
+    category: extractedData.category || 'אחר',
+    business_type: extractedData.business_type || 'עוסק מורשה',
+    image_url: finalImageUrl,
     entry_method: 'gmail_sync',
-    status: 'ממתין לבדיקה ידנית',
+    status: extractedData.total_amount ? 'חדש' : 'ממתין לבדיקה ידנית',
   });
+  
+  if (insertError) {
+    console.error('Error inserting invoice from link:', insertError);
+  }
+}
+
+// Download file from external link and upload to Supabase storage
+async function downloadAndUploadFromLink(
+  supabase: any,
+  userId: string,
+  link: string
+): Promise<{ success: boolean; storageUrl?: string; fileData?: Uint8Array; mimeType?: string; reason?: string }> {
+  try {
+    // Attempt to download the file
+    const response = await fetch(link, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; InvoiceBot/1.0)',
+        'Accept': 'application/pdf,image/*,*/*',
+      },
+      redirect: 'follow',
+    });
+    
+    if (!response.ok) {
+      return { success: false, reason: `HTTP ${response.status}` };
+    }
+    
+    const contentType = response.headers.get('content-type') || '';
+    
+    // Only process PDFs and images
+    const isPdf = contentType.includes('pdf') || link.toLowerCase().includes('.pdf');
+    const isImage = contentType.includes('image') || 
+      /\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i.test(link);
+    
+    if (!isPdf && !isImage) {
+      // Check if it's HTML (might be a download page)
+      if (contentType.includes('html')) {
+        return { success: false, reason: 'HTML page, not a direct file' };
+      }
+      return { success: false, reason: `Unsupported content type: ${contentType}` };
+    }
+    
+    // Download the file content
+    const arrayBuffer = await response.arrayBuffer();
+    const fileData = new Uint8Array(arrayBuffer);
+    
+    // Validate file size (max 10MB)
+    if (fileData.length > 10 * 1024 * 1024) {
+      return { success: false, reason: 'File too large (>10MB)' };
+    }
+    
+    // Validate minimum size (at least 1KB for valid file)
+    if (fileData.length < 1024) {
+      return { success: false, reason: 'File too small (<1KB)' };
+    }
+    
+    // Determine filename and extension
+    let extension = 'pdf';
+    let mimeType = 'application/pdf';
+    
+    if (isImage) {
+      if (contentType.includes('png')) {
+        extension = 'png';
+        mimeType = 'image/png';
+      } else if (contentType.includes('gif')) {
+        extension = 'gif';
+        mimeType = 'image/gif';
+      } else if (contentType.includes('webp')) {
+        extension = 'webp';
+        mimeType = 'image/webp';
+      } else {
+        extension = 'jpg';
+        mimeType = 'image/jpeg';
+      }
+    }
+    
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(2, 8);
+    const filename = `gmail_link_${timestamp}_${randomId}.${extension}`;
+    const path = `${userId}/${filename}`;
+    
+    // Upload to Supabase storage
+    const { error } = await supabase.storage
+      .from('invoices')
+      .upload(path, fileData, {
+        contentType: mimeType,
+        upsert: false,
+      });
+
+    if (error) {
+      console.error('Storage upload error:', error);
+      return { success: false, reason: `Upload error: ${error.message}` };
+    }
+
+    const { data: urlData } = supabase.storage.from('invoices').getPublicUrl(path);
+    
+    return { 
+      success: true, 
+      storageUrl: urlData.publicUrl,
+      fileData,
+      mimeType,
+    };
+    
+  } catch (error) {
+    console.error('Error downloading from link:', error);
+    return { success: false, reason: error instanceof Error ? error.message : 'Unknown error' };
+  }
 }
 
 // Extract from URL (for images)
