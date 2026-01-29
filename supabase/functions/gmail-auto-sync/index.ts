@@ -9,9 +9,8 @@ const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID')!;
 const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')!;
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
-// Invoice-related keywords
 const INVOICE_KEYWORDS = [
   'חשבונית', 'קבלה', 'חשבונית מס', 'חשבון', 'invoice', 'receipt', 'bill',
   'payment', 'תשלום', 'הזמנה', 'order', 'אישור תשלום', 'confirmation'
@@ -21,6 +20,28 @@ const VALID_CATEGORIES = [
   'הנהלה וכללי', 'שיווק ופרסום', 'הוצאות משרד', 'נסיעות ורכב',
   'ייעוץ מקצועי', 'ציוד ומחשוב', 'תחזוקה', 'סופרים', 'אחר'
 ];
+
+type FileSource = 'gmail_attachment' | 'gmail_external_link';
+type StorageStatus = 'success' | 'failed' | 'pending';
+
+interface StorageResult {
+  success: boolean;
+  storageUrl?: string;
+  fileData?: Uint8Array;
+  mimeType?: string;
+  error?: string;
+}
+
+interface InvoiceMetadata {
+  storageUrl: string | null;
+  fileName: string;
+  mimeType: string;
+  fileSource: FileSource;
+  storageStatus: StorageStatus;
+  originalUrl: string | null;
+  storageError: string | null;
+  fileData?: Uint8Array;
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -32,7 +53,6 @@ Deno.serve(async (req) => {
     
     console.log('Starting automatic Gmail sync for all active connections...');
 
-    // Get all active Gmail connections
     const { data: connections, error: connError } = await supabaseAdmin
       .from('gmail_connections')
       .select('*')
@@ -63,7 +83,6 @@ Deno.serve(async (req) => {
       try {
         console.log(`Processing connection for: ${connection.email}`);
         
-        // Refresh token if expired
         let accessToken = connection.access_token;
         if (new Date(connection.token_expires_at) <= new Date()) {
           const refreshed = await refreshAccessToken(connection.refresh_token);
@@ -89,7 +108,6 @@ Deno.serve(async (req) => {
             .eq('id', connection.id);
         }
 
-        // Search for emails from the last day
         const afterDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
         const query = buildSearchQuery(afterDate);
         
@@ -100,7 +118,7 @@ Deno.serve(async (req) => {
         let processedCount = 0;
         let invoicesCreated = 0;
 
-        for (const messageId of messages.slice(0, 20)) { // Limit to 20 per user per sync
+        for (const messageId of messages.slice(0, 20)) {
           try {
             const result = await processMessage(supabaseAdmin, accessToken, messageId, connection.user_id);
             processedCount++;
@@ -110,13 +128,11 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Update last sync time
         await supabaseAdmin
           .from('gmail_connections')
           .update({ last_sync_at: new Date().toISOString() })
           .eq('id', connection.id);
 
-        // Update document usage
         if (invoicesCreated > 0) {
           await incrementDocumentUsage(supabaseAdmin, connection.user_id, invoicesCreated);
         }
@@ -217,7 +233,6 @@ async function processMessage(
   const message = await response.json();
   
   const headers = message.payload?.headers || [];
-  const subject = headers.find((h: any) => h.name === 'Subject')?.value || '';
   const from = headers.find((h: any) => h.name === 'From')?.value || '';
   const date = headers.find((h: any) => h.name === 'Date')?.value || '';
   
@@ -230,18 +245,38 @@ async function processMessage(
   }
 
   for (const attachment of attachments) {
-    const attachmentData = await getAttachment(accessToken, messageId, attachment.attachmentId);
+    const attachmentData = await getAttachmentFromGmail(accessToken, messageId, attachment.attachmentId);
+    
     if (attachmentData) {
-      const imageUrl = await uploadToStorage(supabase, userId, attachmentData, attachment.filename);
-      if (imageUrl) {
-        await createInvoiceFromImage(supabase, userId, imageUrl, from, date);
-        return { created: true };
-      }
+      const uploadResult = await uploadToStorage(supabase, userId, attachmentData, attachment.filename, attachment.mimeType);
+      
+      await createInvoice(supabase, userId, {
+        storageUrl: uploadResult.success ? uploadResult.storageUrl! : null,
+        fileName: attachment.filename,
+        mimeType: attachment.mimeType,
+        fileSource: 'gmail_attachment',
+        storageStatus: uploadResult.success ? 'success' : 'failed',
+        originalUrl: null,
+        storageError: uploadResult.error || null,
+        fileData: attachmentData,
+      }, from, date);
+      return { created: true };
     }
   }
 
   for (const link of invoiceLinks) {
-    await createInvoiceFromLink(supabase, userId, link, from, date);
+    const downloadResult = await downloadAndUploadFromLink(supabase, userId, link);
+    
+    await createInvoice(supabase, userId, {
+      storageUrl: downloadResult.success ? downloadResult.storageUrl! : null,
+      fileName: `gmail_link_${Date.now()}`,
+      mimeType: downloadResult.mimeType || 'application/pdf',
+      fileSource: 'gmail_external_link',
+      storageStatus: downloadResult.success ? 'success' : 'failed',
+      originalUrl: link,
+      storageError: downloadResult.error || null,
+      fileData: downloadResult.fileData,
+    }, from, date);
     return { created: true };
   }
 
@@ -299,7 +334,7 @@ function findInvoiceLinks(body: string): string[] {
   ).slice(0, 3);
 }
 
-async function getAttachment(accessToken: string, messageId: string, attachmentId: string): Promise<Uint8Array | null> {
+async function getAttachmentFromGmail(accessToken: string, messageId: string, attachmentId: string): Promise<Uint8Array | null> {
   try {
     const response = await fetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`,
@@ -326,43 +361,138 @@ async function uploadToStorage(
   supabase: any,
   userId: string,
   data: Uint8Array,
-  filename: string
-): Promise<string | null> {
+  filename: string,
+  mimeType: string
+): Promise<StorageResult> {
   try {
     const timestamp = Date.now();
     const safeName = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
     const path = `${userId}/${timestamp}_${safeName}`;
     
+    let contentType = mimeType;
+    if (!contentType || contentType === '') {
+      if (filename.toLowerCase().endsWith('.pdf')) {
+        contentType = 'application/pdf';
+      } else if (filename.toLowerCase().match(/\.(jpg|jpeg)$/)) {
+        contentType = 'image/jpeg';
+      } else if (filename.toLowerCase().endsWith('.png')) {
+        contentType = 'image/png';
+      } else {
+        contentType = 'application/octet-stream';
+      }
+    }
+    
     const { error } = await supabase.storage
       .from('invoices')
       .upload(path, data, {
-        contentType: filename.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
+        contentType,
         upsert: false,
       });
 
     if (error) {
-      console.error('Upload error:', error);
-      return null;
+      return { success: false, error: error.message };
     }
 
     const { data: urlData } = supabase.storage.from('invoices').getPublicUrl(path);
-    return urlData.publicUrl;
+    return { success: true, storageUrl: urlData.publicUrl, mimeType: contentType };
   } catch (error) {
-    console.error('Error uploading to storage:', error);
-    return null;
+    return { success: false, error: error instanceof Error ? error.message : 'Upload failed' };
   }
 }
 
-async function createInvoiceFromImage(
+async function downloadAndUploadFromLink(
   supabase: any,
   userId: string,
-  imageUrl: string,
+  link: string
+): Promise<StorageResult> {
+  try {
+    const response = await fetch(link, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; InvoiceBot/1.0)',
+        'Accept': 'application/pdf,image/*,*/*',
+      },
+      redirect: 'follow',
+    });
+    
+    if (!response.ok) {
+      return { success: false, error: `HTTP ${response.status}` };
+    }
+    
+    const contentType = response.headers.get('content-type') || '';
+    const isPdf = contentType.includes('pdf') || link.toLowerCase().includes('.pdf');
+    const isImage = contentType.includes('image') || /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(link);
+    
+    if (!isPdf && !isImage) {
+      if (contentType.includes('html')) {
+        return { success: false, error: 'HTML page, not direct file' };
+      }
+      return { success: false, error: `Unsupported: ${contentType}` };
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    const fileData = new Uint8Array(arrayBuffer);
+    
+    if (fileData.length > 10 * 1024 * 1024) {
+      return { success: false, error: 'File too large (>10MB)' };
+    }
+    
+    if (fileData.length < 1024) {
+      return { success: false, error: 'File too small (<1KB)' };
+    }
+    
+    let extension = 'pdf';
+    let mimeType = 'application/pdf';
+    
+    if (isImage) {
+      if (contentType.includes('png')) { extension = 'png'; mimeType = 'image/png'; }
+      else if (contentType.includes('gif')) { extension = 'gif'; mimeType = 'image/gif'; }
+      else { extension = 'jpg'; mimeType = 'image/jpeg'; }
+    }
+    
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(2, 8);
+    const path = `${userId}/gmail_link_${timestamp}_${randomId}.${extension}`;
+    
+    const { error } = await supabase.storage
+      .from('invoices')
+      .upload(path, fileData, { contentType: mimeType, upsert: false });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    const { data: urlData } = supabase.storage.from('invoices').getPublicUrl(path);
+    return { success: true, storageUrl: urlData.publicUrl, fileData, mimeType };
+    
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Download failed' };
+  }
+}
+
+async function createInvoice(
+  supabase: any,
+  userId: string,
+  metadata: InvoiceMetadata,
   fromEmail: string,
   emailDate: string
 ): Promise<void> {
-  const extractedData = await extractInvoiceData(imageUrl);
+  let extractedData: any = {};
+  
+  if (metadata.fileData && metadata.mimeType && metadata.storageStatus === 'success') {
+    extractedData = await extractInvoiceDataFromBytes(metadata.fileData, metadata.mimeType);
+  }
+  
   const supplierName = extractedData.supplier_name || parseSupplierFromEmail(fromEmail);
   const documentDate = extractedData.document_date || parseDate(emailDate);
+  
+  let status: string;
+  if (metadata.storageStatus === 'failed') {
+    status = 'ממתין לבדיקה ידנית';
+  } else if (extractedData.total_amount && extractedData.total_amount > 0) {
+    status = 'חדש';
+  } else {
+    status = 'ממתין לבדיקה ידנית';
+  }
   
   await supabase.from('invoices').insert({
     user_id: userId,
@@ -371,64 +501,53 @@ async function createInvoiceFromImage(
     document_date: documentDate,
     total_amount: extractedData.total_amount || 0,
     category: extractedData.category || 'אחר',
-    business_type: 'עוסק מורשה',
-    image_url: imageUrl,
+    business_type: extractedData.business_type || 'עוסק מורשה',
+    image_url: metadata.storageStatus === 'success' ? metadata.storageUrl : null,
     entry_method: 'gmail_sync',
-    status: extractedData.total_amount ? 'חדש' : 'ממתין לבדיקה ידנית',
+    status,
+    file_name: metadata.fileName,
+    mime_type: metadata.mimeType,
+    file_source: metadata.fileSource,
+    storage_status: metadata.storageStatus,
+    original_url: metadata.originalUrl,
+    storage_error: metadata.storageError,
   });
 }
 
-async function createInvoiceFromLink(
-  supabase: any,
-  userId: string,
-  link: string,
-  fromEmail: string,
-  emailDate: string
-): Promise<void> {
-  const supplierName = parseSupplierFromEmail(fromEmail);
-  const documentDate = parseDate(emailDate);
-  
-  await supabase.from('invoices').insert({
-    user_id: userId,
-    supplier_name: supplierName,
-    document_number: '',
-    document_date: documentDate,
-    total_amount: 0,
-    category: 'אחר',
-    business_type: 'עוסק מורשה',
-    image_url: link,
-    entry_method: 'gmail_sync',
-    status: 'ממתין לבדיקה ידנית',
-  });
-}
-
-async function extractInvoiceData(imageUrl: string): Promise<any> {
+async function extractInvoiceDataFromBytes(data: Uint8Array, mimeType: string): Promise<any> {
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    if (!LOVABLE_API_KEY) return {};
+    
+    let binary = '';
+    const bytes = new Uint8Array(data);
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64Data = btoa(binary);
+    
+    let mediaType = mimeType.includes('pdf') ? 'application/pdf' : 
+                    mimeType.includes('png') ? 'image/png' : 'image/jpeg';
+    
+    const dataUrl = `data:${mediaType};base64,${base64Data}`;
+    
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',
-            content: `You are an invoice data extraction assistant. Extract the following from the invoice image:
-- supplier_name: The company/business name that issued the invoice
-- document_number: Invoice number or receipt number
-- document_date: Date in YYYY-MM-DD format
-- total_amount: Total amount in numbers only
-- category: One of these categories only: ${VALID_CATEGORIES.join(', ')}
-
-Respond in JSON format only.`
+            content: `Extract from Israeli invoice: supplier_name, document_number, document_date (YYYY-MM-DD), total_amount (number), category (${VALID_CATEGORIES.join(', ')}), business_type (עוסק מורשה/עוסק פטור/חברה בע"מ/ספק חו"ל). JSON only.`
           },
           {
             role: 'user',
             content: [
-              { type: 'text', text: 'Extract invoice data from this image:' },
-              { type: 'image_url', image_url: { url: imageUrl } }
+              { type: 'text', text: 'Extract invoice data:' },
+              { type: 'image_url', image_url: { url: dataUrl } }
             ]
           }
         ],
@@ -436,35 +555,29 @@ Respond in JSON format only.`
       }),
     });
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || '{}';
-    
+    if (!response.ok) return {};
+
+    const result = await response.json();
+    const content = result.choices?.[0]?.message?.content || '{}';
     const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
-    }
+    if (jsonMatch) return JSON.parse(jsonMatch[0]);
   } catch (error) {
-    console.error('Error extracting invoice data:', error);
+    console.error('AI extraction error:', error);
   }
   return {};
 }
 
 function parseSupplierFromEmail(from: string): string {
   const nameMatch = from.match(/^([^<]+)/);
-  if (nameMatch) {
-    return nameMatch[1].trim().replace(/"/g, '');
-  }
+  if (nameMatch) return nameMatch[1].trim().replace(/"/g, '');
   const domainMatch = from.match(/@([^.]+)/);
-  if (domainMatch) {
-    return domainMatch[1].charAt(0).toUpperCase() + domainMatch[1].slice(1);
-  }
+  if (domainMatch) return domainMatch[1].charAt(0).toUpperCase() + domainMatch[1].slice(1);
   return 'Unknown';
 }
 
 function parseDate(dateStr: string): string {
   try {
-    const date = new Date(dateStr);
-    return date.toISOString().split('T')[0];
+    return new Date(dateStr).toISOString().split('T')[0];
   } catch {
     return new Date().toISOString().split('T')[0];
   }

@@ -131,6 +131,7 @@ export type Database = {
           mime_type: string | null
           original_url: string | null
           status: Database["public"]["Enums"]["invoice_status"] | null
+          storage_error: string | null
           storage_status: string | null
           supplier_name: string | null
           total_amount: number | null
@@ -155,6 +156,7 @@ export type Database = {
           mime_type?: string | null
           original_url?: string | null
           status?: Database["public"]["Enums"]["invoice_status"] | null
+          storage_error?: string | null
           storage_status?: string | null
           supplier_name?: string | null
           total_amount?: number | null
@@ -179,6 +181,7 @@ export type Database = {
           mime_type?: string | null
           original_url?: string | null
           status?: Database["public"]["Enums"]["invoice_status"] | null
+          storage_error?: string | null
           storage_status?: string | null
           supplier_name?: string | null
           total_amount?: number | null

@@ -2,7 +2,7 @@ export type InvoiceStatus = 'חדש' | 'בתהליך' | 'טופל' | 'ממתין
 export type BusinessType = 'עוסק מורשה' | 'עוסק פטור' | 'חברה בע"מ' | 'ספק חו"ל';
 export type EntryMethod = 'ידני' | 'דיגיטלי' | 'gmail_sync';
 export type StorageStatus = 'success' | 'failed' | 'pending';
-export type FileSource = 'gmail' | 'gmail_link' | 'manual_upload' | 'public_link';
+export type FileSource = 'gmail_attachment' | 'gmail_external_link' | 'whatsapp' | 'manual_upload' | 'public_link';
 
 export interface Invoice {
   id: string;
@@ -28,6 +28,7 @@ export interface Invoice {
   file_source: FileSource | null;
   storage_status: StorageStatus | null;
   original_url: string | null;
+  storage_error: string | null;
 }
 
 export interface InvoiceFormData {
