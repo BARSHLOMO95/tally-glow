@@ -1,6 +1,8 @@
 export interface UserSettings {
   id: string;
   user_id: string;
+  first_name: string | null;
+  last_name: string | null;
   whatsapp_number: string | null;
   whatsapp_group_id: string | null;
   phone_number: string | null;
