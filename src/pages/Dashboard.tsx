@@ -128,20 +128,60 @@ const Dashboard = () => {
     const imagesSection = selectedInvoices
       .filter(inv => inv.image_url || inv.preview_image_url)
       .map(inv => {
-        // Prioritize preview_image_url for PDFs, then image_url
-        const displayUrl = inv.preview_image_url || inv.image_url;
-        return `
-          <div class="invoice-image-page">
-            <div class="invoice-header">
-              ${inv.supplier_name} - ${inv.document_number}
+        // Check if it's a PDF
+        const isPdf = inv.image_url?.toLowerCase().endsWith('.pdf') ||
+                      inv.image_url?.toLowerCase().includes('.pdf');
+
+        // For PDFs: use preview_image_url if available, otherwise use object tag
+        // For images: use image_url directly
+        if (isPdf && inv.preview_image_url) {
+          // PDF with preview image - use the preview
+          return `
+            <div class="invoice-image-page">
+              <div class="invoice-header">
+                ${inv.supplier_name} - ${inv.document_number}
+              </div>
+              <div class="invoice-image-container">
+                <img src="${inv.preview_image_url}"
+                  crossorigin="anonymous"
+                  onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='${inv.preview_image_url}';" />
+              </div>
             </div>
-            <div class="invoice-image-container">
-              <img src="${displayUrl}" 
-                crossorigin="anonymous"
-                onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='${displayUrl}';" />
+          `;
+        } else if (isPdf && inv.image_url) {
+          // PDF without preview - use object/embed for better PDF rendering
+          return `
+            <div class="invoice-image-page">
+              <div class="invoice-header">
+                ${inv.supplier_name} - ${inv.document_number}
+              </div>
+              <div class="invoice-image-container">
+                <object data="${inv.image_url}" type="application/pdf" width="100%" height="100%">
+                  <embed src="${inv.image_url}" type="application/pdf" width="100%" height="100%" />
+                  <p style="text-align: center; padding: 20px;">
+                    לא ניתן להציג את ה-PDF במצב הדפסה.<br>
+                    <a href="${inv.image_url}" target="_blank" style="color: #2563eb;">פתח PDF בחלון חדש</a>
+                  </p>
+                </object>
+              </div>
             </div>
-          </div>
-        `;
+          `;
+        } else {
+          // Regular image
+          const displayUrl = inv.image_url!;
+          return `
+            <div class="invoice-image-page">
+              <div class="invoice-header">
+                ${inv.supplier_name} - ${inv.document_number}
+              </div>
+              <div class="invoice-image-container">
+                <img src="${displayUrl}"
+                  crossorigin="anonymous"
+                  onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='${displayUrl}';" />
+              </div>
+            </div>
+          `;
+        }
       }).join('');
     
     const htmlContent = `
@@ -203,7 +243,13 @@ const Dashboard = () => {
             height: auto;
             object-fit: contain;
           }
-          
+          .invoice-image-container object,
+          .invoice-image-container embed {
+            width: 100%;
+            height: 100%;
+            min-height: 250mm;
+          }
+
           @media print {
             .no-print { display: none; }
             body { padding: 0; }
@@ -212,6 +258,11 @@ const Dashboard = () => {
               max-height: 270mm;
             }
             .invoice-image-container img {
+              max-height: 250mm;
+            }
+            .invoice-image-container object,
+            .invoice-image-container embed {
+              min-height: 250mm;
               max-height: 250mm;
             }
           }

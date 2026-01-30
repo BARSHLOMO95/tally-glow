@@ -105,7 +105,9 @@ const AccountantReport = () => {
           <h2 className="text-xl font-bold mb-4 border-r-4 border-blue-600 pr-3">תמונות חשבוניות</h2>
           <div className="invoice-images-container">
             {invoices.filter(inv => inv.image_url || inv.preview_image_url).map((invoice, index) => {
-              const displayUrl = invoice.preview_image_url || invoice.image_url;
+              const isPdf = invoice.image_url?.toLowerCase().endsWith('.pdf') ||
+                            invoice.image_url?.toLowerCase().includes('.pdf');
+
               return (
                 <div key={invoice.id} className="invoice-image-page">
                   <div className="invoice-header">
@@ -113,13 +115,41 @@ const AccountantReport = () => {
                     <span className="text-gray-600 mr-4">מספר מסמך: {invoice.document_number}</span>
                   </div>
                   <div className="invoice-image-container">
-                    <img 
-                      src={displayUrl!} 
-                      alt={`חשבונית ${invoice.document_number}`}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
+                    {isPdf && invoice.preview_image_url ? (
+                      <img
+                        src={invoice.preview_image_url}
+                        alt={`חשבונית ${invoice.document_number}`}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    ) : isPdf && invoice.image_url ? (
+                      <object
+                        data={invoice.image_url}
+                        type="application/pdf"
+                        style={{ width: '100%', height: '100%', minHeight: '230mm' }}
+                      >
+                        <embed
+                          src={invoice.image_url}
+                          type="application/pdf"
+                          style={{ width: '100%', height: '100%', minHeight: '230mm' }}
+                        />
+                        <p style={{ textAlign: 'center', padding: '20px' }}>
+                          לא ניתן להציג את ה-PDF.
+                          <a href={invoice.image_url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'underline', marginRight: '5px' }}>
+                            פתח PDF בחלון חדש
+                          </a>
+                        </p>
+                      </object>
+                    ) : (
+                      <img
+                        src={invoice.image_url!}
+                        alt={`חשבונית ${invoice.document_number}`}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
               );
@@ -194,21 +224,34 @@ const AccountantReport = () => {
           height: auto;
           object-fit: contain;
         }
-        
+
+        .invoice-image-container object,
+        .invoice-image-container embed {
+          width: 100%;
+          height: 100%;
+          min-height: 230mm;
+        }
+
         @media print {
           body {
             print-color-adjust: exact;
             -webkit-print-color-adjust: exact;
           }
-          
+
           .invoice-image-page {
             height: 270mm;
             max-height: 270mm;
             border: none;
             margin-bottom: 0;
           }
-          
+
           .invoice-image-container img {
+            max-height: 250mm;
+          }
+
+          .invoice-image-container object,
+          .invoice-image-container embed {
+            min-height: 250mm;
             max-height: 250mm;
           }
         }
