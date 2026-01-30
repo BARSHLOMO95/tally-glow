@@ -17,6 +17,7 @@ export function useInvoices(userId: string | undefined) {
     suppliers: [],
     categories: [],
     businessTypes: [],
+    entryMethods: [],
     amountMin: null,
     amountMax: null,
   });
@@ -99,7 +100,8 @@ export function useInvoices(userId: string | undefined) {
       documentMonths: sortMonthsChronologically(filteredDocumentMonths),
       intakeYears,
       documentYears,
-      statuses: ['חדש', 'בתהליך', 'טופל'] as InvoiceStatus[],
+      statuses: ['חדש', 'בתהליך', 'טופל', 'ממתין לבדיקה ידנית'] as InvoiceStatus[],
+      entryMethods: [...new Set(invoices.map(i => i.entry_method).filter(Boolean))] as string[],
       suppliers,
       categories,
       businessTypes: ['עוסק מורשה', 'עוסק פטור', 'חברה בע"מ', 'ספק חו"ל'] as BusinessType[],
@@ -147,6 +149,7 @@ export function useInvoices(userId: string | undefined) {
       if (filters.suppliers.length > 0 && !filters.suppliers.includes(invoice.supplier_name)) return false;
       if (filters.categories.length > 0 && !filters.categories.includes(invoice.category)) return false;
       if (filters.businessTypes.length > 0 && !filters.businessTypes.includes(invoice.business_type)) return false;
+      if (filters.entryMethods.length > 0 && !filters.entryMethods.includes(invoice.entry_method)) return false;
       
       // Amount filters
       if (filters.amountMin !== null && invoice.total_amount < filters.amountMin) return false;
@@ -339,6 +342,7 @@ export function useInvoices(userId: string | undefined) {
       suppliers: [],
       categories: [],
       businessTypes: [],
+      entryMethods: [],
       amountMin: null,
       amountMax: null,
     });

@@ -57,6 +57,7 @@ export interface FilterState {
   suppliers: string[];
   categories: string[];
   businessTypes: BusinessType[];
+  entryMethods: EntryMethod[];
   amountMin: number | null;
   amountMax: number | null;
 }
