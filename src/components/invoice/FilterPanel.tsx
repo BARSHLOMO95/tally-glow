@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
-import { FilterState, InvoiceStatus, BusinessType, DuplicatesFilterMode } from '@/types/invoice';
+import { FilterState, InvoiceStatus, BusinessType, DuplicatesFilterMode, EntryMethod } from '@/types/invoice';
 import { ChevronDown, ChevronUp, Filter, Edit, Trash2, Printer, RotateCcw, Copy, Search, Plus, Upload } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,7 @@ interface FilterPanelProps {
     suppliers: string[];
     categories: string[];
     businessTypes: BusinessType[];
+    entryMethods: string[];
   };
   selectedCount: number;
   duplicatesCount: number;
@@ -259,6 +260,12 @@ const FilterPanel = ({
                 options={filterOptions.businessTypes}
                 selected={filters.businessTypes}
                 onChange={(val) => updateFilter('businessTypes', val)}
+              />
+              <MultiSelectFilter
+                label="שיטת הזנה"
+                options={filterOptions.entryMethods}
+                selected={filters.entryMethods}
+                onChange={(val) => updateFilter('entryMethods', val as EntryMethod[])}
               />
               
               {/* Amount Filter */}
