@@ -14,12 +14,16 @@ export const PersonalInfoTab = () => {
   const { user } = useAuth();
   const { settings, updateSettings } = useSettings();
 
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (settings) {
+      setFirstName(settings.first_name || '');
+      setLastName(settings.last_name || '');
       setPhoneNumber(settings.phone_number || '');
     }
   }, [settings]);
@@ -45,6 +49,8 @@ export const PersonalInfoTab = () => {
 
     setSaving(true);
     await updateSettings({
+      first_name: firstName || null,
+      last_name: lastName || null,
       phone_number: phoneNumber,
     });
     setSaving(false);
@@ -63,6 +69,27 @@ export const PersonalInfoTab = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="first-name">שם פרטי</Label>
+              <Input
+                id="first-name"
+                placeholder="הכנס שם פרטי"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="last-name">שם משפחה</Label>
+              <Input
+                id="last-name"
+                placeholder="הכנס שם משפחה"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="email">כתובת אימייל</Label>
             <div className="flex items-center gap-2">
