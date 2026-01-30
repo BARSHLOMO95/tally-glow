@@ -131,13 +131,15 @@ const Dashboard = () => {
         // Prioritize preview_image_url for PDFs, then image_url
         const displayUrl = inv.preview_image_url || inv.image_url;
         return `
-          <div style="page-break-inside: avoid; margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; text-align: center;">
-            <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px; text-align: right;">
+          <div class="invoice-image-page">
+            <div class="invoice-header">
               ${inv.supplier_name} - ${inv.document_number}
             </div>
-            <img src="${displayUrl}" style="max-width: 80%; max-height: 700px; display: inline-block;" 
-              crossorigin="anonymous"
-              onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='${displayUrl}';" />
+            <div class="invoice-image-container">
+              <img src="${displayUrl}" 
+                crossorigin="anonymous"
+                onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='${displayUrl}';" />
+            </div>
           </div>
         `;
       }).join('');
@@ -149,12 +151,81 @@ const Dashboard = () => {
         <meta charset="UTF-8">
         <title>דוח הוצאות</title>
         <style>
-          body { font-family: Arial, sans-serif; padding: 20px; direction: rtl; }
+          @page {
+            size: A4;
+            margin: 10mm;
+          }
+          body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            direction: rtl;
+            margin: 0;
+          }
           table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
           th { background: #f5f5f5; border: 1px solid #ddd; padding: 10px; text-align: right; }
+          
+          /* A4-optimized invoice image pages */
+          .invoice-image-page {
+            page-break-before: always;
+            page-break-inside: avoid;
+            width: 100%;
+            height: 270mm; /* A4 height minus margins */
+            max-height: 270mm;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            padding: 10px;
+          }
+          .invoice-image-page:first-of-type {
+            page-break-before: auto;
+          }
+          .invoice-header {
+            font-weight: bold;
+            font-size: 14px;
+            text-align: right;
+            padding: 10px;
+            border-bottom: 2px solid #333;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+          }
+          .invoice-image-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            min-height: 0;
+          }
+          .invoice-image-container img {
+            max-width: 100%;
+            max-height: 250mm;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+          }
+          
           @media print {
             .no-print { display: none; }
             body { padding: 0; }
+            .invoice-image-page {
+              height: 270mm;
+              max-height: 270mm;
+            }
+            .invoice-image-container img {
+              max-height: 250mm;
+            }
+          }
+          
+          @media screen {
+            .invoice-image-page {
+              border: 1px solid #ddd;
+              margin-bottom: 20px;
+              min-height: 500px;
+              height: auto;
+            }
+            .invoice-image-container img {
+              max-height: 700px;
+            }
           }
         </style>
       </head>
