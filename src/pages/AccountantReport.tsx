@@ -100,28 +100,30 @@ const AccountantReport = () => {
       </div>
 
       {/* Images Section */}
-      {invoices.some(inv => inv.image_url) && (
+      {invoices.some(inv => inv.image_url || inv.preview_image_url) && (
         <div className="mt-8">
           <h2 className="text-xl font-bold mb-4 border-r-4 border-blue-600 pr-3">תמונות חשבוניות</h2>
-          <div className="space-y-8">
-            {invoices.filter(inv => inv.image_url).map((invoice, index) => (
-              <div key={invoice.id} className="border border-gray-300 rounded-lg p-4 break-inside-avoid text-center">
-                <div className="flex justify-between items-center mb-3 pb-2 border-b text-right">
-                  <span className="font-bold">{index + 1}. {invoice.supplier_name}</span>
-                  <span className="text-gray-600">מספר מסמך: {invoice.document_number}</span>
+          <div className="invoice-images-container">
+            {invoices.filter(inv => inv.image_url || inv.preview_image_url).map((invoice, index) => {
+              const displayUrl = invoice.preview_image_url || invoice.image_url;
+              return (
+                <div key={invoice.id} className="invoice-image-page">
+                  <div className="invoice-header">
+                    <span className="font-bold">{index + 1}. {invoice.supplier_name}</span>
+                    <span className="text-gray-600 mr-4">מספר מסמך: {invoice.document_number}</span>
+                  </div>
+                  <div className="invoice-image-container">
+                    <img 
+                      src={displayUrl!} 
+                      alt={`חשבונית ${invoice.document_number}`}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="flex justify-center items-center">
-                  <img 
-                    src={invoice.image_url!} 
-                    alt={`חשבונית ${invoice.document_number}`}
-                    className="max-w-[80%] max-h-[600px] object-contain mx-auto"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -136,15 +138,89 @@ const AccountantReport = () => {
         </button>
       </div>
 
-      {/* Print Styles */}
+      {/* Print Styles - A4 optimized */}
       <style>{`
+        @page {
+          size: A4;
+          margin: 10mm;
+        }
+        
+        .invoice-images-container {
+          display: block;
+        }
+        
+        .invoice-image-page {
+          page-break-before: always;
+          page-break-inside: avoid;
+          width: 100%;
+          min-height: 250mm;
+          max-height: 270mm;
+          display: flex;
+          flex-direction: column;
+          box-sizing: border-box;
+          padding: 10px;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          margin-bottom: 20px;
+        }
+        
+        .invoice-image-page:first-child {
+          page-break-before: auto;
+        }
+        
+        .invoice-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 10px;
+          border-bottom: 2px solid #333;
+          margin-bottom: 10px;
+          flex-shrink: 0;
+        }
+        
+        .invoice-image-container {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          min-height: 0;
+        }
+        
+        .invoice-image-container img {
+          max-width: 100%;
+          max-height: 230mm;
+          width: auto;
+          height: auto;
+          object-fit: contain;
+        }
+        
         @media print {
           body {
             print-color-adjust: exact;
             -webkit-print-color-adjust: exact;
           }
-          .break-inside-avoid {
-            break-inside: avoid;
+          
+          .invoice-image-page {
+            height: 270mm;
+            max-height: 270mm;
+            border: none;
+            margin-bottom: 0;
+          }
+          
+          .invoice-image-container img {
+            max-height: 250mm;
+          }
+        }
+        
+        @media screen {
+          .invoice-image-page {
+            min-height: 400px;
+            height: auto;
+          }
+          
+          .invoice-image-container img {
+            max-height: 600px;
           }
         }
       `}</style>
