@@ -318,9 +318,9 @@ const Dashboard = () => {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter(inv =>
-        inv.supplier_name.toLowerCase().includes(query) ||
-        inv.document_number.toLowerCase().includes(query) ||
-        inv.category.toLowerCase().includes(query)
+        (inv.supplier_name || '').toLowerCase().includes(query) ||
+        (inv.document_number || '').toLowerCase().includes(query) ||
+        (inv.category || '').toLowerCase().includes(query)
       );
     }
     
