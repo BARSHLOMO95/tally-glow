@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image, Upload, X, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Loader2, Image, Upload, X, CheckCircle, AlertTriangle, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -30,9 +30,12 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate it's an image
-    if (!file.type.startsWith('image/')) {
-      toast.error('יש להעלות קובץ תמונה בלבד');
+    // Validate it's an image or PDF
+    const isImage = file.type.startsWith('image/');
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+    if (!isImage && !isPdf) {
+      toast.error('יש להעלות תמונה או קובץ PDF בלבד');
       return;
     }
 
@@ -43,13 +46,18 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
     }
 
     setUploadedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    // Create preview URL only for images, not for PDFs
+    if (isImage) {
+      setPreviewUrl(URL.createObjectURL(file));
+    } else {
+      setPreviewUrl(null);
+    }
     setIsSuccess(false);
   };
 
   const handleSubmit = async () => {
     if (!uploadedFile) {
-      toast.error('יש להעלות תמונה תחילה');
+      toast.error('יש להעלות קובץ תחילה');
       return;
     }
 
@@ -132,7 +140,7 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl">הוספת חשבונית</DialogTitle>
           <DialogDescription>
-            העלה תמונת חשבונית והמערכת תנתח אותה אוטומטית
+            העלה תמונה או PDF של חשבונית והמערכת תנתח אותה אוטומטית
           </DialogDescription>
         </DialogHeader>
 
@@ -140,7 +148,7 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,application/pdf,.pdf"
             capture="environment"
             onChange={handleFileSelect}
             className="hidden"
@@ -176,14 +184,23 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
               <p className="text-lg font-medium">החשבונית נשלחה בהצלחה!</p>
               <p className="text-sm text-muted-foreground">המערכת מנתחת את הנתונים</p>
             </div>
-          ) : previewUrl ? (
+          ) : uploadedFile ? (
             <div className="space-y-4">
               <div className="relative">
-                <img 
-                  src={previewUrl} 
-                  alt="תצוגה מקדימה" 
-                  className="w-full max-h-64 object-contain rounded-lg border bg-muted"
-                />
+                {previewUrl ? (
+                  // Image preview
+                  <img
+                    src={previewUrl}
+                    alt="תצוגה מקדימה"
+                    className="w-full max-h-64 object-contain rounded-lg border bg-muted"
+                  />
+                ) : (
+                  // PDF icon
+                  <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-primary/25 rounded-lg bg-primary/5">
+                    <FileText className="h-16 w-16 text-primary mb-2" />
+                    <p className="text-sm font-medium">קובץ PDF</p>
+                  </div>
+                )}
                 <Button
                   variant="destructive"
                   size="icon"
@@ -202,13 +219,16 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
               </p>
             </div>
           ) : (
-            <div 
+            <div
               className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-muted-foreground/25 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors"
               onClick={() => fileInputRef.current?.click()}
             >
-              <Image className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-base font-medium mb-1">לחץ להעלאת תמונה</p>
-              <p className="text-sm text-muted-foreground">או צלם חשבונית מהמצלמה</p>
+              <div className="flex gap-4 mb-4">
+                <Image className="h-12 w-12 text-muted-foreground" />
+                <FileText className="h-12 w-12 text-muted-foreground" />
+              </div>
+              <p className="text-base font-medium mb-1">לחץ להעלאת קובץ</p>
+              <p className="text-sm text-muted-foreground">תמונה, PDF או צלם חשבונית מהמצלמה</p>
               <p className="text-xs text-muted-foreground mt-2">
                 נותרו {remaining === Infinity ? '∞' : remaining} מסמכים החודש
               </p>
