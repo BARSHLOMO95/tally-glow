@@ -12,6 +12,7 @@ import Settings from "./pages/Settings";
 import Pricing from "./pages/Pricing";
 import PublicUpload from "./pages/PublicUpload";
 import Admin from "./pages/Admin";
+import Suppliers from "./pages/Suppliers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,18 +65,17 @@ const App = () => (
             }
           />
 
-          {/* Placeholder routes for new pages */}
+          {/* Feature routes */}
           <Route
             path="/suppliers"
             element={
               <AppLayout>
-                <div className="p-6">
-                  <h1 className="text-3xl font-bold">ספקים</h1>
-                  <p className="text-muted-foreground mt-2">בקרוב...</p>
-                </div>
+                <Suppliers />
               </AppLayout>
             }
           />
+
+          {/* Placeholder routes for new pages */}
           <Route
             path="/analytics"
             element={
