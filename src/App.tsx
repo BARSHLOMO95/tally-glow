@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AppLayout } from "./components/layout/AppLayout";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -22,14 +23,93 @@ const App = () => (
       <Sonner position="top-center" dir="rtl" />
       <BrowserRouter>
         <Routes>
+          {/* Public routes - no AppLayout */}
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/report" element={<AccountantReport />} />
-          <Route path="/settings" element={<Settings />} />
           <Route path="/pricing" element={<Pricing />} />
-          <Route path="/admin" element={<Admin />} />
           <Route path="/upload/:linkCode" element={<PublicUpload />} />
+          <Route path="/report" element={<AccountantReport />} />
+
+          {/* Protected routes with AppLayout */}
+          <Route
+            path="/dashboard"
+            element={
+              <AppLayout>
+                <Dashboard />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/invoices"
+            element={
+              <AppLayout>
+                <Dashboard />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <AppLayout>
+                <Settings />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <AppLayout>
+                <Admin />
+              </AppLayout>
+            }
+          />
+
+          {/* Placeholder routes for new pages */}
+          <Route
+            path="/suppliers"
+            element={
+              <AppLayout>
+                <div className="p-6">
+                  <h1 className="text-3xl font-bold">ספקים</h1>
+                  <p className="text-muted-foreground mt-2">בקרוב...</p>
+                </div>
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <AppLayout>
+                <div className="p-6">
+                  <h1 className="text-3xl font-bold">דוחות ואנליטיקה</h1>
+                  <p className="text-muted-foreground mt-2">בקרוב...</p>
+                </div>
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/categories"
+            element={
+              <AppLayout>
+                <div className="p-6">
+                  <h1 className="text-3xl font-bold">קטגוריות</h1>
+                  <p className="text-muted-foreground mt-2">בקרוב...</p>
+                </div>
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/upload-links"
+            element={
+              <AppLayout>
+                <div className="p-6">
+                  <h1 className="text-3xl font-bold">העלאות ציבוריות</h1>
+                  <p className="text-muted-foreground mt-2">בקרוב...</p>
+                </div>
+              </AppLayout>
+            }
+          />
+
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
