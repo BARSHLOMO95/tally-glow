@@ -36,6 +36,14 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
     const isImage = file.type.startsWith('image/');
     const isPdf = file.type === 'application/pdf';
 
+    console.log('📁 File selected:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      isImage,
+      isPdf
+    });
+
     if (!isImage && !isPdf) {
       toast.error('יש להעלות קובץ תמונה או PDF בלבד');
       return;
@@ -52,19 +60,25 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
 
     // Generate preview for PDFs or use image directly
     if (isPdf) {
+      console.log('🔄 Starting PDF preview generation...');
       try {
         toast.loading('יוצר תצוגה מקדימה...', { id: 'pdf-preview' });
         const blob = await generatePdfPreview(file);
+        console.log('✅ PDF preview generated successfully:', {
+          blobSize: blob.size,
+          blobType: blob.type
+        });
         setPreviewBlob(blob);
         setPreviewUrl(URL.createObjectURL(blob));
         toast.success('תצוגה מקדימה נוצרה בהצלחה', { id: 'pdf-preview' });
       } catch (error) {
-        console.error('Error generating PDF preview:', error);
+        console.error('❌ Error generating PDF preview:', error);
         toast.error('שגיאה ביצירת תצוגה מקדימה', { id: 'pdf-preview' });
         setPreviewUrl(null);
         setPreviewBlob(null);
       }
     } else {
+      console.log('📸 Using image directly (no conversion needed)');
       setPreviewUrl(URL.createObjectURL(file));
       setPreviewBlob(null);
     }
@@ -73,6 +87,16 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
   const handleSubmit = async () => {
     if (!uploadedFile) {
       toast.error('יש להעלות תמונה תחילה');
+      return;
+    }
+
+    const isPdf = uploadedFile.type === 'application/pdf';
+
+    // CRITICAL: Block PDF upload if preview was not generated
+    if (isPdf && !previewBlob) {
+      console.error('❌ BLOCKED: Cannot upload PDF without preview image');
+      toast.error('לא ניתן להעלות PDF - ההמרה לתמונה נכשלה. נסה שוב או העלה תמונה רגילה.');
+      setIsUploading(false);
       return;
     }
 
@@ -86,51 +110,51 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
         return;
       }
 
-      const isPdf = uploadedFile.type === 'application/pdf';
+      let fileToUpload: File | Blob;
+      let fileExtension: string;
 
-      // Upload original file to storage
-      const fileExt = uploadedFile.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      console.log('📄 Upload Info:', {
+        fileName: uploadedFile.name,
+        fileType: uploadedFile.type,
+        isPdf,
+        hasPreviewBlob: !!previewBlob
+      });
+
+      // If it's a PDF with a preview, upload only the preview image
+      if (isPdf && previewBlob) {
+        console.log('✅ Using PDF preview image for upload');
+        fileToUpload = previewBlob;
+        fileExtension = 'png';
+      } else {
+        console.log('📸 Using original image for upload');
+        fileToUpload = uploadedFile;
+        fileExtension = uploadedFile.name.split('.').pop() || 'jpg';
+      }
+
+      // Upload the file (either original image or PDF converted to image)
+      const fileName = `${user.id}/${Date.now()}.${fileExtension}`;
+      console.log('📤 Uploading as:', fileName);
 
       const { error: uploadError } = await supabase.storage
         .from('invoices')
-        .upload(fileName, uploadedFile);
+        .upload(fileName, fileToUpload);
 
       if (uploadError) {
         throw uploadError;
       }
 
-      // Get public URL for original file
+      // Get public URL
       const { data: urlData } = supabase.storage
         .from('invoices')
         .getPublicUrl(fileName);
 
       const imageUrl = urlData.publicUrl;
-      let previewImageUrl: string | undefined;
-
-      // If it's a PDF with a preview, upload the preview image too
-      if (isPdf && previewBlob) {
-        const previewFileName = `${user.id}/previews/${Date.now()}_preview.png`;
-
-        const { error: previewUploadError } = await supabase.storage
-          .from('invoices')
-          .upload(previewFileName, previewBlob);
-
-        if (!previewUploadError) {
-          const { data: previewUrlData } = supabase.storage
-            .from('invoices')
-            .getPublicUrl(previewFileName);
-
-          previewImageUrl = previewUrlData.publicUrl;
-        }
-      }
 
       // Call import-invoices to analyze and save
       const { error } = await supabase.functions.invoke('import-invoices', {
         body: {
           image_url: imageUrl,
-          user_id: user.id,
-          preview_image_url: previewImageUrl
+          user_id: user.id
         }
       });
 
