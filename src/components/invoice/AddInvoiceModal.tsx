@@ -6,6 +6,7 @@ import { Loader2, Image, Upload, X, CheckCircle, AlertTriangle, FileText } from 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSubscription } from '@/hooks/useSubscription';
+import { generatePdfPreview } from '@/lib/utils';
 
 interface AddInvoiceModalProps {
   isOpen: boolean;
@@ -20,20 +21,21 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const { canUploadDocument, getRemainingDocuments, subscription, plan } = useSubscription();
   
   const remaining = getRemainingDocuments();
   const isLimitReached = !canUploadDocument();
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     // Validate it's an image or PDF
     const isImage = file.type.startsWith('image/');
     const isPdf = file.type === 'application/pdf';
-    
+
     if (!isImage && !isPdf) {
       toast.error('יש להעלות קובץ תמונה או PDF בלבד');
       return;
@@ -46,9 +48,26 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
     }
 
     setUploadedFile(file);
-    // Only create preview URL for images
-    setPreviewUrl(isImage ? URL.createObjectURL(file) : null);
     setIsSuccess(false);
+
+    // Generate preview for PDFs or use image directly
+    if (isPdf) {
+      try {
+        toast.loading('יוצר תצוגה מקדימה...', { id: 'pdf-preview' });
+        const blob = await generatePdfPreview(file);
+        setPreviewBlob(blob);
+        setPreviewUrl(URL.createObjectURL(blob));
+        toast.success('תצוגה מקדימה נוצרה בהצלחה', { id: 'pdf-preview' });
+      } catch (error) {
+        console.error('Error generating PDF preview:', error);
+        toast.error('שגיאה ביצירת תצוגה מקדימה', { id: 'pdf-preview' });
+        setPreviewUrl(null);
+        setPreviewBlob(null);
+      }
+    } else {
+      setPreviewUrl(URL.createObjectURL(file));
+      setPreviewBlob(null);
+    }
   };
 
   const handleSubmit = async () => {
@@ -67,10 +86,12 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
         return;
       }
 
-      // Upload image to storage
+      const isPdf = uploadedFile.type === 'application/pdf';
+
+      // Upload original file to storage
       const fileExt = uploadedFile.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      
+
       const { error: uploadError } = await supabase.storage
         .from('invoices')
         .upload(fileName, uploadedFile);
@@ -79,16 +100,38 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
         throw uploadError;
       }
 
-      // Get public URL
+      // Get public URL for original file
       const { data: urlData } = supabase.storage
         .from('invoices')
         .getPublicUrl(fileName);
 
       const imageUrl = urlData.publicUrl;
+      let previewImageUrl: string | undefined;
+
+      // If it's a PDF with a preview, upload the preview image too
+      if (isPdf && previewBlob) {
+        const previewFileName = `${user.id}/previews/${Date.now()}_preview.png`;
+
+        const { error: previewUploadError } = await supabase.storage
+          .from('invoices')
+          .upload(previewFileName, previewBlob);
+
+        if (!previewUploadError) {
+          const { data: previewUrlData } = supabase.storage
+            .from('invoices')
+            .getPublicUrl(previewFileName);
+
+          previewImageUrl = previewUrlData.publicUrl;
+        }
+      }
 
       // Call import-invoices to analyze and save
       const { error } = await supabase.functions.invoke('import-invoices', {
-        body: { image_url: imageUrl, user_id: user.id }
+        body: {
+          image_url: imageUrl,
+          user_id: user.id,
+          preview_image_url: previewImageUrl
+        }
       });
 
       if (error) {
@@ -97,10 +140,10 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
 
       setIsSuccess(true);
       toast.success('החשבונית נשלחה לניתוח בהצלחה!');
-      
+
       // Refresh the invoice list
       onSave();
-      
+
       // Close after a short delay to show success state
       setTimeout(() => {
         handleClose();
@@ -117,6 +160,7 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
   const handleClose = () => {
     setUploadedFile(null);
     setPreviewUrl(null);
+    setPreviewBlob(null);
     setIsSuccess(false);
     onClose();
   };
@@ -124,6 +168,7 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
   const removeFile = () => {
     setUploadedFile(null);
     setPreviewUrl(null);
+    setPreviewBlob(null);
     setIsSuccess(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
