@@ -90,6 +90,16 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
       return;
     }
 
+    const isPdf = uploadedFile.type === 'application/pdf';
+
+    // CRITICAL: Block PDF upload if preview was not generated
+    if (isPdf && !previewBlob) {
+      console.error('❌ BLOCKED: Cannot upload PDF without preview image');
+      toast.error('לא ניתן להעלות PDF - ההמרה לתמונה נכשלה. נסה שוב או העלה תמונה רגילה.');
+      setIsUploading(false);
+      return;
+    }
+
     setIsUploading(true);
 
     try {
@@ -100,7 +110,6 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
         return;
       }
 
-      const isPdf = uploadedFile.type === 'application/pdf';
       let fileToUpload: File | Blob;
       let fileExtension: string;
 
@@ -117,7 +126,7 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
         fileToUpload = previewBlob;
         fileExtension = 'png';
       } else {
-        console.log('📸 Using original file for upload');
+        console.log('📸 Using original image for upload');
         fileToUpload = uploadedFile;
         fileExtension = uploadedFile.name.split('.').pop() || 'jpg';
       }
