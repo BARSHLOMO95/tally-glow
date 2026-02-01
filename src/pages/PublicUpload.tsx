@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { FileText, Upload, Loader2, Check, Lock, Image, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { generatePdfPreview } from '@/lib/utils';
 
 const PublicUpload = () => {
   const { linkCode } = useParams<{ linkCode: string }>();
@@ -19,9 +20,30 @@ const PublicUpload = () => {
   const [linkData, setLinkData] = useState<any>(null);
   
   const [files, setFiles] = useState<File[]>([]);
+  const [previewBlobs, setPreviewBlobs] = useState<Map<number, Blob>>(new Map());
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+
+  const generatePreviewsForFiles = async (newFiles: File[], startIndex: number) => {
+    const newPreviewBlobs = new Map(previewBlobs);
+
+    for (let i = 0; i < newFiles.length; i++) {
+      const file = newFiles[i];
+      const fileIndex = startIndex + i;
+
+      if (file.type === 'application/pdf') {
+        try {
+          const blob = await generatePdfPreview(file);
+          newPreviewBlobs.set(fileIndex, blob);
+        } catch (error) {
+          console.error(`Error generating preview for ${file.name}:`, error);
+        }
+      }
+    }
+
+    setPreviewBlobs(newPreviewBlobs);
+  };
 
   const verifyPassword = async () => {
     if (!password.trim()) {
@@ -80,26 +102,45 @@ const PublicUpload = () => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const newFiles = Array.from(e.dataTransfer.files).filter(
         file => file.type.startsWith('image/') || file.type === 'application/pdf'
       );
-      setFiles(prev => [...prev, ...newFiles]);
+      setFiles(prev => {
+        const startIndex = prev.length;
+        generatePreviewsForFiles(newFiles, startIndex);
+        return [...prev, ...newFiles];
+      });
     }
-  }, []);
+  }, [previewBlobs]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const newFiles = Array.from(e.target.files).filter(
         file => file.type.startsWith('image/') || file.type === 'application/pdf'
       );
-      setFiles(prev => [...prev, ...newFiles]);
+      setFiles(prev => {
+        const startIndex = prev.length;
+        generatePreviewsForFiles(newFiles, startIndex);
+        return [...prev, ...newFiles];
+      });
     }
   };
 
   const removeFile = (index: number) => {
     setFiles(prev => prev.filter((_, i) => i !== index));
+    setPreviewBlobs(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(index);
+      // Reindex remaining preview blobs
+      const reindexedMap = new Map();
+      Array.from(newMap.entries()).forEach(([oldIndex, blob]) => {
+        const newIndex = oldIndex > index ? oldIndex - 1 : oldIndex;
+        reindexedMap.set(newIndex, blob);
+      });
+      return reindexedMap;
+    });
   };
 
   const uploadFiles = async () => {
@@ -111,11 +152,13 @@ const PublicUpload = () => {
     setIsUploading(true);
 
     try {
-      for (const file of files) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const isPdf = file.type === 'application/pdf';
         const fileExt = file.name.split('.').pop();
         const fileName = `${linkData.user_id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-        // Upload to storage
+        // Upload original file to storage
         const { error: uploadError } = await supabase.storage
           .from('invoices')
           .upload(fileName, file);
@@ -126,10 +169,30 @@ const PublicUpload = () => {
           continue;
         }
 
-        // Get public URL
+        // Get public URL for original file
         const { data: urlData } = supabase.storage
           .from('invoices')
           .getPublicUrl(fileName);
+
+        let previewImageUrl: string | undefined;
+
+        // If it's a PDF with a preview, upload the preview image too
+        if (isPdf && previewBlobs.has(i)) {
+          const previewBlob = previewBlobs.get(i)!;
+          const previewFileName = `${linkData.user_id}/previews/${Date.now()}-${Math.random().toString(36).substring(7)}_preview.png`;
+
+          const { error: previewUploadError } = await supabase.storage
+            .from('invoices')
+            .upload(previewFileName, previewBlob);
+
+          if (!previewUploadError) {
+            const { data: previewUrlData } = supabase.storage
+              .from('invoices')
+              .getPublicUrl(previewFileName);
+
+            previewImageUrl = previewUrlData.publicUrl;
+          }
+        }
 
         // Call import-invoices function to process the image
         const response = await fetch(
@@ -143,6 +206,7 @@ const PublicUpload = () => {
             body: JSON.stringify({
               image_url: urlData.publicUrl,
               user_id: linkData.user_id,
+              preview_image_url: previewImageUrl,
             }),
           }
         );
@@ -232,9 +296,10 @@ const PublicUpload = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button 
+              <Button
                 onClick={() => {
                   setFiles([]);
+                  setPreviewBlobs(new Map());
                   setUploadSuccess(false);
                 }}
                 variant="outline"

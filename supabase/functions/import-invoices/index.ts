@@ -71,6 +71,7 @@ Deno.serve(async (req) => {
         business_type: invoiceData?.business_type || null,
         entry_method: invoiceData?.entry_method || 'דיגיטלי',
         image_url: imageUrlForAI,
+        preview_image_url: body.preview_image_url || null,
       };
 
       console.log('Inserting invoice:', JSON.stringify(invoiceToInsert), extractionFailed ? '(extraction failed - pending manual review)' : '(AI extracted)');
