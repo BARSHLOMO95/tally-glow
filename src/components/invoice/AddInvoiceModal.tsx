@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image, Upload, X, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Loader2, Image, Upload, X, CheckCircle, AlertTriangle, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -30,9 +30,12 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate it's an image
-    if (!file.type.startsWith('image/')) {
-      toast.error('יש להעלות קובץ תמונה בלבד');
+    // Validate it's an image or PDF
+    const isImage = file.type.startsWith('image/');
+    const isPdf = file.type === 'application/pdf';
+    
+    if (!isImage && !isPdf) {
+      toast.error('יש להעלות קובץ תמונה או PDF בלבד');
       return;
     }
 
@@ -43,7 +46,8 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
     }
 
     setUploadedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    // Only create preview URL for images
+    setPreviewUrl(isImage ? URL.createObjectURL(file) : null);
     setIsSuccess(false);
   };
 
@@ -140,7 +144,7 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,application/pdf"
             capture="environment"
             onChange={handleFileSelect}
             className="hidden"
@@ -176,14 +180,21 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
               <p className="text-lg font-medium">החשבונית נשלחה בהצלחה!</p>
               <p className="text-sm text-muted-foreground">המערכת מנתחת את הנתונים</p>
             </div>
-          ) : previewUrl ? (
+          ) : uploadedFile ? (
             <div className="space-y-4">
               <div className="relative">
-                <img 
-                  src={previewUrl} 
-                  alt="תצוגה מקדימה" 
-                  className="w-full max-h-64 object-contain rounded-lg border bg-muted"
-                />
+                {previewUrl ? (
+                  <img 
+                    src={previewUrl} 
+                    alt="תצוגה מקדימה" 
+                    className="w-full max-h-64 object-contain rounded-lg border bg-muted"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 rounded-lg border bg-muted">
+                    <FileText className="h-16 w-16 text-red-500 mb-2" />
+                    <p className="text-sm font-medium">קובץ PDF</p>
+                  </div>
+                )}
                 <Button
                   variant="destructive"
                   size="icon"
@@ -206,8 +217,11 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
               className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-muted-foreground/25 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors"
               onClick={() => fileInputRef.current?.click()}
             >
-              <Image className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-base font-medium mb-1">לחץ להעלאת תמונה</p>
+              <div className="flex gap-2 mb-4">
+                <Image className="h-10 w-10 text-muted-foreground" />
+                <FileText className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <p className="text-base font-medium mb-1">לחץ להעלאת תמונה או PDF</p>
               <p className="text-sm text-muted-foreground">או צלם חשבונית מהמצלמה</p>
               <p className="text-xs text-muted-foreground mt-2">
                 נותרו {remaining === Infinity ? '∞' : remaining} מסמכים החודש
