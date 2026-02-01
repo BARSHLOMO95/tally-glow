@@ -36,6 +36,14 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
     const isImage = file.type.startsWith('image/');
     const isPdf = file.type === 'application/pdf';
 
+    console.log('📁 File selected:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      isImage,
+      isPdf
+    });
+
     if (!isImage && !isPdf) {
       toast.error('יש להעלות קובץ תמונה או PDF בלבד');
       return;
@@ -52,19 +60,25 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
 
     // Generate preview for PDFs or use image directly
     if (isPdf) {
+      console.log('🔄 Starting PDF preview generation...');
       try {
         toast.loading('יוצר תצוגה מקדימה...', { id: 'pdf-preview' });
         const blob = await generatePdfPreview(file);
+        console.log('✅ PDF preview generated successfully:', {
+          blobSize: blob.size,
+          blobType: blob.type
+        });
         setPreviewBlob(blob);
         setPreviewUrl(URL.createObjectURL(blob));
         toast.success('תצוגה מקדימה נוצרה בהצלחה', { id: 'pdf-preview' });
       } catch (error) {
-        console.error('Error generating PDF preview:', error);
+        console.error('❌ Error generating PDF preview:', error);
         toast.error('שגיאה ביצירת תצוגה מקדימה', { id: 'pdf-preview' });
         setPreviewUrl(null);
         setPreviewBlob(null);
       }
     } else {
+      console.log('📸 Using image directly (no conversion needed)');
       setPreviewUrl(URL.createObjectURL(file));
       setPreviewBlob(null);
     }
@@ -90,17 +104,27 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
       let fileToUpload: File | Blob;
       let fileExtension: string;
 
+      console.log('📄 Upload Info:', {
+        fileName: uploadedFile.name,
+        fileType: uploadedFile.type,
+        isPdf,
+        hasPreviewBlob: !!previewBlob
+      });
+
       // If it's a PDF with a preview, upload only the preview image
       if (isPdf && previewBlob) {
+        console.log('✅ Using PDF preview image for upload');
         fileToUpload = previewBlob;
         fileExtension = 'png';
       } else {
+        console.log('📸 Using original file for upload');
         fileToUpload = uploadedFile;
         fileExtension = uploadedFile.name.split('.').pop() || 'jpg';
       }
 
       // Upload the file (either original image or PDF converted to image)
       const fileName = `${user.id}/${Date.now()}.${fileExtension}`;
+      console.log('📤 Uploading as:', fileName);
 
       const { error: uploadError } = await supabase.storage
         .from('invoices')
