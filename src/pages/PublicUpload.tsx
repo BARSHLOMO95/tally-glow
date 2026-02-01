@@ -155,13 +155,24 @@ const PublicUpload = () => {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const isPdf = file.type === 'application/pdf';
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${linkData.user_id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        let fileToUpload: File | Blob;
+        let fileExtension: string;
 
-        // Upload original file to storage
+        // If it's a PDF with a preview, upload only the preview image
+        if (isPdf && previewBlobs.has(i)) {
+          fileToUpload = previewBlobs.get(i)!;
+          fileExtension = 'png';
+        } else {
+          fileToUpload = file;
+          fileExtension = file.name.split('.').pop() || 'jpg';
+        }
+
+        // Upload the file (either original image or PDF converted to image)
+        const fileName = `${linkData.user_id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
+
         const { error: uploadError } = await supabase.storage
           .from('invoices')
-          .upload(fileName, file);
+          .upload(fileName, fileToUpload);
 
         if (uploadError) {
           console.error('Upload error:', uploadError);
@@ -169,30 +180,10 @@ const PublicUpload = () => {
           continue;
         }
 
-        // Get public URL for original file
+        // Get public URL
         const { data: urlData } = supabase.storage
           .from('invoices')
           .getPublicUrl(fileName);
-
-        let previewImageUrl: string | undefined;
-
-        // If it's a PDF with a preview, upload the preview image too
-        if (isPdf && previewBlobs.has(i)) {
-          const previewBlob = previewBlobs.get(i)!;
-          const previewFileName = `${linkData.user_id}/previews/${Date.now()}-${Math.random().toString(36).substring(7)}_preview.png`;
-
-          const { error: previewUploadError } = await supabase.storage
-            .from('invoices')
-            .upload(previewFileName, previewBlob);
-
-          if (!previewUploadError) {
-            const { data: previewUrlData } = supabase.storage
-              .from('invoices')
-              .getPublicUrl(previewFileName);
-
-            previewImageUrl = previewUrlData.publicUrl;
-          }
-        }
 
         // Call import-invoices function to process the image
         const response = await fetch(
@@ -206,7 +197,6 @@ const PublicUpload = () => {
             body: JSON.stringify({
               image_url: urlData.publicUrl,
               user_id: linkData.user_id,
-              preview_image_url: previewImageUrl,
             }),
           }
         );

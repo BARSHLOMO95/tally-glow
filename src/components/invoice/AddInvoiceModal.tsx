@@ -87,50 +87,41 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
       }
 
       const isPdf = uploadedFile.type === 'application/pdf';
+      let fileToUpload: File | Blob;
+      let fileExtension: string;
 
-      // Upload original file to storage
-      const fileExt = uploadedFile.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      // If it's a PDF with a preview, upload only the preview image
+      if (isPdf && previewBlob) {
+        fileToUpload = previewBlob;
+        fileExtension = 'png';
+      } else {
+        fileToUpload = uploadedFile;
+        fileExtension = uploadedFile.name.split('.').pop() || 'jpg';
+      }
+
+      // Upload the file (either original image or PDF converted to image)
+      const fileName = `${user.id}/${Date.now()}.${fileExtension}`;
 
       const { error: uploadError } = await supabase.storage
         .from('invoices')
-        .upload(fileName, uploadedFile);
+        .upload(fileName, fileToUpload);
 
       if (uploadError) {
         throw uploadError;
       }
 
-      // Get public URL for original file
+      // Get public URL
       const { data: urlData } = supabase.storage
         .from('invoices')
         .getPublicUrl(fileName);
 
       const imageUrl = urlData.publicUrl;
-      let previewImageUrl: string | undefined;
-
-      // If it's a PDF with a preview, upload the preview image too
-      if (isPdf && previewBlob) {
-        const previewFileName = `${user.id}/previews/${Date.now()}_preview.png`;
-
-        const { error: previewUploadError } = await supabase.storage
-          .from('invoices')
-          .upload(previewFileName, previewBlob);
-
-        if (!previewUploadError) {
-          const { data: previewUrlData } = supabase.storage
-            .from('invoices')
-            .getPublicUrl(previewFileName);
-
-          previewImageUrl = previewUrlData.publicUrl;
-        }
-      }
 
       // Call import-invoices to analyze and save
       const { error } = await supabase.functions.invoke('import-invoices', {
         body: {
           image_url: imageUrl,
-          user_id: user.id,
-          preview_image_url: previewImageUrl
+          user_id: user.id
         }
       });
 
