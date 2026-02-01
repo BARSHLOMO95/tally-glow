@@ -6,6 +6,10 @@ import { Loader2, Image, Upload, X, CheckCircle, AlertTriangle, FileText } from 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSubscription } from '@/hooks/useSubscription';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface AddInvoiceModalProps {
   isOpen: boolean;
@@ -26,7 +30,39 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
   const remaining = getRemainingDocuments();
   const isLimitReached = !canUploadDocument();
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const convertPdfToImage = async (file: File): Promise<File> => {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const page = await pdf.getPage(1); // Get first page
+
+      const viewport = page.getViewport({ scale: 2.0 }); // Higher scale for better quality
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d')!;
+
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      await page.render({
+        canvasContext: context,
+        viewport: viewport,
+      }).promise;
+
+      // Convert canvas to blob
+      const blob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((blob) => resolve(blob!), 'image/jpeg', 0.95);
+      });
+
+      // Create a new File from the blob
+      const fileName = file.name.replace(/\.pdf$/i, '.jpg');
+      return new File([blob], fileName, { type: 'image/jpeg' });
+    } catch (error) {
+      console.error('Error converting PDF to image:', error);
+      throw new Error('נכשל להמיר את ה-PDF לתמונה');
+    }
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -45,13 +81,21 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
       return;
     }
 
-    setUploadedFile(file);
-    // Create preview URL only for images, not for PDFs
-    if (isImage) {
-      setPreviewUrl(URL.createObjectURL(file));
-    } else {
-      setPreviewUrl(null);
+    // If it's a PDF, convert to image
+    let finalFile = file;
+    if (isPdf) {
+      try {
+        toast.info('ממיר PDF לתמונה...');
+        finalFile = await convertPdfToImage(file);
+        toast.success('PDF הומר לתמונה בהצלחה!');
+      } catch (error) {
+        toast.error('שגיאה בהמרת PDF. נסה שוב או העלה תמונה');
+        return;
+      }
     }
+
+    setUploadedFile(finalFile);
+    setPreviewUrl(URL.createObjectURL(finalFile));
     setIsSuccess(false);
   };
 
@@ -184,23 +228,14 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
               <p className="text-lg font-medium">החשבונית נשלחה בהצלחה!</p>
               <p className="text-sm text-muted-foreground">המערכת מנתחת את הנתונים</p>
             </div>
-          ) : uploadedFile ? (
+          ) : uploadedFile && previewUrl ? (
             <div className="space-y-4">
               <div className="relative">
-                {previewUrl ? (
-                  // Image preview
-                  <img
-                    src={previewUrl}
-                    alt="תצוגה מקדימה"
-                    className="w-full max-h-64 object-contain rounded-lg border bg-muted"
-                  />
-                ) : (
-                  // PDF icon
-                  <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-primary/25 rounded-lg bg-primary/5">
-                    <FileText className="h-16 w-16 text-primary mb-2" />
-                    <p className="text-sm font-medium">קובץ PDF</p>
-                  </div>
-                )}
+                <img
+                  src={previewUrl}
+                  alt="תצוגה מקדימה"
+                  className="w-full max-h-64 object-contain rounded-lg border bg-muted"
+                />
                 <Button
                   variant="destructive"
                   size="icon"
