@@ -142,9 +142,7 @@ const Dashboard = () => {
                 ${inv.supplier_name} - ${inv.document_number}
               </div>
               <div class="invoice-image-container">
-                <img src="${inv.preview_image_url}"
-                  crossorigin="anonymous"
-                  onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='${inv.preview_image_url}';" />
+                <img src="${inv.preview_image_url}" alt="חשבונית" />
               </div>
             </div>
           `;
@@ -175,9 +173,7 @@ const Dashboard = () => {
                 ${inv.supplier_name} - ${inv.document_number}
               </div>
               <div class="invoice-image-container">
-                <img src="${displayUrl}"
-                  crossorigin="anonymous"
-                  onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='${displayUrl}';" />
+                <img src="${displayUrl}" alt="חשבונית" />
               </div>
             </div>
           `;
