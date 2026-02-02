@@ -51,6 +51,7 @@ const Dashboard = () => {
     toggleSelection,
     toggleSelectAll,
     clearFilters,
+    refreshInvoices,
   } = useInvoices(user?.id);
 
   // Merge categories from settings with existing invoice categories
@@ -283,13 +284,11 @@ const Dashboard = () => {
     }
   };
 
-  const handleInvoiceAdded = () => {
-    // Wait 3 seconds before reloading to allow Edge Function to start processing
-    console.log('⏳ Waiting 3 seconds before reload to allow AI analysis to start...');
-    setTimeout(() => {
-      console.log('🔄 Reloading page...');
-      window.location.reload();
-    }, 3000);
+  const handleInvoiceAdded = async () => {
+    // Refresh invoices list without full page reload
+    console.log('🔄 Refreshing invoices list...');
+    await refreshInvoices();
+    console.log('✅ Invoices list refreshed');
   };
 
   // Calculate duplicates
