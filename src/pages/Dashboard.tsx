@@ -68,7 +68,7 @@ const Dashboard = () => {
   }, [settings?.custom_categories, filterOptions.categories]);
 
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
-  const [imageModalData, setImageModalData] = useState<{ url: string; previewUrl?: string | null } | null>(null);
+  const [imageModalData, setImageModalData] = useState<{ url: string; previewUrl?: string | null; additionalImages?: string[] | null } | null>(null);
   const [supplierCardName, setSupplierCardName] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -500,7 +500,7 @@ const Dashboard = () => {
             onToggleSelectAll={toggleSelectAll}
             onRowClick={(invoice) => setEditingInvoice(invoice)}
             onSupplierClick={(name) => setSupplierCardName(name)}
-            onImageClick={(url, previewUrl) => setImageModalData({ url, previewUrl })}
+            onImageClick={(url, previewUrl, additionalImages) => setImageModalData({ url, previewUrl, additionalImages })}
           />
         ) : (
           <InvoiceGrid
@@ -510,7 +510,7 @@ const Dashboard = () => {
             onToggleSelection={toggleSelection}
             onRowClick={(invoice) => setEditingInvoice(invoice)}
             onSupplierClick={(name) => setSupplierCardName(name)}
-            onImageClick={(url, previewUrl) => setImageModalData({ url, previewUrl })}
+            onImageClick={(url, previewUrl, additionalImages) => setImageModalData({ url, previewUrl, additionalImages })}
           />
         )}
       </main>
@@ -527,6 +527,7 @@ const Dashboard = () => {
       <ImageModal
         imageUrl={imageModalData?.url || null}
         previewImageUrl={imageModalData?.previewUrl}
+        additionalImages={imageModalData?.additionalImages}
         isOpen={!!imageModalData}
         onClose={() => setImageModalData(null)}
       />
