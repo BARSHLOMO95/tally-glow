@@ -144,6 +144,7 @@ export async function generatePdfPreview(pdfFile: File): Promise<Blob> {
       await page.render({
         canvasContext: context,
         viewport: viewport,
+        canvas: canvas,
       }).promise;
 
       pageCanvases.push(canvas);
