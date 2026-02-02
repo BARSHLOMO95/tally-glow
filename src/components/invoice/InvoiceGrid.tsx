@@ -19,7 +19,7 @@ interface InvoiceGridProps {
   onToggleSelection: (id: string) => void;
   onRowClick: (invoice: Invoice) => void;
   onSupplierClick: (name: string) => void;
-  onImageClick: (url: string, previewUrl?: string | null) => void;
+  onImageClick: (url: string, previewUrl?: string | null, additionalImages?: string[] | null) => void;
 }
 
 const statusColors: Record<string, string> = {
@@ -104,7 +104,7 @@ const InvoiceGrid = ({
                       עריכה
                     </DropdownMenuItem>
                     {invoice.image_url && (
-                      <DropdownMenuItem onClick={() => onImageClick(invoice.image_url!)} className="flex-row-reverse">
+                      <DropdownMenuItem onClick={() => onImageClick(invoice.image_url!, invoice.preview_image_url, invoice.additional_images)} className="flex-row-reverse">
                         <Eye className="h-4 w-4 ml-2" />
                         צפייה בתמונה
                       </DropdownMenuItem>
@@ -128,7 +128,7 @@ const InvoiceGrid = ({
                       className="w-full h-full object-cover"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onImageClick(invoice.image_url!, invoice.preview_image_url);
+                        onImageClick(invoice.image_url!, invoice.preview_image_url, invoice.additional_images);
                       }}
                     />
                   ) : (
