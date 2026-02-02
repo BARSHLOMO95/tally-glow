@@ -2,11 +2,11 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image, Upload, X, CheckCircle, AlertTriangle, FileText } from 'lucide-react';
+import { Loader2, Image, Upload, X, AlertTriangle, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSubscription } from '@/hooks/useSubscription';
-import { generatePdfPreview, generatePdfPreviews } from '@/lib/utils';
+import { generatePdfPreviews } from '@/lib/utils';
 
 interface AddInvoiceModalProps {
   isOpen: boolean;
@@ -22,7 +22,6 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [previewBlobs, setPreviewBlobs] = useState<Blob[]>([]);
-  const [isSuccess, setIsSuccess] = useState(false);
   const { canUploadDocument, getRemainingDocuments, subscription, plan } = useSubscription();
   
   const remaining = getRemainingDocuments();
@@ -56,36 +55,22 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
     }
 
     setUploadedFile(file);
-    setIsSuccess(false);
 
     // Generate preview for PDFs or use image directly
     if (isPdf) {
       console.log('🔄 Starting PDF preview generation...');
       try {
         toast.loading('יוצר תצוגה מקדימה...', { id: 'pdf-preview' });
+        const blobs = await generatePdfPreviews(file);
+        console.log(`✅ PDF preview generated successfully: ${blobs.length} pages`);
 
-        // Try the new multi-page function first
-        try {
-          const blobs = await generatePdfPreviews(file);
-          console.log(`✅ PDF preview generated successfully: ${blobs.length} pages`);
-
-          const urls = blobs.map(blob => URL.createObjectURL(blob));
-          setPreviewBlobs(blobs);
-          setPreviewUrls(urls);
-          toast.success(`${blobs.length} עמודים הומרו בהצלחה`, { id: 'pdf-preview' });
-        } catch (multiPageError) {
-          // Fallback to old single-page function if new one fails
-          console.warn('⚠️ Multi-page preview failed, falling back to single-page:', multiPageError);
-          const blob = await generatePdfPreview(file);
-          console.log('✅ PDF preview generated successfully (single image)');
-
-          setPreviewBlobs([blob]);
-          setPreviewUrls([URL.createObjectURL(blob)]);
-          toast.success('תצוגה מקדימה נוצרה בהצלחה', { id: 'pdf-preview' });
-        }
+        const urls = blobs.map(blob => URL.createObjectURL(blob));
+        setPreviewBlobs(blobs);
+        setPreviewUrls(urls);
+        toast.success(`${blobs.length} עמודים הומרו בהצלחה`, { id: 'pdf-preview' });
       } catch (error) {
         console.error('❌ Error generating PDF preview:', error);
-        toast.error('שגיאה ביצירת תצוגה מקדימה', { id: 'pdf-preview' });
+        toast.error('שגיאה ביצירת תצוגה מקדימה. נסה שוב או העלה תמונה רגילה.', { id: 'pdf-preview' });
         setPreviewUrls([]);
         setPreviewBlobs([]);
       }
@@ -181,29 +166,26 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
         mainImageUrl = urlData.publicUrl;
       }
 
-      // Call import-invoices to analyze and save
-      const { error } = await supabase.functions.invoke('import-invoices', {
+      // Call import-invoices to analyze in background (don't wait)
+      supabase.functions.invoke('import-invoices', {
         body: {
           image_url: mainImageUrl,
           additional_images: additionalImageUrls,
           user_id: user.id
         }
+      }).then(({ error }) => {
+        if (error) {
+          console.error('Error in background analysis:', error);
+          toast.error('שגיאה בניתוח החשבונית');
+        } else {
+          console.log('✅ Invoice analysis completed in background');
+          onSave(); // Refresh invoice list when done
+        }
       });
 
-      if (error) {
-        throw error;
-      }
-
-      setIsSuccess(true);
-      toast.success('החשבונית נשלחה לניתוח בהצלחה!');
-
-      // Refresh the invoice list
-      onSave();
-
-      // Close after a short delay to show success state
-      setTimeout(() => {
-        handleClose();
-      }, 1500);
+      // Close immediately and show success
+      toast.success('החשבונית הועלתה! המערכת מנתחת ברקע...');
+      handleClose();
 
     } catch (error) {
       console.error('Error uploading invoice:', error);
@@ -217,7 +199,6 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
     setUploadedFile(null);
     setPreviewUrls([]);
     setPreviewBlobs([]);
-    setIsSuccess(false);
     onClose();
   };
 
@@ -225,7 +206,6 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
     setUploadedFile(null);
     setPreviewUrls([]);
     setPreviewBlobs([]);
-    setIsSuccess(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -274,12 +254,6 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
               >
                 שדרג עכשיו
               </Button>
-            </div>
-          ) : isSuccess ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <CheckCircle className="h-16 w-16 text-green-600 mb-4" />
-              <p className="text-lg font-medium">החשבונית נשלחה בהצלחה!</p>
-              <p className="text-sm text-muted-foreground">המערכת מנתחת את הנתונים</p>
             </div>
           ) : uploadedFile ? (
             <div className="space-y-4">
