@@ -29,8 +29,17 @@ Deno.serve(async (req) => {
       );
     }
 
+    console.log('🚀 Request received:', {
+      has_invoice_id: !!body.invoice_id,
+      invoice_id: body.invoice_id,
+      has_image_url: !!body.image_url,
+      has_additional_images: !!body.additional_images,
+      user_id: userId
+    });
+
     // Check if this is an update to existing invoice (invoice_id provided)
     const isUpdate = !!body.invoice_id;
+    console.log('📋 Operation mode:', isUpdate ? 'UPDATE' : 'INSERT');
 
     // Check if this is an image URL request (AI analysis mode)
     // Support both direct image_url and invoices array with image_url only
