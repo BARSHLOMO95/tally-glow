@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Invoice, InvoiceFormData, InvoiceStatus, BusinessType, EntryMethod } from '@/types/invoice';
-import { Save, X } from 'lucide-react';
+import { Save, X, Upload, Trash2, Image as ImageIcon } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 interface EditInvoiceModalProps {
   invoice: Invoice | null;
@@ -23,6 +25,9 @@ const documentTypeOptions = ['חשבונית מס', 'חשבונית מס קבל�
 const EditInvoiceModal = ({ invoice, isOpen, onClose, onSave, categories }: EditInvoiceModalProps) => {
   const [formData, setFormData] = useState<Partial<InvoiceFormData>>({});
   const [isImageEnlarged, setIsImageEnlarged] = useState(false);
+  const [additionalImages, setAdditionalImages] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (invoice) {
@@ -41,6 +46,7 @@ const EditInvoiceModal = ({ invoice, isOpen, onClose, onSave, categories }: Edit
         entry_method: invoice.entry_method,
         image_url: invoice.image_url,
       });
+      setAdditionalImages(invoice.additional_images || []);
     }
   }, [invoice]);
 
@@ -56,11 +62,80 @@ const EditInvoiceModal = ({ invoice, isOpen, onClose, onSave, categories }: Edit
     }
   }, [formData.amount_before_vat, formData.business_type]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (invoice) {
+      // Update additional_images in database
+      const { error } = await supabase
+        .from('invoices')
+        .update({ additional_images: additionalImages })
+        .eq('id', invoice.id);
+
+      if (error) {
+        console.error('Error updating additional_images:', error);
+        toast.error('שגיאה בעדכון התמונות הנוספות');
+      }
+
       onSave(invoice.id, formData);
       onClose();
     }
+  };
+
+  const handleAddImages = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !invoice) return;
+
+    setIsUploading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('לא מחובר');
+      setIsUploading(false);
+      return;
+    }
+
+    try {
+      const newImageUrls: string[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileName = `${user.id}/${Date.now()}_${i}.${file.name.split('.').pop()}`;
+
+        // Upload to Supabase storage
+        const { error: uploadError } = await supabase.storage
+          .from('invoices')
+          .upload(fileName, file);
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast.error(`שגיאה בהעלאת ${file.name}`);
+          continue;
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('invoices')
+          .getPublicUrl(fileName);
+
+        newImageUrls.push(urlData.publicUrl);
+      }
+
+      if (newImageUrls.length > 0) {
+        setAdditionalImages(prev => [...prev, ...newImageUrls]);
+        toast.success(`${newImageUrls.length} תמונות נוספו בהצלחה`);
+      }
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      toast.error('שגיאה בהעלאת התמונות');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleDeleteImage = (index: number) => {
+    setAdditionalImages(prev => prev.filter((_, i) => i !== index));
+    toast.success('התמונה הוסרה');
   };
 
   if (!invoice) return null;
@@ -224,17 +299,78 @@ const EditInvoiceModal = ({ invoice, isOpen, onClose, onSave, categories }: Edit
               </div>
             </div>
 
-            {/* Image on the left side */}
+            {/* Images Gallery on the left side */}
             {invoice.image_url && (
-              <div className="md:w-1/2 bg-muted rounded-lg p-4 flex flex-col">
-                <Label className="block mb-2">תמונת חשבונית (לחץ להגדלה)</Label>
-                <div className="flex-1 flex items-center justify-center min-h-[400px]">
-                  <img 
-                    src={invoice.image_url} 
-                    alt="תמונת חשבונית" 
-                    className="max-w-full max-h-[600px] object-contain rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={() => setIsImageEnlarged(true)}
+              <div className="md:w-1/2 bg-muted rounded-lg p-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <Label>תמונות החשבונית</Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    {isUploading ? 'מעלה...' : 'הוסף תמונות'}
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleAddImages}
                   />
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-3 max-h-[600px]">
+                  {/* Main image */}
+                  <div className="relative group">
+                    <div className="absolute top-2 right-2 z-10 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                      תמונה ראשית
+                    </div>
+                    <img
+                      src={invoice.preview_image_url || invoice.image_url}
+                      alt="תמונת חשבונית ראשית"
+                      className="w-full object-contain rounded-lg cursor-pointer hover:opacity-90 transition-opacity border-2 border-primary"
+                      onClick={() => setIsImageEnlarged(true)}
+                    />
+                  </div>
+
+                  {/* Additional images */}
+                  {additionalImages.map((imageUrl, index) => (
+                    <div key={index} className="relative group">
+                      <div className="absolute top-2 right-2 z-10 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                        עמוד {index + 2}
+                      </div>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="destructive"
+                        className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleDeleteImage(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <img
+                        src={imageUrl}
+                        alt={`תמונה נוספת ${index + 1}`}
+                        className="w-full object-contain rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => setIsImageEnlarged(true)}
+                      />
+                    </div>
+                  ))}
+
+                  {/* Empty state */}
+                  {additionalImages.length === 0 && (
+                    <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground">
+                      <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">אין תמונות נוספות</p>
+                      <p className="text-xs mt-1">לחץ על "הוסף תמונות" כדי להוסיף עמודים נוספים</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
