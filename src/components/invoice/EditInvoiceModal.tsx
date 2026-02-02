@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Invoice, InvoiceFormData, InvoiceStatus, BusinessType, EntryMethod } from '@/types/invoice';
 import { Save, X, Upload, Trash2, Image as ImageIcon } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface EditInvoiceModalProps {
