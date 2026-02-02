@@ -13,6 +13,7 @@ import Pricing from "./pages/Pricing";
 import PublicUpload from "./pages/PublicUpload";
 import Admin from "./pages/Admin";
 import Suppliers from "./pages/Suppliers";
+import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -75,15 +76,12 @@ const App = () => (
             }
           />
 
-          {/* Placeholder routes for new pages */}
+          {/* Feature routes */}
           <Route
             path="/analytics"
             element={
               <AppLayout>
-                <div className="p-6">
-                  <h1 className="text-3xl font-bold">דוחות ואנליטיקה</h1>
-                  <p className="text-muted-foreground mt-2">בקרוב...</p>
-                </div>
+                <Analytics />
               </AppLayout>
             }
           />
