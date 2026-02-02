@@ -82,6 +82,8 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
   };
 
   const handleSubmit = async () => {
+    console.log('🚀 handleSubmit called - START');
+
     if (!uploadedFile) {
       toast.error('יש להעלות תמונה תחילה');
       return;
@@ -97,7 +99,14 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
       return;
     }
 
+    // Prevent double submission
+    if (isUploading) {
+      console.warn('⚠️ Already uploading, ignoring duplicate call');
+      return;
+    }
+
     setIsUploading(true);
+    console.log('🔒 Upload started, isUploading set to true');
 
     try {
       // Get current user
@@ -198,17 +207,21 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
       });
 
       // STEP 2: Call AI analysis in background to populate fields (don't wait)
+      const edgeFunctionPayload = {
+        invoice_id: newInvoice.id,  // Send the invoice ID to update
+        image_url: mainImageUrl,
+        user_id: user.id
+      };
+
+      console.log('📤 Calling Edge Function with payload:', JSON.stringify(edgeFunctionPayload));
+
       supabase.functions.invoke('import-invoices', {
-        body: {
-          invoice_id: newInvoice.id,  // Send the invoice ID to update
-          image_url: mainImageUrl,
-          user_id: user.id
-        }
-      }).then(({ error }) => {
+        body: edgeFunctionPayload
+      }).then(({ data, error }) => {
         if (error) {
-          console.error('Error in background analysis:', error);
+          console.error('❌ Error in background analysis:', error);
         } else {
-          console.log('✅ Invoice analysis completed in background');
+          console.log('✅ Invoice analysis completed in background:', data);
           onSave(); // Refresh invoice list when done
         }
       });
