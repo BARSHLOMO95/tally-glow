@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { FileText, Upload, Loader2, Check, Lock, Image, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { generatePdfPreview } from '@/lib/utils';
+import { generatePdfPreviews } from '@/lib/utils';
 
 const PublicUpload = () => {
   const { linkCode } = useParams<{ linkCode: string }>();
@@ -20,7 +20,7 @@ const PublicUpload = () => {
   const [linkData, setLinkData] = useState<any>(null);
   
   const [files, setFiles] = useState<File[]>([]);
-  const [previewBlobs, setPreviewBlobs] = useState<Map<number, Blob>>(new Map());
+  const [previewBlobs, setPreviewBlobs] = useState<Map<number, Blob[]>>(new Map());
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -34,8 +34,8 @@ const PublicUpload = () => {
 
       if (file.type === 'application/pdf') {
         try {
-          const blob = await generatePdfPreview(file);
-          newPreviewBlobs.set(fileIndex, blob);
+          const blobs = await generatePdfPreviews(file);
+          newPreviewBlobs.set(fileIndex, blobs);
         } catch (error) {
           console.error(`Error generating preview for ${file.name}:`, error);
         }
@@ -155,55 +155,110 @@ const PublicUpload = () => {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const isPdf = file.type === 'application/pdf';
-        let fileToUpload: File | Blob;
-        let fileExtension: string;
+        const pdfBlobs = isPdf ? previewBlobs.get(i) : null;
 
-        // If it's a PDF with a preview, upload only the preview image
-        if (isPdf && previewBlobs.has(i)) {
-          fileToUpload = previewBlobs.get(i)!;
-          fileExtension = 'png';
+        let mainImageUrl: string;
+        let additionalImageUrls: string[] = [];
+
+        // If it's a PDF with multiple pages, upload each page separately
+        if (isPdf && pdfBlobs && pdfBlobs.length > 0) {
+          console.log(`✅ Uploading ${pdfBlobs.length} PDF pages as separate images`);
+
+          for (let pageIndex = 0; pageIndex < pdfBlobs.length; pageIndex++) {
+            const blob = pdfBlobs[pageIndex];
+            const fileName = `${linkData.user_id}/${Date.now()}_${i}_page${pageIndex + 1}.png`;
+
+            const { error: uploadError } = await supabase.storage
+              .from('invoices')
+              .upload(fileName, blob);
+
+            if (uploadError) {
+              console.error('Upload error:', uploadError);
+              toast.error(`שגיאה בהעלאת עמוד ${pageIndex + 1} של ${file.name}`);
+              continue;
+            }
+
+            const { data: urlData } = supabase.storage
+              .from('invoices')
+              .getPublicUrl(fileName);
+
+            if (pageIndex === 0) {
+              mainImageUrl = urlData.publicUrl;
+            } else {
+              additionalImageUrls.push(urlData.publicUrl);
+            }
+
+            console.log(`📤 Uploaded page ${pageIndex + 1}/${pdfBlobs.length}`);
+          }
         } else {
-          fileToUpload = file;
-          fileExtension = file.name.split('.').pop() || 'jpg';
+          // Regular image upload
+          console.log('📸 Uploading single image');
+          const fileExtension = file.name.split('.').pop() || 'jpg';
+          const fileName = `${linkData.user_id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('invoices')
+            .upload(fileName, file);
+
+          if (uploadError) {
+            console.error('Upload error:', uploadError);
+            toast.error(`שגיאה בהעלאת ${file.name}`);
+            continue;
+          }
+
+          const { data: urlData } = supabase.storage
+            .from('invoices')
+            .getPublicUrl(fileName);
+
+          mainImageUrl = urlData.publicUrl;
         }
 
-        // Upload the file (either original image or PDF converted to image)
-        const fileName = `${linkData.user_id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
+        console.log('📤 Creating invoice with additional_images:', {
+          mainImageUrl,
+          additionalImagesCount: additionalImageUrls.length,
+          additionalImages: additionalImageUrls
+        });
 
-        const { error: uploadError } = await supabase.storage
+        // STEP 1: Create the invoice record directly with additional_images
+        const { data: newInvoice, error: createError } = await supabase
           .from('invoices')
-          .upload(fileName, fileToUpload);
+          .insert([{
+            user_id: linkData.user_id,
+            intake_date: new Date().toISOString(),
+            status: 'חדש',
+            image_url: mainImageUrl,
+            preview_image_url: mainImageUrl,
+            additional_images: additionalImageUrls.length > 0 ? additionalImageUrls : null,
+            entry_method: 'דיגיטלי'
+          }])
+          .select()
+          .single();
 
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
-          toast.error(`שגיאה בהעלאת ${file.name}`);
+        if (createError) {
+          console.error('Error creating invoice:', createError);
+          toast.error(`שגיאה ביצירת חשבונית עבור ${file.name}`);
           continue;
         }
 
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('invoices')
-          .getPublicUrl(fileName);
+        console.log('✅ Invoice created with additional_images:', {
+          id: newInvoice.id,
+          additional_images_count: newInvoice.additional_images?.length || 0
+        });
 
-        // Call import-invoices function to process the image
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/import-invoices`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            },
-            body: JSON.stringify({
-              image_url: urlData.publicUrl,
-              user_id: linkData.user_id,
-            }),
+        // STEP 2: Call AI analysis in background to populate fields (don't wait)
+        supabase.functions.invoke('import-invoices', {
+          body: {
+            invoice_id: newInvoice.id,  // Send the invoice ID to update
+            image_url: mainImageUrl,
+            user_id: linkData.user_id
           }
-        );
-
-        if (!response.ok) {
-          console.error('Import error:', await response.text());
-        }
+        }).then(({ error }) => {
+          if (error) {
+            console.error('Error in background analysis:', error);
+          } else {
+            console.log('✅ Invoice analysis completed in background');
+          }
+        });
       }
 
       setUploadSuccess(true);
