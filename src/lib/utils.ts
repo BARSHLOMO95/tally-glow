@@ -12,6 +12,12 @@ export function cn(...inputs: ClassValue[]) {
  */
 export async function generatePdfPreviews(pdfFile: File): Promise<Blob[]> {
   try {
+    console.log('🔍 Checking pdfjsLib:', typeof pdfjsLib, pdfjsLib);
+
+    if (!pdfjsLib || !pdfjsLib.getDocument) {
+      throw new Error('PDF.js library is not loaded. Please refresh the page and try again.');
+    }
+
     // Read the PDF file as ArrayBuffer
     const arrayBuffer = await pdfFile.arrayBuffer();
 

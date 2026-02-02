@@ -6,7 +6,7 @@ import { Loader2, Image, Upload, X, CheckCircle, AlertTriangle, FileText } from 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSubscription } from '@/hooks/useSubscription';
-import { generatePdfPreviews } from '@/lib/utils';
+import { generatePdfPreview, generatePdfPreviews } from '@/lib/utils';
 
 interface AddInvoiceModalProps {
   isOpen: boolean;
@@ -63,13 +63,26 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
       console.log('🔄 Starting PDF preview generation...');
       try {
         toast.loading('יוצר תצוגה מקדימה...', { id: 'pdf-preview' });
-        const blobs = await generatePdfPreviews(file);
-        console.log(`✅ PDF preview generated successfully: ${blobs.length} pages`);
 
-        const urls = blobs.map(blob => URL.createObjectURL(blob));
-        setPreviewBlobs(blobs);
-        setPreviewUrls(urls);
-        toast.success(`${blobs.length} עמודים הומרו בהצלחה`, { id: 'pdf-preview' });
+        // Try the new multi-page function first
+        try {
+          const blobs = await generatePdfPreviews(file);
+          console.log(`✅ PDF preview generated successfully: ${blobs.length} pages`);
+
+          const urls = blobs.map(blob => URL.createObjectURL(blob));
+          setPreviewBlobs(blobs);
+          setPreviewUrls(urls);
+          toast.success(`${blobs.length} עמודים הומרו בהצלחה`, { id: 'pdf-preview' });
+        } catch (multiPageError) {
+          // Fallback to old single-page function if new one fails
+          console.warn('⚠️ Multi-page preview failed, falling back to single-page:', multiPageError);
+          const blob = await generatePdfPreview(file);
+          console.log('✅ PDF preview generated successfully (single image)');
+
+          setPreviewBlobs([blob]);
+          setPreviewUrls([URL.createObjectURL(blob)]);
+          toast.success('תצוגה מקדימה נוצרה בהצלחה', { id: 'pdf-preview' });
+        }
       } catch (error) {
         console.error('❌ Error generating PDF preview:', error);
         toast.error('שגיאה ביצירת תצוגה מקדימה', { id: 'pdf-preview' });
