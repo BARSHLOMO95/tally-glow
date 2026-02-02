@@ -206,6 +206,8 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
         additional_images_count: newInvoice.additional_images?.length || 0
       });
 
+      console.log('🔹 About to call Edge Function for AI analysis');
+
       // STEP 2: Call AI analysis in background to populate fields (don't wait)
       const edgeFunctionPayload = {
         invoice_id: newInvoice.id,  // Send the invoice ID to update
@@ -222,14 +224,21 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
           console.error('❌ Error in background analysis:', error);
         } else {
           console.log('✅ Invoice analysis completed in background:', data);
-          onSave(); // Refresh invoice list when done
+          // Don't call onSave here - we already called it below
         }
+      }).catch((err) => {
+        console.error('❌ Exception in Edge Function call:', err);
       });
+
+      console.log('🔹 Edge Function invoked (running in background)');
 
       // Close immediately and show success
       toast.success('החשבונית הועלתה! המערכת מנתחת ברקע...');
+      console.log('🔹 Toast shown, calling onSave() ONCE');
       onSave(); // Refresh immediately to show the new invoice
+      console.log('🔹 onSave() called, calling handleClose()');
       handleClose();
+      console.log('🔹 handleClose() called - END of handleSubmit');
 
     } catch (error) {
       console.error('Error uploading invoice:', error);
