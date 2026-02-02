@@ -6,7 +6,7 @@ import { Loader2, Image, Upload, X, CheckCircle, AlertTriangle, FileText } from 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSubscription } from '@/hooks/useSubscription';
-import { generatePdfPreview } from '@/lib/utils';
+import { generatePdfPreviews } from '@/lib/utils';
 
 interface AddInvoiceModalProps {
   isOpen: boolean;
@@ -20,8 +20,8 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [previewBlobs, setPreviewBlobs] = useState<Blob[]>([]);
   const [isSuccess, setIsSuccess] = useState(false);
   const { canUploadDocument, getRemainingDocuments, subscription, plan } = useSubscription();
   
@@ -63,24 +63,23 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
       console.log('🔄 Starting PDF preview generation...');
       try {
         toast.loading('יוצר תצוגה מקדימה...', { id: 'pdf-preview' });
-        const blob = await generatePdfPreview(file);
-        console.log('✅ PDF preview generated successfully:', {
-          blobSize: blob.size,
-          blobType: blob.type
-        });
-        setPreviewBlob(blob);
-        setPreviewUrl(URL.createObjectURL(blob));
-        toast.success('תצוגה מקדימה נוצרה בהצלחה', { id: 'pdf-preview' });
+        const blobs = await generatePdfPreviews(file);
+        console.log(`✅ PDF preview generated successfully: ${blobs.length} pages`);
+
+        const urls = blobs.map(blob => URL.createObjectURL(blob));
+        setPreviewBlobs(blobs);
+        setPreviewUrls(urls);
+        toast.success(`${blobs.length} עמודים הומרו בהצלחה`, { id: 'pdf-preview' });
       } catch (error) {
         console.error('❌ Error generating PDF preview:', error);
         toast.error('שגיאה ביצירת תצוגה מקדימה', { id: 'pdf-preview' });
-        setPreviewUrl(null);
-        setPreviewBlob(null);
+        setPreviewUrls([]);
+        setPreviewBlobs([]);
       }
     } else {
       console.log('📸 Using image directly (no conversion needed)');
-      setPreviewUrl(URL.createObjectURL(file));
-      setPreviewBlob(null);
+      setPreviewUrls([URL.createObjectURL(file)]);
+      setPreviewBlobs([]);
     }
   };
 
@@ -93,8 +92,8 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
     const isPdf = uploadedFile.type === 'application/pdf';
 
     // CRITICAL: Block PDF upload if preview was not generated
-    if (isPdf && !previewBlob) {
-      console.error('❌ BLOCKED: Cannot upload PDF without preview image');
+    if (isPdf && previewBlobs.length === 0) {
+      console.error('❌ BLOCKED: Cannot upload PDF without preview images');
       toast.error('לא ניתן להעלות PDF - ההמרה לתמונה נכשלה. נסה שוב או העלה תמונה רגילה.');
       setIsUploading(false);
       return;
@@ -110,50 +109,70 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
         return;
       }
 
-      let fileToUpload: File | Blob;
-      let fileExtension: string;
-
       console.log('📄 Upload Info:', {
         fileName: uploadedFile.name,
         fileType: uploadedFile.type,
         isPdf,
-        hasPreviewBlob: !!previewBlob
+        numberOfPages: previewBlobs.length
       });
 
-      // If it's a PDF with a preview, upload only the preview image
-      if (isPdf && previewBlob) {
-        console.log('✅ Using PDF preview image for upload');
-        fileToUpload = previewBlob;
-        fileExtension = 'png';
+      let mainImageUrl: string;
+      let additionalImageUrls: string[] = [];
+
+      // If it's a PDF with multiple pages, upload each page separately
+      if (isPdf && previewBlobs.length > 0) {
+        console.log(`✅ Uploading ${previewBlobs.length} PDF pages as separate images`);
+
+        for (let i = 0; i < previewBlobs.length; i++) {
+          const blob = previewBlobs[i];
+          const fileName = `${user.id}/${Date.now()}_page${i + 1}.png`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('invoices')
+            .upload(fileName, blob);
+
+          if (uploadError) {
+            throw uploadError;
+          }
+
+          const { data: urlData } = supabase.storage
+            .from('invoices')
+            .getPublicUrl(fileName);
+
+          if (i === 0) {
+            mainImageUrl = urlData.publicUrl;
+          } else {
+            additionalImageUrls.push(urlData.publicUrl);
+          }
+
+          console.log(`📤 Uploaded page ${i + 1}/${previewBlobs.length}`);
+        }
       } else {
-        console.log('📸 Using original image for upload');
-        fileToUpload = uploadedFile;
-        fileExtension = uploadedFile.name.split('.').pop() || 'jpg';
+        // Regular image upload
+        console.log('📸 Uploading single image');
+        const fileExtension = uploadedFile.name.split('.').pop() || 'jpg';
+        const fileName = `${user.id}/${Date.now()}.${fileExtension}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('invoices')
+          .upload(fileName, uploadedFile);
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('invoices')
+          .getPublicUrl(fileName);
+
+        mainImageUrl = urlData.publicUrl;
       }
-
-      // Upload the file (either original image or PDF converted to image)
-      const fileName = `${user.id}/${Date.now()}.${fileExtension}`;
-      console.log('📤 Uploading as:', fileName);
-
-      const { error: uploadError } = await supabase.storage
-        .from('invoices')
-        .upload(fileName, fileToUpload);
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('invoices')
-        .getPublicUrl(fileName);
-
-      const imageUrl = urlData.publicUrl;
 
       // Call import-invoices to analyze and save
       const { error } = await supabase.functions.invoke('import-invoices', {
         body: {
-          image_url: imageUrl,
+          image_url: mainImageUrl,
+          additional_images: additionalImageUrls,
           user_id: user.id
         }
       });
@@ -183,16 +202,16 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
 
   const handleClose = () => {
     setUploadedFile(null);
-    setPreviewUrl(null);
-    setPreviewBlob(null);
+    setPreviewUrls([]);
+    setPreviewBlobs([]);
     setIsSuccess(false);
     onClose();
   };
 
   const removeFile = () => {
     setUploadedFile(null);
-    setPreviewUrl(null);
-    setPreviewBlob(null);
+    setPreviewUrls([]);
+    setPreviewBlobs([]);
     setIsSuccess(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -252,22 +271,40 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
           ) : uploadedFile ? (
             <div className="space-y-4">
               <div className="relative">
-                {previewUrl ? (
-                  <img 
-                    src={previewUrl} 
-                    alt="תצוגה מקדימה" 
-                    className="w-full max-h-64 object-contain rounded-lg border bg-muted"
-                  />
+                {previewUrls.length > 0 ? (
+                  <div className="space-y-3">
+                    {previewUrls.length > 1 && (
+                      <p className="text-sm font-medium text-center">
+                        {previewUrls.length} עמודים
+                      </p>
+                    )}
+                    <div className="max-h-96 overflow-y-auto space-y-3">
+                      {previewUrls.map((url, index) => (
+                        <div key={index} className="relative">
+                          {previewUrls.length > 1 && (
+                            <span className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded z-10">
+                              עמוד {index + 1}
+                            </span>
+                          )}
+                          <img
+                            src={url}
+                            alt={`עמוד ${index + 1}`}
+                            className="w-full object-contain rounded-lg border bg-muted"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 rounded-lg border bg-muted">
                     <FileText className="h-16 w-16 text-red-500 mb-2" />
-                    <p className="text-sm font-medium">קובץ PDF</p>
+                    <p className="text-sm font-medium">מעבד PDF...</p>
                   </div>
                 )}
                 <Button
                   variant="destructive"
                   size="icon"
-                  className="absolute top-2 left-2 h-8 w-8"
+                  className="absolute top-2 left-2 h-8 w-8 z-20"
                   onClick={removeFile}
                   disabled={isUploading}
                 >

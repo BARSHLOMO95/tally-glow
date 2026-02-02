@@ -21,6 +21,7 @@ export interface Invoice {
   entry_method: EntryMethod;
   image_url: string | null;
   preview_image_url: string | null; // Preview image for PDFs
+  additional_images: string[] | null; // Additional images for multi-page PDFs
   created_at: string;
   updated_at: string;
   // File metadata fields
