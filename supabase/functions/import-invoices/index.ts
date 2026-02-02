@@ -56,6 +56,9 @@ Deno.serve(async (req) => {
       const extractionFailed = !invoiceData;
       
       // Build invoice record - use empty fields if extraction failed
+      const additionalImages = body.additional_images || [];
+      console.log('📸 Additional images received:', JSON.stringify(additionalImages), 'Type:', typeof additionalImages, 'Is Array:', Array.isArray(additionalImages));
+
       const invoiceToInsert = {
         user_id: userId,
         intake_date: new Date().toISOString(),
@@ -72,7 +75,7 @@ Deno.serve(async (req) => {
         entry_method: invoiceData?.entry_method || 'דיגיטלי',
         image_url: imageUrlForAI,
         preview_image_url: body.preview_image_url || null,
-        additional_images: body.additional_images || null,
+        additional_images: additionalImages.length > 0 ? additionalImages : null,
       };
 
       console.log('Inserting invoice:', JSON.stringify(invoiceToInsert), extractionFailed ? '(extraction failed - pending manual review)' : '(AI extracted)');
@@ -91,6 +94,9 @@ Deno.serve(async (req) => {
       }
 
       console.log('Successfully inserted invoice:', data);
+      if (data && data[0]) {
+        console.log('📸 Saved additional_images:', data[0].additional_images, 'Count:', data[0].additional_images?.length || 0);
+      }
       
       // Increment document usage
       await incrementDocumentUsage(supabase, userId, 1);
