@@ -29,16 +29,19 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Check if this is an update to existing invoice (invoice_id provided)
+    const isUpdate = !!body.invoice_id;
+
     // Check if this is an image URL request (AI analysis mode)
     // Support both direct image_url and invoices array with image_url only
     let imageUrlForAI: string | null = null;
-    
+
     if (body.image_url) {
       imageUrlForAI = body.image_url;
     } else if (Array.isArray(body.invoices) && body.invoices.length === 1) {
       const firstInvoice = body.invoices[0];
       // If invoice only has image_url (and no other meaningful data), use AI mode
-      const hasOnlyImageUrl = firstInvoice.image_url && 
+      const hasOnlyImageUrl = firstInvoice.image_url &&
         !firstInvoice.supplier_name && !firstInvoice['שם הספק'] &&
         !firstInvoice.total_amount && !firstInvoice['סכום כולל מע"מ'] && !firstInvoice['סכום כולל מע״מ'];
       if (hasOnlyImageUrl) {
@@ -47,14 +50,21 @@ Deno.serve(async (req) => {
     }
 
     if (imageUrlForAI && openaiApiKey) {
-      console.log('AI Analysis mode - analyzing image:', imageUrlForAI);
+      console.log('AI Analysis mode - analyzing image:', imageUrlForAI, isUpdate ? '(UPDATE existing invoice)' : '(CREATE new invoice)');
       
       const invoiceData = await analyzeInvoiceImage(imageUrlForAI, openaiApiKey);
       console.log('AI extracted data:', JSON.stringify(invoiceData));
 
       // Determine if extraction succeeded or failed
       const extractionFailed = !invoiceData;
-      
+
+      // Log received additional_images
+      console.log('📸 Received from client:', {
+        additional_images: body.additional_images,
+        is_array: Array.isArray(body.additional_images),
+        count: body.additional_images?.length || 0
+      });
+
       // Build invoice record - use empty fields if extraction failed
       const additionalImages = body.additional_images || [];
       console.log('📸 Additional images received:', JSON.stringify(additionalImages), 'Type:', typeof additionalImages, 'Is Array:', Array.isArray(additionalImages));
@@ -78,12 +88,57 @@ Deno.serve(async (req) => {
         additional_images: additionalImages.length > 0 ? additionalImages : null,
       };
 
-      console.log('Inserting invoice:', JSON.stringify(invoiceToInsert), extractionFailed ? '(extraction failed - pending manual review)' : '(AI extracted)');
+      console.log('📝 About to save:', {
+        operation: isUpdate ? 'UPDATE' : 'INSERT',
+        invoice_id: body.invoice_id,
+        additional_images_value: invoiceToInsert.additional_images,
+        additional_images_type: typeof invoiceToInsert.additional_images,
+        additional_images_is_array: Array.isArray(invoiceToInsert.additional_images)
+      });
 
-      const { data, error } = await supabase
-        .from('invoices')
-        .insert([invoiceToInsert])
-        .select();
+      let data, error;
+
+      if (isUpdate) {
+        // UPDATE existing invoice with AI-extracted data
+        console.log('🔄 Updating existing invoice:', body.invoice_id);
+        const updateResult = await supabase
+          .from('invoices')
+          .update({
+            document_date: invoiceData?.document_date || null,
+            status: extractionFailed ? 'ממתין לבדיקה ידנית' : 'חדש',
+            supplier_name: invoiceData?.supplier_name || null,
+            document_number: invoiceData?.document_number || null,
+            document_type: invoiceData?.document_type || null,
+            category: invoiceData?.category || null,
+            amount_before_vat: invoiceData?.amount_before_vat || null,
+            vat_amount: invoiceData?.vat_amount || null,
+            total_amount: invoiceData?.total_amount || null,
+            business_type: invoiceData?.business_type || null,
+          })
+          .eq('id', body.invoice_id)
+          .select();
+
+        data = updateResult.data;
+        error = updateResult.error;
+      } else {
+        // INSERT new invoice
+        console.log('➕ Inserting new invoice');
+        const insertResult = await supabase
+          .from('invoices')
+          .insert([invoiceToInsert])
+          .select();
+
+        data = insertResult.data;
+        error = insertResult.error;
+      }
+
+      console.log('💾 Database operation result:', {
+        operation: isUpdate ? 'UPDATE' : 'INSERT',
+        success: !error,
+        error: error?.message,
+        saved_additional_images: data?.[0]?.additional_images,
+        saved_count: data?.[0]?.additional_images?.length || 0
+      });
 
       if (error) {
         console.error('Database error:', error);
@@ -93,13 +148,15 @@ Deno.serve(async (req) => {
         );
       }
 
-      console.log('Successfully inserted invoice:', data);
+      console.log('Successfully saved invoice:', data);
       if (data && data[0]) {
         console.log('📸 Saved additional_images:', data[0].additional_images, 'Count:', data[0].additional_images?.length || 0);
       }
-      
-      // Increment document usage
-      await incrementDocumentUsage(supabase, userId, 1);
+
+      // Increment document usage only for new invoices
+      if (!isUpdate) {
+        await incrementDocumentUsage(supabase, userId, 1);
+      }
       
       // Send WhatsApp notification
       const userSettings = await getUserSettings(supabase, userId);
