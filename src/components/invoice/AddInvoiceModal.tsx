@@ -181,29 +181,35 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
         additionalImages: additionalImageUrls
       });
 
+      const invoiceToCreate = {
+        user_id: user.id,
+        intake_date: new Date().toISOString(),
+        status: 'חדש',
+        image_url: mainImageUrl,
+        preview_image_url: mainImageUrl,
+        additional_images: additionalImageUrls.length > 0 ? additionalImageUrls : null,
+        entry_method: 'דיגיטלי'
+      };
+
+      console.log('📝 ABOUT TO INSERT INVOICE:', JSON.stringify(invoiceToCreate, null, 2));
+
       // STEP 1: Create the invoice record directly with additional_images
       const { data: newInvoice, error: createError } = await supabase
         .from('invoices')
-        .insert([{
-          user_id: user.id,
-          intake_date: new Date().toISOString(),
-          status: 'חדש',
-          image_url: mainImageUrl,
-          preview_image_url: mainImageUrl,
-          additional_images: additionalImageUrls.length > 0 ? additionalImageUrls : null,
-          entry_method: 'דיגיטלי'
-        }])
+        .insert([invoiceToCreate])
         .select()
         .single();
 
       if (createError) {
-        console.error('Error creating invoice:', createError);
+        console.error('❌ Error creating invoice:', createError);
         throw createError;
       }
 
+      console.log('✅ Invoice created with ID:', newInvoice.id);
       console.log('✅ Invoice created with additional_images:', {
         id: newInvoice.id,
-        additional_images_count: newInvoice.additional_images?.length || 0
+        additional_images_count: newInvoice.additional_images?.length || 0,
+        full_invoice: newInvoice
       });
 
       console.log('🔹 About to call Edge Function for AI analysis');
@@ -230,6 +236,8 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
           toast.error('החשבונית נשמרה אך הניתוח נכשל', { id: 'ai-analysis' });
         } else {
           console.log('✅ AI analysis completed successfully:', data);
+          console.log('✅ Operation:', data?.operation, 'Updated:', data?.updated, 'Inserted:', data?.inserted);
+          console.log('✅ Invoice ID from response:', data?.invoice_id);
           toast.success('החשבונית נשמרה וניתחה בהצלחה!', { id: 'ai-analysis' });
         }
       } catch (err) {
