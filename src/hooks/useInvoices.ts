@@ -22,29 +22,30 @@ export function useInvoices(userId: string | undefined) {
     amountMax: null,
   });
 
-  // Fetch invoices
-  useEffect(() => {
+  // Fetch invoices function (exposed for manual refresh)
+  const fetchInvoices = async () => {
     if (!userId) {
       setLoading(false);
       return;
     }
 
-    const fetchInvoices = async () => {
-      const { data, error } = await supabase
-        .from('invoices')
-        .select('*')
-        .eq('user_id', userId)
-        .order('intake_date', { ascending: false });
+    const { data, error } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('user_id', userId)
+      .order('intake_date', { ascending: false });
 
-      if (error) {
-        toast.error('שגיאה בטעינת החשבוניות');
-        console.error(error);
-      } else {
-        setInvoices(data as Invoice[]);
-      }
-      setLoading(false);
-    };
+    if (error) {
+      toast.error('שגיאה בטעינת החשבוניות');
+      console.error(error);
+    } else {
+      setInvoices(data as Invoice[]);
+    }
+    setLoading(false);
+  };
 
+  // Fetch invoices on mount
+  useEffect(() => {
     fetchInvoices();
   }, [userId]);
 
@@ -365,5 +366,6 @@ export function useInvoices(userId: string | undefined) {
     toggleSelection,
     toggleSelectAll,
     clearFilters,
+    refreshInvoices: fetchInvoices, // Add manual refresh function
   };
 }

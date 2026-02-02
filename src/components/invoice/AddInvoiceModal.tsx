@@ -208,7 +208,7 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
 
       console.log('🔹 About to call Edge Function for AI analysis');
 
-      // STEP 2: Call AI analysis in background to populate fields (don't wait)
+      // STEP 2: Call AI analysis and WAIT for it to complete
       const edgeFunctionPayload = {
         invoice_id: newInvoice.id,  // Send the invoice ID to update
         image_url: mainImageUrl,
@@ -217,26 +217,29 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
 
       console.log('📤 Calling Edge Function with payload:', JSON.stringify(edgeFunctionPayload));
 
-      supabase.functions.invoke('import-invoices', {
-        body: edgeFunctionPayload
-      }).then(({ data, error }) => {
+      // Show loading toast
+      toast.loading('המערכת מנתחת את החשבונית...', { id: 'ai-analysis' });
+
+      try {
+        const { data, error } = await supabase.functions.invoke('import-invoices', {
+          body: edgeFunctionPayload
+        });
+
         if (error) {
-          console.error('❌ Error in background analysis:', error);
+          console.error('❌ Error in AI analysis:', error);
+          toast.error('החשבונית נשמרה אך הניתוח נכשל', { id: 'ai-analysis' });
         } else {
-          console.log('✅ Invoice analysis completed in background:', data);
-          // Don't call onSave here - we already called it below
+          console.log('✅ AI analysis completed successfully:', data);
+          toast.success('החשבונית נשמרה וניתחה בהצלחה!', { id: 'ai-analysis' });
         }
-      }).catch((err) => {
+      } catch (err) {
         console.error('❌ Exception in Edge Function call:', err);
-      });
+        toast.error('החשבונית נשמרה אך הניתוח נכשל', { id: 'ai-analysis' });
+      }
 
-      console.log('🔹 Edge Function invoked (running in background)');
-
-      // Close immediately and show success
-      toast.success('החשבונית הועלתה! המערכת מנתחת ברקע... הדף יתרענן בעוד שניות', { duration: 3000 });
-      console.log('🔹 Toast shown, calling onSave() ONCE');
-      onSave(); // Will reload after 3 seconds
-      console.log('🔹 onSave() called, calling handleClose()');
+      console.log('🔹 AI analysis finished, calling onSave()');
+      await onSave(); // Wait for refresh to complete
+      console.log('🔹 onSave() completed, calling handleClose()');
       handleClose();
       console.log('🔹 handleClose() called - END of handleSubmit');
 
