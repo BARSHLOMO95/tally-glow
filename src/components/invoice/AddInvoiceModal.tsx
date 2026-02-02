@@ -323,20 +323,20 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
           )}
         </div>
 
-        {!isSuccess && !isLimitReached && (
+        {!isLimitReached && (
           <div className="flex gap-3 mt-6 justify-end">
             <Button variant="outline" onClick={handleClose} disabled={isUploading}>
               <X className="h-4 w-4 ml-1" />
               ביטול
             </Button>
-            <Button 
+            <Button
               onClick={handleSubmit}
               disabled={!uploadedFile || isUploading}
             >
               {isUploading ? (
                 <>
                   <Loader2 className="h-4 w-4 ml-1 animate-spin" />
-                  מעלה ומנתח...
+                  מעלה...
                 </>
               ) : (
                 <>
