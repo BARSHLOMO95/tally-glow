@@ -1,9 +1,17 @@
 import { useState, useMemo } from 'react';
-import { Building2, TrendingUp, TrendingDown, FileText, Download, Search, Merge } from 'lucide-react';
+import { Building2, TrendingUp, TrendingDown, FileText, Download, Search, Merge, ArrowUpDown, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -38,6 +46,8 @@ export default function Suppliers() {
   const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null);
   const [mergeModalOpen, setMergeModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [sortBy, setSortBy] = useState<'name' | 'amount' | 'invoices'>('name');
+  const [suggestedMerges, setSuggestedMerges] = useState<string[]>([]);
 
   // Calculate supplier statistics
   const supplierStats = useMemo(() => {
@@ -85,20 +95,72 @@ export default function Suppliers() {
       stats.averageAmount = stats.totalAmount / stats.invoiceCount;
     });
 
-    return Array.from(statsMap.values()).sort((a, b) => b.totalAmount - a.totalAmount);
+    return Array.from(statsMap.values());
   }, [invoices]);
+
+  // Detect similar suppliers (smart merge suggestions)
+  const similarSuppliers = useMemo(() => {
+    const similar: Array<{ suppliers: string[]; reason: string }> = [];
+    const names = supplierStats.map((s) => s.name);
+
+    for (let i = 0; i < names.length; i++) {
+      for (let j = i + 1; j < names.length; j++) {
+        const name1 = names[i].toLowerCase().trim();
+        const name2 = names[j].toLowerCase().trim();
+
+        // Check if one contains the other
+        if (name1.includes(name2) || name2.includes(name1)) {
+          similar.push({
+            suppliers: [names[i], names[j]],
+            reason: 'שמות דומים',
+          });
+        }
+        // Check if they share significant words
+        else {
+          const words1 = name1.split(/\s+/).filter((w) => w.length > 2);
+          const words2 = name2.split(/\s+/).filter((w) => w.length > 2);
+          const commonWords = words1.filter((w) => words2.includes(w));
+
+          if (commonWords.length > 0 && commonWords.length >= Math.min(words1.length, words2.length) * 0.5) {
+            similar.push({
+              suppliers: [names[i], names[j]],
+              reason: 'מילים משותפות',
+            });
+          }
+        }
+      }
+    }
+
+    return similar;
+  }, [supplierStats]);
+
+  // Sort suppliers
+  const sortedSuppliers = useMemo(() => {
+    const sorted = [...supplierStats];
+
+    switch (sortBy) {
+      case 'name':
+        return sorted.sort((a, b) => a.name.localeCompare(b.name, 'he'));
+      case 'amount':
+        return sorted.sort((a, b) => b.totalAmount - a.totalAmount);
+      case 'invoices':
+        return sorted.sort((a, b) => b.invoiceCount - a.invoiceCount);
+      default:
+        return sorted;
+    }
+  }, [supplierStats, sortBy]);
 
   // Filter suppliers based on search
   const filteredSuppliers = useMemo(() => {
-    if (!searchQuery) return supplierStats;
+    if (!searchQuery) return sortedSuppliers;
 
     const query = searchQuery.toLowerCase();
-    return supplierStats.filter(
+    return sortedSuppliers.filter(
       (supplier) =>
         supplier.name.toLowerCase().includes(query) ||
         supplier.categories.some((cat) => cat.toLowerCase().includes(query))
     );
-  }, [supplierStats, searchQuery]);
+  }, [sortedSuppliers, searchQuery]);
 
   // Export to Excel
   const handleExport = () => {
@@ -232,6 +294,45 @@ export default function Suppliers() {
         </Card>
       </div>
 
+      {/* Smart Merge Suggestions */}
+      {similarSuppliers.length > 0 && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>נמצאו {similarSuppliers.length} זוגות ספקים דומים שניתן למזג</AlertTitle>
+          <AlertDescription className="mt-2">
+            <div className="space-y-2">
+              {similarSuppliers.slice(0, 3).map((suggestion, idx) => (
+                <div key={idx} className="flex items-center justify-between gap-2 p-2 bg-muted/50 rounded-md">
+                  <div className="flex-1 text-sm">
+                    <span className="font-medium">{suggestion.suppliers[0]}</span>
+                    {' • '}
+                    <span className="font-medium">{suggestion.suppliers[1]}</span>
+                    {' '}
+                    <span className="text-muted-foreground">({suggestion.reason})</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setSuggestedMerges(suggestion.suppliers);
+                      setMergeModalOpen(true);
+                    }}
+                  >
+                    <Merge className="h-3 w-3 ml-1" />
+                    מזג
+                  </Button>
+                </div>
+              ))}
+              {similarSuppliers.length > 3 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  ועוד {similarSuppliers.length - 3} הצעות נוספות...
+                </p>
+              )}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Search and Filters */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center">
         <div className="relative flex-1">
@@ -243,6 +344,17 @@ export default function Suppliers() {
             className="pr-9"
           />
         </div>
+        <Select value={sortBy} onValueChange={(v) => setSortBy(v as 'name' | 'amount' | 'invoices')}>
+          <SelectTrigger className="w-48">
+            <ArrowUpDown className="h-4 w-4 ml-2" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name">מיון לפי שם (א-ב-ג)</SelectItem>
+            <SelectItem value="amount">מיון לפי סכום</SelectItem>
+            <SelectItem value="invoices">מיון לפי מספר חשבוניות</SelectItem>
+          </SelectContent>
+        </Select>
         <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'table' | 'cards')}>
           <TabsList>
             <TabsTrigger value="table">טבלה</TabsTrigger>
@@ -376,8 +488,12 @@ export default function Suppliers() {
       {/* Merge Suppliers Modal */}
       <MergeSuppliersModal
         open={mergeModalOpen}
-        onClose={() => setMergeModalOpen(false)}
+        onClose={() => {
+          setMergeModalOpen(false);
+          setSuggestedMerges([]);
+        }}
         suppliers={supplierStats.map((s) => s.name)}
+        initialSuppliers={suggestedMerges}
       />
     </div>
   );

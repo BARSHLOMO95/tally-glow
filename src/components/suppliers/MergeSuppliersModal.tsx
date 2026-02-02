@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -21,18 +21,27 @@ interface MergeSuppliersModalProps {
   open: boolean;
   onClose: () => void;
   suppliers: string[];
+  initialSuppliers?: string[];
 }
 
 export function MergeSuppliersModal({
   open,
   onClose,
   suppliers,
+  initialSuppliers = [],
 }: MergeSuppliersModalProps) {
-  const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
+  const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>(initialSuppliers);
   const [newSupplierName, setNewSupplierName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isMerging, setIsMerging] = useState(false);
   const queryClient = useQueryClient();
+
+  // Update selected suppliers when modal opens with new suggestions
+  useEffect(() => {
+    if (open && initialSuppliers.length > 0) {
+      setSelectedSuppliers(initialSuppliers);
+    }
+  }, [open, initialSuppliers]);
 
   const handleToggleSupplier = (supplier: string) => {
     setSelectedSuppliers((prev) =>
