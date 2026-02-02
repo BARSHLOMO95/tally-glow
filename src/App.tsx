@@ -7,6 +7,7 @@ import { AppLayout } from "./components/layout/AppLayout";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Overview from "./pages/Overview";
 import AccountantReport from "./pages/AccountantReport";
 import Settings from "./pages/Settings";
 import Pricing from "./pages/Pricing";
@@ -37,7 +38,7 @@ const App = () => (
             path="/dashboard"
             element={
               <AppLayout>
-                <Dashboard />
+                <Overview />
               </AppLayout>
             }
           />
