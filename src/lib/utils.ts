@@ -2,8 +2,8 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Configure PDF.js worker - use CDN for reliability
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+// Configure PDF.js worker - use correct version from unpkg
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@5.4.624/build/pdf.worker.min.mjs';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
