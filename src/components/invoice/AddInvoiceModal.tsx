@@ -166,23 +166,47 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
         mainImageUrl = urlData.publicUrl;
       }
 
-      console.log('📤 Sending to Edge Function:', {
+      console.log('📤 Creating invoice with additional_images:', {
         mainImageUrl,
         additionalImagesCount: additionalImageUrls.length,
         additionalImages: additionalImageUrls
       });
 
-      // Call import-invoices to analyze in background (don't wait)
+      // STEP 1: Create the invoice record directly with additional_images
+      const { data: newInvoice, error: createError } = await supabase
+        .from('invoices')
+        .insert([{
+          user_id: user.id,
+          intake_date: new Date().toISOString(),
+          status: 'חדש',
+          image_url: mainImageUrl,
+          preview_image_url: mainImageUrl,
+          additional_images: additionalImageUrls.length > 0 ? additionalImageUrls : null,
+          entry_method: 'דיגיטלי'
+        }])
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('Error creating invoice:', createError);
+        throw createError;
+      }
+
+      console.log('✅ Invoice created with additional_images:', {
+        id: newInvoice.id,
+        additional_images_count: newInvoice.additional_images?.length || 0
+      });
+
+      // STEP 2: Call AI analysis in background to populate fields (don't wait)
       supabase.functions.invoke('import-invoices', {
         body: {
+          invoice_id: newInvoice.id,  // Send the invoice ID to update
           image_url: mainImageUrl,
-          additional_images: additionalImageUrls,
           user_id: user.id
         }
       }).then(({ error }) => {
         if (error) {
           console.error('Error in background analysis:', error);
-          toast.error('שגיאה בניתוח החשבונית');
         } else {
           console.log('✅ Invoice analysis completed in background');
           onSave(); // Refresh invoice list when done
@@ -191,6 +215,7 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
 
       // Close immediately and show success
       toast.success('החשבונית הועלתה! המערכת מנתחת ברקע...');
+      onSave(); // Refresh immediately to show the new invoice
       handleClose();
 
     } catch (error) {
