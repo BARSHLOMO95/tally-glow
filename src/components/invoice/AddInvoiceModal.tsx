@@ -233,9 +233,9 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
       console.log('🔹 Edge Function invoked (running in background)');
 
       // Close immediately and show success
-      toast.success('החשבונית הועלתה! המערכת מנתחת ברקע...');
+      toast.success('החשבונית הועלתה! המערכת מנתחת ברקע... הדף יתרענן בעוד שניות', { duration: 3000 });
       console.log('🔹 Toast shown, calling onSave() ONCE');
-      onSave(); // Refresh immediately to show the new invoice
+      onSave(); // Will reload after 3 seconds
       console.log('🔹 onSave() called, calling handleClose()');
       handleClose();
       console.log('🔹 handleClose() called - END of handleSubmit');
