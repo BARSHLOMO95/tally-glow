@@ -13,6 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useInvoices } from '@/hooks/useInvoices';
+import { useAuth } from '@/hooks/useAuth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SupplierDetailsModal } from '@/components/suppliers/SupplierDetailsModal';
@@ -31,7 +32,8 @@ interface SupplierStats {
 }
 
 export default function Suppliers() {
-  const { data: invoices, isLoading } = useInvoices();
+  const { user } = useAuth();
+  const { invoices, loading } = useInvoices(user?.id);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null);
   const [mergeModalOpen, setMergeModalOpen] = useState(false);
@@ -131,7 +133,7 @@ export default function Suppliers() {
     return new Date(dateString).toLocaleDateString('he-IL');
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="p-6 space-y-6" dir="rtl">
         <Skeleton className="h-10 w-64" />

@@ -7,6 +7,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { useInvoices } from '@/hooks/useInvoices';
+import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -31,7 +32,8 @@ export function SupplierDetailsModal({
   open,
   onClose,
 }: SupplierDetailsModalProps) {
-  const { data: allInvoices } = useInvoices();
+  const { user } = useAuth();
+  const { invoices: allInvoices } = useInvoices(user?.id);
 
   const supplierInvoices = useMemo(() => {
     if (!allInvoices) return [];
