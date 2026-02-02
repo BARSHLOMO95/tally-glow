@@ -284,8 +284,12 @@ const Dashboard = () => {
   };
 
   const handleInvoiceAdded = () => {
-    // Refresh the page to reload invoices
-    window.location.reload();
+    // Wait 3 seconds before reloading to allow Edge Function to start processing
+    console.log('⏳ Waiting 3 seconds before reload to allow AI analysis to start...');
+    setTimeout(() => {
+      console.log('🔄 Reloading page...');
+      window.location.reload();
+    }, 3000);
   };
 
   // Calculate duplicates

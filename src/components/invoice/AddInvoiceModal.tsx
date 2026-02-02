@@ -82,6 +82,8 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
   };
 
   const handleSubmit = async () => {
+    console.log('🚀 handleSubmit called - START');
+
     if (!uploadedFile) {
       toast.error('יש להעלות תמונה תחילה');
       return;
@@ -97,7 +99,14 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
       return;
     }
 
+    // Prevent double submission
+    if (isUploading) {
+      console.warn('⚠️ Already uploading, ignoring duplicate call');
+      return;
+    }
+
     setIsUploading(true);
+    console.log('🔒 Upload started, isUploading set to true');
 
     try {
       // Get current user
@@ -197,26 +206,39 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
         additional_images_count: newInvoice.additional_images?.length || 0
       });
 
+      console.log('🔹 About to call Edge Function for AI analysis');
+
       // STEP 2: Call AI analysis in background to populate fields (don't wait)
+      const edgeFunctionPayload = {
+        invoice_id: newInvoice.id,  // Send the invoice ID to update
+        image_url: mainImageUrl,
+        user_id: user.id
+      };
+
+      console.log('📤 Calling Edge Function with payload:', JSON.stringify(edgeFunctionPayload));
+
       supabase.functions.invoke('import-invoices', {
-        body: {
-          invoice_id: newInvoice.id,  // Send the invoice ID to update
-          image_url: mainImageUrl,
-          user_id: user.id
-        }
-      }).then(({ error }) => {
+        body: edgeFunctionPayload
+      }).then(({ data, error }) => {
         if (error) {
-          console.error('Error in background analysis:', error);
+          console.error('❌ Error in background analysis:', error);
         } else {
-          console.log('✅ Invoice analysis completed in background');
-          onSave(); // Refresh invoice list when done
+          console.log('✅ Invoice analysis completed in background:', data);
+          // Don't call onSave here - we already called it below
         }
+      }).catch((err) => {
+        console.error('❌ Exception in Edge Function call:', err);
       });
 
+      console.log('🔹 Edge Function invoked (running in background)');
+
       // Close immediately and show success
-      toast.success('החשבונית הועלתה! המערכת מנתחת ברקע...');
-      onSave(); // Refresh immediately to show the new invoice
+      toast.success('החשבונית הועלתה! המערכת מנתחת ברקע... הדף יתרענן בעוד שניות', { duration: 3000 });
+      console.log('🔹 Toast shown, calling onSave() ONCE');
+      onSave(); // Will reload after 3 seconds
+      console.log('🔹 onSave() called, calling handleClose()');
       handleClose();
+      console.log('🔹 handleClose() called - END of handleSubmit');
 
     } catch (error) {
       console.error('Error uploading invoice:', error);
