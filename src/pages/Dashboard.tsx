@@ -130,18 +130,27 @@ const Dashboard = () => {
       .map(inv => {
         // Prioritize preview_image_url for PDFs, then image_url
         const displayUrl = inv.preview_image_url || inv.image_url;
-        return `
-          <div class="invoice-image-page">
-            <div class="invoice-header">
-              ${inv.supplier_name} - ${inv.document_number}
+        const additionalImages = inv.additional_images || [];
+
+        // Create array of all images to display
+        const allImages = [displayUrl, ...additionalImages];
+
+        // Generate HTML for each image
+        return allImages.map((imgUrl, index) => {
+          const pageLabel = allImages.length > 1 ? ` - עמוד ${index + 1}/${allImages.length}` : '';
+          return `
+            <div class="invoice-image-page">
+              <div class="invoice-header">
+                ${inv.supplier_name} - ${inv.document_number}${pageLabel}
+              </div>
+              <div class="invoice-image-container">
+                <img src="${imgUrl}"
+                  crossorigin="anonymous"
+                  onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='${imgUrl}';" />
+              </div>
             </div>
-            <div class="invoice-image-container">
-              <img src="${displayUrl}" 
-                crossorigin="anonymous"
-                onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='${displayUrl}';" />
-            </div>
-          </div>
-        `;
+          `;
+        }).join('');
       }).join('');
     
     const htmlContent = `
