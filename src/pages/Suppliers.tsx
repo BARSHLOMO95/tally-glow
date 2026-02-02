@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   Select,
@@ -48,6 +49,7 @@ export default function Suppliers() {
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [sortBy, setSortBy] = useState<'name' | 'amount' | 'invoices'>('name');
   const [suggestedMerges, setSuggestedMerges] = useState<string[]>([]);
+  const [selectedForMerge, setSelectedForMerge] = useState<string[]>([]);
 
   // Calculate supplier statistics
   const supplierStats = useMemo(() => {
@@ -195,6 +197,27 @@ export default function Suppliers() {
     return new Date(dateString).toLocaleDateString('he-IL');
   };
 
+  const handleToggleSupplierSelection = (supplierName: string) => {
+    setSelectedForMerge((prev) =>
+      prev.includes(supplierName)
+        ? prev.filter((s) => s !== supplierName)
+        : [...prev, supplierName]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedForMerge.length === filteredSuppliers.length) {
+      setSelectedForMerge([]);
+    } else {
+      setSelectedForMerge(filteredSuppliers.map((s) => s.name));
+    }
+  };
+
+  const handleMergeSelected = () => {
+    setSuggestedMerges(selectedForMerge);
+    setMergeModalOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="p-6 space-y-6" dir="rtl">
@@ -228,11 +251,17 @@ export default function Suppliers() {
           </p>
         </div>
         <div className="flex gap-2">
+          {selectedForMerge.length > 0 && (
+            <Button onClick={handleMergeSelected}>
+              <Merge className="h-4 w-4 ml-2" />
+              מזג נבחרים ({selectedForMerge.length})
+            </Button>
+          )}
           <Button variant="outline" onClick={() => setMergeModalOpen(true)}>
             <Merge className="h-4 w-4 ml-2" />
             מיזוג ספקים
           </Button>
-          <Button onClick={handleExport}>
+          <Button variant="outline" onClick={handleExport}>
             <Download className="h-4 w-4 ml-2" />
             ייצא לאקסל
           </Button>
@@ -369,6 +398,15 @@ export default function Suppliers() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={
+                      filteredSuppliers.length > 0 &&
+                      selectedForMerge.length === filteredSuppliers.length
+                    }
+                    onCheckedChange={handleSelectAll}
+                  />
+                </TableHead>
                 <TableHead className="text-right">שם ספק</TableHead>
                 <TableHead className="text-right">חשבוניות</TableHead>
                 <TableHead className="text-right">סה"כ הוצאות</TableHead>
@@ -381,7 +419,7 @@ export default function Suppliers() {
             <TableBody>
               {filteredSuppliers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground">
                     לא נמצאו ספקים
                   </TableCell>
                 </TableRow>
@@ -389,23 +427,48 @@ export default function Suppliers() {
                 filteredSuppliers.map((supplier) => (
                   <TableRow
                     key={supplier.name}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => setSelectedSupplier(supplier.name)}
+                    className="hover:bg-muted/50"
                   >
-                    <TableCell className="font-medium">{supplier.name}</TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedForMerge.includes(supplier.name)}
+                        onCheckedChange={() => handleToggleSupplierSelection(supplier.name)}
+                      />
+                    </TableCell>
+                    <TableCell
+                      className="font-medium cursor-pointer"
+                      onClick={() => setSelectedSupplier(supplier.name)}
+                    >
+                      {supplier.name}
+                    </TableCell>
+                    <TableCell
+                      className="cursor-pointer"
+                      onClick={() => setSelectedSupplier(supplier.name)}
+                    >
                       <Badge variant="secondary">{supplier.invoiceCount}</Badge>
                     </TableCell>
-                    <TableCell className="font-semibold">
+                    <TableCell
+                      className="font-semibold cursor-pointer"
+                      onClick={() => setSelectedSupplier(supplier.name)}
+                    >
                       {formatCurrency(supplier.totalAmount)}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell
+                      className="text-muted-foreground cursor-pointer"
+                      onClick={() => setSelectedSupplier(supplier.name)}
+                    >
                       {formatCurrency(supplier.averageAmount)}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell
+                      className="text-muted-foreground cursor-pointer"
+                      onClick={() => setSelectedSupplier(supplier.name)}
+                    >
                       {formatDate(supplier.lastInvoiceDate)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell
+                      className="cursor-pointer"
+                      onClick={() => setSelectedSupplier(supplier.name)}
+                    >
                       <div className="flex flex-wrap gap-1">
                         {supplier.categories.slice(0, 2).map((cat) => (
                           <Badge key={cat} variant="outline" className="text-xs">
@@ -423,10 +486,7 @@ export default function Suppliers() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedSupplier(supplier.name);
-                        }}
+                        onClick={() => setSelectedSupplier(supplier.name)}
                       >
                         פרטים
                       </Button>
@@ -442,9 +502,18 @@ export default function Suppliers() {
           {filteredSuppliers.map((supplier) => (
             <Card
               key={supplier.name}
-              className="cursor-pointer hover:shadow-lg transition-shadow"
+              className="cursor-pointer hover:shadow-lg transition-shadow relative"
               onClick={() => setSelectedSupplier(supplier.name)}
             >
+              <div
+                className="absolute top-4 left-4 z-10"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Checkbox
+                  checked={selectedForMerge.includes(supplier.name)}
+                  onCheckedChange={() => handleToggleSupplierSelection(supplier.name)}
+                />
+              </div>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Building2 className="h-5 w-5 text-primary" />
@@ -491,6 +560,7 @@ export default function Suppliers() {
         onClose={() => {
           setMergeModalOpen(false);
           setSuggestedMerges([]);
+          setSelectedForMerge([]);
         }}
         suppliers={supplierStats.map((s) => s.name)}
         initialSuppliers={suggestedMerges}
