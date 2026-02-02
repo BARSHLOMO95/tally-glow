@@ -1,9 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import * as pdfjsLib from 'pdfjs-dist';
-
-// Configure PDF.js worker - use local worker file
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -17,6 +13,12 @@ export function cn(...inputs: ClassValue[]) {
  */
 export async function generatePdfPreview(pdfFile: File): Promise<Blob> {
   try {
+    // Dynamically import pdfjs-dist only when needed
+    const pdfjsLib = await import('pdfjs-dist');
+    
+    // Configure PDF.js worker - use local worker file
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+
     // Read the PDF file as ArrayBuffer
     const arrayBuffer = await pdfFile.arrayBuffer();
 
