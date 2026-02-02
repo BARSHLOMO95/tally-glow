@@ -10,8 +10,77 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Generate separate preview images for each page of a PDF file
+ * @param pdfFile - The PDF file to generate previews from
+ * @returns An array of Blobs, one for each page
+ */
+export async function generatePdfPreviews(pdfFile: File): Promise<Blob[]> {
+  try {
+    // Read the PDF file as ArrayBuffer
+    const arrayBuffer = await pdfFile.arrayBuffer();
+
+    // Load the PDF document
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const numPages = pdf.numPages;
+
+    console.log(`📄 PDF has ${numPages} pages - converting each to separate image...`);
+
+    // Set scale for good quality preview (2x for retina displays)
+    const scale = 2.0;
+    const pageBlobs: Blob[] = [];
+
+    // Render each page separately
+    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const viewport = page.getViewport({ scale });
+
+      // Create canvas for this page
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+
+      if (!context) {
+        throw new Error('Failed to get canvas context');
+      }
+
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      // Fill with white background
+      context.fillStyle = '#FFFFFF';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Render the page
+      await page.render({
+        canvasContext: context,
+        viewport: viewport,
+      }).promise;
+
+      // Convert canvas to blob
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error(`Failed to convert page ${pageNum} to blob`));
+          }
+        }, 'image/png');
+      });
+
+      pageBlobs.push(blob);
+      console.log(`✅ Rendered page ${pageNum}/${numPages} (${(blob.size / 1024).toFixed(0)}KB)`);
+    }
+
+    console.log(`✅ Generated ${numPages} separate images`);
+    return pageBlobs;
+  } catch (error) {
+    console.error('❌ Error generating PDF previews:', error);
+    throw error;
+  }
+}
+
+/**
  * Generate a preview image from ALL pages of a PDF file
- * Combines all pages into a single vertical image
+ * Combines all pages into a single vertical image (DEPRECATED - use generatePdfPreviews for better quality)
  * @param pdfFile - The PDF file to generate preview from
  * @returns A Blob containing the preview image as PNG
  */
