@@ -54,7 +54,14 @@ Deno.serve(async (req) => {
 
       // Determine if extraction succeeded or failed
       const extractionFailed = !invoiceData;
-      
+
+      // Log received additional_images
+      console.log('📸 Received from client:', {
+        additional_images: body.additional_images,
+        is_array: Array.isArray(body.additional_images),
+        count: body.additional_images?.length || 0
+      });
+
       // Build invoice record - use empty fields if extraction failed
       const additionalImages = body.additional_images || [];
       console.log('📸 Additional images received:', JSON.stringify(additionalImages), 'Type:', typeof additionalImages, 'Is Array:', Array.isArray(additionalImages));
@@ -78,12 +85,23 @@ Deno.serve(async (req) => {
         additional_images: additionalImages.length > 0 ? additionalImages : null,
       };
 
-      console.log('Inserting invoice:', JSON.stringify(invoiceToInsert), extractionFailed ? '(extraction failed - pending manual review)' : '(AI extracted)');
+      console.log('📝 About to insert:', {
+        additional_images_value: invoiceToInsert.additional_images,
+        additional_images_type: typeof invoiceToInsert.additional_images,
+        additional_images_is_array: Array.isArray(invoiceToInsert.additional_images)
+      });
 
       const { data, error } = await supabase
         .from('invoices')
         .insert([invoiceToInsert])
         .select();
+
+      console.log('💾 Insert result:', {
+        success: !error,
+        error: error?.message,
+        saved_additional_images: data?.[0]?.additional_images,
+        saved_count: data?.[0]?.additional_images?.length || 0
+      });
 
       if (error) {
         console.error('Database error:', error);

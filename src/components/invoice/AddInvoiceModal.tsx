@@ -166,6 +166,12 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
         mainImageUrl = urlData.publicUrl;
       }
 
+      console.log('📤 Sending to Edge Function:', {
+        mainImageUrl,
+        additionalImagesCount: additionalImageUrls.length,
+        additionalImages: additionalImageUrls
+      });
+
       // Call import-invoices to analyze in background (don't wait)
       supabase.functions.invoke('import-invoices', {
         body: {
