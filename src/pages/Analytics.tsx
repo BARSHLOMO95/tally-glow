@@ -62,6 +62,15 @@ export default function Analytics() {
   const { invoices, loading } = useInvoices(user?.id);
   const [timeRange, setTimeRange] = useState<'6months' | '12months' | 'all'>('6months');
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('he-IL', {
+      style: 'currency',
+      currency: 'ILS',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
   // Calculate monthly trends
   const monthlyData = useMemo<MonthlyData[]>(() => {
     if (!invoices || invoices.length === 0) return [];
@@ -120,13 +129,20 @@ export default function Analytics() {
       .slice(0, 8); // Top 8 categories
   }, [invoices]);
 
+  const totalSpent = useMemo(() => {
+    return monthlyData.reduce((sum, m) => sum + m.amount, 0);
+  }, [monthlyData]);
+
+  const avgMonthly = useMemo(() => {
+    return monthlyData.length > 0 ? totalSpent / monthlyData.length : 0;
+  }, [totalSpent, monthlyData]);
+
   // Generate smart insights
   const insights = useMemo<Insight[]>(() => {
     if (!monthlyData || monthlyData.length < 2) return [];
 
     const currentMonth = monthlyData[monthlyData.length - 1];
     const previousMonth = monthlyData[monthlyData.length - 2];
-    const avgMonthly = monthlyData.reduce((sum, m) => sum + m.amount, 0) / monthlyData.length;
 
     const insights: Insight[] = [];
 
@@ -178,9 +194,9 @@ export default function Analytics() {
     }
 
     // Category insights
-    if (categoryData.length > 0) {
+    if (categoryData.length > 0 && totalSpent > 0) {
       const topCategory = categoryData[0];
-      const topCategoryPercent = (topCategory.value / monthlyData.reduce((sum, m) => sum + m.amount, 0)) * 100;
+      const topCategoryPercent = (topCategory.value / totalSpent) * 100;
       if (topCategoryPercent > 40) {
         insights.push({
           type: 'neutral',
@@ -191,24 +207,7 @@ export default function Analytics() {
     }
 
     return insights;
-  }, [monthlyData, categoryData]);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('he-IL', {
-      style: 'currency',
-      currency: 'ILS',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const totalSpent = useMemo(() => {
-    return monthlyData.reduce((sum, m) => sum + m.amount, 0);
-  }, [monthlyData]);
-
-  const avgMonthly = useMemo(() => {
-    return monthlyData.length > 0 ? totalSpent / monthlyData.length : 0;
-  }, [totalSpent, monthlyData]);
+  }, [monthlyData, categoryData, avgMonthly, totalSpent]);
 
   const lastMonth = monthlyData.length > 0 ? monthlyData[monthlyData.length - 1] : null;
 
