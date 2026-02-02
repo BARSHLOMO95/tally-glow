@@ -2,8 +2,8 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Configure PDF.js worker - use local worker file
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+// Configure PDF.js worker - use CDN for reliability
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -16,20 +16,29 @@ export function cn(...inputs: ClassValue[]) {
  */
 export async function generatePdfPreviews(pdfFile: File): Promise<Blob[]> {
   try {
-    console.log('🔍 Checking pdfjsLib:', typeof pdfjsLib, pdfjsLib);
+    console.log('🔍 Checking pdfjsLib:', {
+      exists: !!pdfjsLib,
+      hasGetDocument: !!(pdfjsLib && pdfjsLib.getDocument),
+      version: pdfjsLib?.version,
+      workerSrc: pdfjsLib?.GlobalWorkerOptions?.workerSrc
+    });
 
     if (!pdfjsLib || !pdfjsLib.getDocument) {
       throw new Error('PDF.js library is not loaded. Please refresh the page and try again.');
     }
 
+    console.log('📂 Reading PDF file...');
     // Read the PDF file as ArrayBuffer
     const arrayBuffer = await pdfFile.arrayBuffer();
+    console.log(`📂 File read successfully: ${arrayBuffer.byteLength} bytes`);
 
+    console.log('📖 Loading PDF document...');
     // Load the PDF document
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
     const numPages = pdf.numPages;
 
-    console.log(`📄 PDF has ${numPages} pages - converting each to separate image...`);
+    console.log(`📄 PDF loaded successfully: ${numPages} pages - converting each to separate image...`);
 
     // Set scale for good quality preview (2x for retina displays)
     const scale = 2.0;
@@ -37,6 +46,7 @@ export async function generatePdfPreviews(pdfFile: File): Promise<Blob[]> {
 
     // Render each page separately
     for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+      console.log(`🎨 Rendering page ${pageNum}/${numPages}...`);
       const page = await pdf.getPage(pageNum);
       const viewport = page.getViewport({ scale });
 
@@ -73,13 +83,18 @@ export async function generatePdfPreviews(pdfFile: File): Promise<Blob[]> {
       });
 
       pageBlobs.push(blob);
-      console.log(`✅ Rendered page ${pageNum}/${numPages} (${(blob.size / 1024).toFixed(0)}KB)`);
+      console.log(`✅ Page ${pageNum}/${numPages} rendered successfully (${(blob.size / 1024).toFixed(0)}KB)`);
     }
 
-    console.log(`✅ Generated ${numPages} separate images`);
+    console.log(`✅ All ${numPages} pages converted to separate images successfully`);
     return pageBlobs;
   } catch (error) {
     console.error('❌ Error generating PDF previews:', error);
+    console.error('❌ Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
     throw error;
   }
 }
