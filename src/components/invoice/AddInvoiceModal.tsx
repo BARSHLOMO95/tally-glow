@@ -236,6 +236,8 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
           toast.error('החשבונית נשמרה אך הניתוח נכשל', { id: 'ai-analysis' });
         } else {
           console.log('✅ AI analysis completed successfully:', data);
+          console.log('✅ Operation:', data?.operation, 'Updated:', data?.updated, 'Inserted:', data?.inserted);
+          console.log('✅ Invoice ID from response:', data?.invoice_id);
           toast.success('החשבונית נשמרה וניתחה בהצלחה!', { id: 'ai-analysis' });
         }
       } catch (err) {

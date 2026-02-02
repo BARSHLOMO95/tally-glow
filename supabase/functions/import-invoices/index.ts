@@ -32,14 +32,17 @@ Deno.serve(async (req) => {
     console.log('🚀 Request received:', {
       has_invoice_id: !!body.invoice_id,
       invoice_id: body.invoice_id,
+      invoice_id_type: typeof body.invoice_id,
       has_image_url: !!body.image_url,
       has_additional_images: !!body.additional_images,
-      user_id: userId
+      user_id: userId,
+      full_body_keys: Object.keys(body)
     });
 
     // Check if this is an update to existing invoice (invoice_id provided)
     const isUpdate = !!body.invoice_id;
     console.log('📋 Operation mode:', isUpdate ? 'UPDATE' : 'INSERT');
+    console.log('📋 isUpdate value:', isUpdate, 'body.invoice_id:', body.invoice_id);
 
     // Check if this is an image URL request (AI analysis mode)
     // Support both direct image_url and invoices array with image_url only
@@ -176,12 +179,15 @@ Deno.serve(async (req) => {
       }
       
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          inserted: 1, 
-          data, 
+        JSON.stringify({
+          success: true,
+          inserted: isUpdate ? 0 : 1,
+          updated: isUpdate ? 1 : 0,
+          operation: isUpdate ? 'UPDATE' : 'INSERT',
+          invoice_id: isUpdate ? body.invoice_id : data?.[0]?.id,
+          data,
           extracted: invoiceData,
-          pending_manual_review: extractionFailed 
+          pending_manual_review: extractionFailed
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
