@@ -213,53 +213,30 @@ const PublicUpload = () => {
           mainImageUrl = urlData.publicUrl;
         }
 
-        console.log('📤 Creating invoice with additional_images:', {
+        console.log('📤 Sending to Edge Function for creation with additional_images:', {
           mainImageUrl,
           additionalImagesCount: additionalImageUrls.length,
           additionalImages: additionalImageUrls
         });
 
-        // STEP 1: Create the invoice record directly with additional_images
-        const { data: newInvoice, error: createError } = await supabase
-          .from('invoices')
-          .insert([{
-            user_id: linkData.user_id,
-            intake_date: new Date().toISOString(),
-            status: 'חדש',
+        // Send to Edge Function to create invoice with AI analysis (without invoice_id, so it will INSERT)
+        const { data: result, error: edgeFunctionError } = await supabase.functions.invoke('import-invoices', {
+          body: {
+            // NO invoice_id - Edge Function will create new invoice
             image_url: mainImageUrl,
-            preview_image_url: mainImageUrl,
-            additional_images: additionalImageUrls.length > 0 ? additionalImageUrls : null,
-            entry_method: 'דיגיטלי'
-          }])
-          .select()
-          .single();
+            user_id: linkData.user_id,
+            additional_images: additionalImageUrls,  // Send additional images
+            preview_image_url: mainImageUrl
+          }
+        });
 
-        if (createError) {
-          console.error('Error creating invoice:', createError);
-          toast.error(`שגיאה ביצירת חשבונית עבור ${file.name}`);
+        if (edgeFunctionError) {
+          console.error('Error in Edge Function:', edgeFunctionError);
+          toast.error(`שגיאה בעיבוד חשבונית עבור ${file.name}`);
           continue;
         }
 
-        console.log('✅ Invoice created with additional_images:', {
-          id: newInvoice.id,
-          additional_images_count: newInvoice.additional_images?.length || 0
-        });
-
-        // STEP 2: Call AI analysis in background to populate fields (don't wait)
-        supabase.functions.invoke('import-invoices', {
-          body: {
-            invoice_id: newInvoice.id,  // Send the invoice ID to update
-            image_url: mainImageUrl,
-            user_id: linkData.user_id,
-            additional_images: additionalImageUrls  // Send additional images to preserve them
-          }
-        }).then(({ error }) => {
-          if (error) {
-            console.error('Error in background analysis:', error);
-          } else {
-            console.log('✅ Invoice analysis completed in background');
-          }
-        });
+        console.log('✅ Invoice created and analyzed:', result);
       }
 
       setUploadSuccess(true);

@@ -175,57 +175,25 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
         mainImageUrl = urlData.publicUrl;
       }
 
-      console.log('📤 Creating invoice with additional_images:', {
+      console.log('📤 Sending to Edge Function to create invoice with AI analysis:', {
         mainImageUrl,
         additionalImagesCount: additionalImageUrls.length,
         additionalImages: additionalImageUrls
       });
 
-      const invoiceToCreate = {
-        user_id: user.id,
-        intake_date: new Date().toISOString(),
-        status: 'חדש',
-        image_url: mainImageUrl,
-        preview_image_url: mainImageUrl,
-        additional_images: additionalImageUrls.length > 0 ? additionalImageUrls : null,
-        entry_method: 'דיגיטלי'
-      };
+      // Show loading toast
+      toast.loading('המערכת מנתחת את החשבונית...', { id: 'ai-analysis' });
 
-      console.log('📝 ABOUT TO INSERT INVOICE:', JSON.stringify(invoiceToCreate, null, 2));
-
-      // STEP 1: Create the invoice record directly with additional_images
-      const { data: newInvoice, error: createError } = await supabase
-        .from('invoices')
-        .insert([invoiceToCreate])
-        .select()
-        .single();
-
-      if (createError) {
-        console.error('❌ Error creating invoice:', createError);
-        throw createError;
-      }
-
-      console.log('✅ Invoice created with ID:', newInvoice.id);
-      console.log('✅ Invoice created with additional_images:', {
-        id: newInvoice.id,
-        additional_images_count: newInvoice.additional_images?.length || 0,
-        full_invoice: newInvoice
-      });
-
-      console.log('🔹 About to call Edge Function for AI analysis');
-
-      // STEP 2: Call AI analysis and WAIT for it to complete
+      // Send to Edge Function to create invoice with AI analysis (without invoice_id, so it will INSERT)
       const edgeFunctionPayload = {
-        invoice_id: newInvoice.id,  // Send the invoice ID to update
+        // NO invoice_id - Edge Function will create new invoice
         image_url: mainImageUrl,
         user_id: user.id,
-        additional_images: additionalImageUrls  // Send additional images to preserve them
+        additional_images: additionalImageUrls,
+        preview_image_url: mainImageUrl
       };
 
       console.log('📤 Calling Edge Function with payload:', JSON.stringify(edgeFunctionPayload));
-
-      // Show loading toast
-      toast.loading('המערכת מנתחת את החשבונית...', { id: 'ai-analysis' });
 
       try {
         const { data, error } = await supabase.functions.invoke('import-invoices', {
@@ -233,17 +201,19 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
         });
 
         if (error) {
-          console.error('❌ Error in AI analysis:', error);
-          toast.error('החשבונית נשמרה אך הניתוח נכשל', { id: 'ai-analysis' });
+          console.error('❌ Error creating invoice:', error);
+          toast.error('שגיאה ביצירת החשבונית', { id: 'ai-analysis' });
+          throw error;
         } else {
-          console.log('✅ AI analysis completed successfully:', data);
-          console.log('✅ Operation:', data?.operation, 'Updated:', data?.updated, 'Inserted:', data?.inserted);
+          console.log('✅ Invoice created and analyzed successfully:', data);
+          console.log('✅ Operation:', data?.operation, 'Inserted:', data?.inserted);
           console.log('✅ Invoice ID from response:', data?.invoice_id);
           toast.success('החשבונית נשמרה וניתחה בהצלחה!', { id: 'ai-analysis' });
         }
       } catch (err) {
         console.error('❌ Exception in Edge Function call:', err);
-        toast.error('החשבונית נשמרה אך הניתוח נכשל', { id: 'ai-analysis' });
+        toast.error('שגיאה ביצירת החשבונית', { id: 'ai-analysis' });
+        throw err;
       }
 
       console.log('🔹 AI analysis finished, calling onSave()');
