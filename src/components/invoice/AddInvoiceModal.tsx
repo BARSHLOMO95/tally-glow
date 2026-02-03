@@ -218,7 +218,8 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
       const edgeFunctionPayload = {
         invoice_id: newInvoice.id,  // Send the invoice ID to update
         image_url: mainImageUrl,
-        user_id: user.id
+        user_id: user.id,
+        additional_images: additionalImageUrls  // Send additional images to preserve them
       };
 
       console.log('📤 Calling Edge Function with payload:', JSON.stringify(edgeFunctionPayload));

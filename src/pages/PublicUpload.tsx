@@ -250,7 +250,8 @@ const PublicUpload = () => {
           body: {
             invoice_id: newInvoice.id,  // Send the invoice ID to update
             image_url: mainImageUrl,
-            user_id: linkData.user_id
+            user_id: linkData.user_id,
+            additional_images: additionalImageUrls  // Send additional images to preserve them
           }
         }).then(({ error }) => {
           if (error) {

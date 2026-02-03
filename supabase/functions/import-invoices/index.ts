@@ -113,20 +113,30 @@ Deno.serve(async (req) => {
       if (isUpdate) {
         // UPDATE existing invoice with AI-extracted data
         console.log('🔄 Updating existing invoice:', body.invoice_id);
+
+        // Preserve additional_images from the request
+        const updateData: any = {
+          document_date: invoiceData?.document_date || null,
+          status: extractionFailed ? 'ממתין לבדיקה ידנית' : 'חדש',
+          supplier_name: invoiceData?.supplier_name || null,
+          document_number: invoiceData?.document_number || null,
+          document_type: invoiceData?.document_type || null,
+          category: invoiceData?.category || null,
+          amount_before_vat: invoiceData?.amount_before_vat || null,
+          vat_amount: invoiceData?.vat_amount || null,
+          total_amount: invoiceData?.total_amount || null,
+          business_type: invoiceData?.business_type || null,
+        };
+
+        // Keep additional_images if provided in the request
+        if (body.additional_images) {
+          updateData.additional_images = body.additional_images;
+          console.log('🖼️ Preserving additional_images in UPDATE:', body.additional_images.length, 'images');
+        }
+
         const updateResult = await supabase
           .from('invoices')
-          .update({
-            document_date: invoiceData?.document_date || null,
-            status: extractionFailed ? 'ממתין לבדיקה ידנית' : 'חדש',
-            supplier_name: invoiceData?.supplier_name || null,
-            document_number: invoiceData?.document_number || null,
-            document_type: invoiceData?.document_type || null,
-            category: invoiceData?.category || null,
-            amount_before_vat: invoiceData?.amount_before_vat || null,
-            vat_amount: invoiceData?.vat_amount || null,
-            total_amount: invoiceData?.total_amount || null,
-            business_type: invoiceData?.business_type || null,
-          })
+          .update(updateData)
           .eq('id', body.invoice_id)
           .select();
 
