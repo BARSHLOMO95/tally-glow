@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { timeRange = 'month', action, invoiceId } = body;
+    const { timeRange = 'month', action, invoiceId, connectionId } = body;
 
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
     }
 
     // Regular sync flow
-    return await handleSync(supabaseAdmin, user.id, authHeader, timeRange);
+    return await handleSync(supabaseAdmin, user.id, authHeader, timeRange, connectionId);
 
   } catch (error) {
     console.error('Gmail sync error:', error);
@@ -285,94 +285,114 @@ async function handleRetry(supabase: any, userId: string, invoiceId?: string): P
 }
 
 // ============= SYNC HANDLER =============
-async function handleSync(supabaseAdmin: any, userId: string, authHeader: string, timeRange: string): Promise<Response> {
-  const { data: connection, error: connError } = await supabaseAdmin
+async function handleSync(supabaseAdmin: any, userId: string, authHeader: string, timeRange: string, connectionId?: string): Promise<Response> {
+  let query = supabaseAdmin
     .from('gmail_connections')
     .select('*')
     .eq('user_id', userId)
-    .eq('is_active', true)
-    .single();
+    .eq('is_active', true);
 
-  if (connError || !connection) {
+  // If connectionId is provided, use it; otherwise, sync all active connections
+  if (connectionId) {
+    query = query.eq('id', connectionId);
+  }
+
+  const { data: connections, error: connError } = await query;
+
+  if (connError || !connections || connections.length === 0) {
     return new Response(JSON.stringify({ error: 'Gmail not connected' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
-  let accessToken = connection.access_token;
-  if (new Date(connection.token_expires_at) <= new Date()) {
-    const refreshed = await refreshAccessToken(connection.refresh_token);
-    if (refreshed.error) {
+  // Process each connection
+  let totalProcessed = 0;
+  let totalInvoicesCreated = 0;
+  let totalFound = 0;
+
+  for (const connection of connections) {
+    console.log(`Processing connection: ${connection.email} (${connection.account_label})`);
+
+    let accessToken = connection.access_token;
+    if (new Date(connection.token_expires_at) <= new Date()) {
+      const refreshed = await refreshAccessToken(connection.refresh_token);
+      if (refreshed.error) {
+        console.error(`Token refresh failed for ${connection.email}`);
+        await supabaseAdmin
+          .from('gmail_connections')
+          .update({ is_active: false })
+          .eq('id', connection.id);
+
+        // Continue to next connection instead of returning
+        continue;
+      }
+
+      accessToken = refreshed.access_token;
+      const expiresAt = new Date(Date.now() + (refreshed.expires_in * 1000));
+
       await supabaseAdmin
         .from('gmail_connections')
-        .update({ is_active: false })
+        .update({
+          access_token: accessToken,
+          token_expires_at: expiresAt.toISOString(),
+        })
         .eq('id', connection.id);
-      
-      return new Response(JSON.stringify({ error: 'Gmail authorization expired. Please reconnect.' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
     }
-    
-    accessToken = refreshed.access_token;
-    const expiresAt = new Date(Date.now() + (refreshed.expires_in * 1000));
-    
+
+    const afterDate = calculateAfterDate(timeRange);
+    const query = buildSearchQuery(afterDate);
+
+    console.log(`Searching ${connection.email} with query:`, query);
+
+    const messages = await searchGmailMessages(accessToken, query);
+    console.log(`Found ${messages.length} potential invoice emails in ${connection.email}`);
+
+    let processedCount = 0;
+    let invoicesCreated = 0;
+
+    const messagesToProcess = messages.slice(0, 30);
+    console.log(`Starting to process ${messagesToProcess.length} messages from ${connection.email}`);
+
+    for (const messageId of messagesToProcess) {
+      try {
+        console.log(`Processing message: ${messageId} from ${connection.email}`);
+        const result = await processMessage(supabaseAdmin, accessToken, messageId, userId);
+        processedCount++;
+        if (result.created) {
+          invoicesCreated++;
+          console.log(`Created invoice from message ${messageId}`);
+        } else {
+          console.log(`No invoice created from message ${messageId} - ${result.reason || 'no attachments/links'}`);
+        }
+      } catch (error) {
+        console.error(`Error processing message ${messageId}:`, error);
+      }
+    }
+
+    console.log(`Sync complete for ${connection.email}: processed=${processedCount}, created=${invoicesCreated}`);
+
     await supabaseAdmin
       .from('gmail_connections')
-      .update({
-        access_token: accessToken,
-        token_expires_at: expiresAt.toISOString(),
-      })
+      .update({ last_sync_at: new Date().toISOString() })
       .eq('id', connection.id);
-  }
 
-  const afterDate = calculateAfterDate(timeRange);
-  const query = buildSearchQuery(afterDate);
-  
-  console.log('Searching Gmail with query:', query);
-  
-  const messages = await searchGmailMessages(accessToken, query);
-  console.log(`Found ${messages.length} potential invoice emails`);
-
-  let processedCount = 0;
-  let invoicesCreated = 0;
-
-  const messagesToProcess = messages.slice(0, 30);
-  console.log(`Starting to process ${messagesToProcess.length} messages`);
-
-  for (const messageId of messagesToProcess) {
-    try {
-      console.log(`Processing message: ${messageId}`);
-      const result = await processMessage(supabaseAdmin, accessToken, messageId, userId);
-      processedCount++;
-      if (result.created) {
-        invoicesCreated++;
-        console.log(`Created invoice from message ${messageId}`);
-      } else {
-        console.log(`No invoice created from message ${messageId} - ${result.reason || 'no attachments/links'}`);
-      }
-    } catch (error) {
-      console.error(`Error processing message ${messageId}:`, error);
+    if (invoicesCreated > 0) {
+      await incrementDocumentUsage(supabaseAdmin, userId, invoicesCreated);
     }
-  }
 
-  console.log(`Sync complete: processed=${processedCount}, created=${invoicesCreated}`);
-
-  await supabaseAdmin
-    .from('gmail_connections')
-    .update({ last_sync_at: new Date().toISOString() })
-    .eq('id', connection.id);
-
-  if (invoicesCreated > 0) {
-    await incrementDocumentUsage(supabaseAdmin, userId, invoicesCreated);
+    // Accumulate totals
+    totalProcessed += processedCount;
+    totalInvoicesCreated += invoicesCreated;
+    totalFound += messages.length;
   }
 
   return new Response(JSON.stringify({
     success: true,
-    processed: processedCount,
-    invoicesCreated,
-    totalFound: messages.length,
+    processed: totalProcessed,
+    invoicesCreated: totalInvoicesCreated,
+    totalFound: totalFound,
+    accountsProcessed: connections.length,
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
