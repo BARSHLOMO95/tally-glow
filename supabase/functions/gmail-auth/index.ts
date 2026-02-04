@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     
     // Parse body
     const body = await req.json().catch(() => ({}));
-    const { redirectUrl, code } = body;
+    const { redirectUrl, code, accountLabel } = body;
 
     // Determine action based on body content
     // - If code is present: exchange code for tokens
@@ -84,31 +84,66 @@ Deno.serve(async (req) => {
       // Calculate token expiry
       const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000));
 
-      // Save connection to database
-      const { error: upsertError } = await supabaseAdmin
+      // Check if this email is already connected for this user
+      const { data: existingConnection } = await supabaseAdmin
         .from('gmail_connections')
-        .upsert({
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('email', userInfo.email)
+        .maybeSingle();
+
+      if (existingConnection) {
+        return new Response(JSON.stringify({ error: 'חשבון זה כבר מחובר' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Check if user already has 3 connections
+      const { count } = await supabaseAdmin
+        .from('gmail_connections')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      if (count && count >= 3) {
+        return new Response(JSON.stringify({ error: 'ניתן לחבר עד 3 חשבונות Gmail בלבד' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Save new connection to database
+      const label = accountLabel || `תיבת מייל ${(count || 0) + 1}`;
+
+      const { data: newConnection, error: insertError } = await supabaseAdmin
+        .from('gmail_connections')
+        .insert({
           user_id: user.id,
           email: userInfo.email,
           access_token: tokens.access_token,
           refresh_token: tokens.refresh_token,
           token_expires_at: expiresAt.toISOString(),
           is_active: true,
-        }, {
-          onConflict: 'user_id',
-        });
+          account_label: label,
+        })
+        .select()
+        .single();
 
-      if (upsertError) {
-        console.error('Database error:', upsertError);
+      if (insertError) {
+        console.error('Database error:', insertError);
         return new Response(JSON.stringify({ error: 'Failed to save connection' }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      console.log('Gmail connection saved successfully');
+      console.log('Gmail connection saved successfully:', newConnection.id);
 
-      return new Response(JSON.stringify({ success: true, email: userInfo.email }), {
+      return new Response(JSON.stringify({
+        success: true,
+        email: userInfo.email,
+        connectionId: newConnection.id
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
