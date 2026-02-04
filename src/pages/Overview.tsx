@@ -176,7 +176,7 @@ export default function Overview() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{kpiData.totalInvoices}</div>
+            <div className="text-2xl font-bold">{invoices?.length || 0}</div>
             <p className="text-xs text-muted-foreground mt-1">
               {last6MonthsData[last6MonthsData.length - 1]?.count || 0} החודש
             </p>
@@ -189,7 +189,7 @@ export default function Overview() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(kpiData.totalAmount)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(kpiData.totalWithVat)}</div>
             <p className="text-xs text-muted-foreground mt-1">כל הזמנים</p>
           </CardContent>
         </Card>
@@ -200,7 +200,7 @@ export default function Overview() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(kpiData.avgAmount)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(invoices?.length > 0 ? kpiData.totalWithVat / invoices.length : 0)}</div>
             <p className="text-xs text-muted-foreground mt-1">ממוצע כללי</p>
           </CardContent>
         </Card>

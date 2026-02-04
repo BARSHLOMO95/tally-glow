@@ -69,6 +69,7 @@ export async function generatePdfPreviews(pdfFile: File): Promise<Blob[]> {
       await page.render({
         canvasContext: context,
         viewport: viewport,
+        canvas: canvas,
       }).promise;
 
       // Convert canvas to blob
