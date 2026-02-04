@@ -149,6 +149,12 @@ const PublicUpload = () => {
       return;
     }
 
+    // Prevent double submission
+    if (isUploading) {
+      console.warn('⚠️ Already uploading, ignoring duplicate call');
+      return;
+    }
+
     setIsUploading(true);
 
     try {
@@ -255,21 +261,30 @@ const PublicUpload = () => {
 
         console.log('✅ Invoice created:', newInvoice.id);
 
-        // STEP 2: Call AI analysis in background to populate fields (don't wait)
-        supabase.functions.invoke('import-invoices', {
-          body: {
-            invoice_id: newInvoice.id,  // Send the invoice ID to update
-            image_url: mainImageUrl,
-            user_id: linkData.user_id,
-            additional_images: additionalImageUrls  // Send additional images to preserve them
-          }
-        }).then(({ error }) => {
+        // STEP 2: Call AI analysis and WAIT for it to complete
+        const edgeFunctionPayload = {
+          invoice_id: newInvoice.id,  // Send the invoice ID to update
+          image_url: mainImageUrl,
+          user_id: linkData.user_id,
+          additional_images: additionalImageUrls  // Send additional images to preserve them
+        };
+
+        console.log('📤 Calling Edge Function with payload:', JSON.stringify(edgeFunctionPayload));
+
+        try {
+          const { data, error } = await supabase.functions.invoke('import-invoices', {
+            body: edgeFunctionPayload
+          });
+
           if (error) {
-            console.error('Error in background analysis:', error);
+            console.error('❌ Error in AI analysis:', error);
           } else {
-            console.log('✅ Invoice analysis completed in background');
+            console.log('✅ AI analysis completed successfully:', data);
+            console.log('✅ Operation:', data?.operation, 'Updated:', data?.updated, 'Inserted:', data?.inserted);
           }
-        });
+        } catch (err) {
+          console.error('❌ Exception in Edge Function call:', err);
+        }
       }
 
       setUploadSuccess(true);
