@@ -4,6 +4,7 @@ import { useInvoices } from '@/hooks/useInvoices';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useSettings } from '@/hooks/useSettings';
+import { useConvertGmailPdfs } from '@/hooks/useConvertGmailPdfs';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Card, CardContent } from '@/components/ui/card';
@@ -53,6 +54,9 @@ const Dashboard = () => {
     clearFilters,
     refreshInvoices,
   } = useInvoices(user?.id);
+
+  // Automatically convert Gmail PDFs to images in the background
+  useConvertGmailPdfs(user?.id, !loading);
 
   // Merge categories from settings with existing invoice categories
   const allCategories = useMemo(() => {
