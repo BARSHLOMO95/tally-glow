@@ -184,10 +184,9 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
       const invoiceToCreate = {
         user_id: user.id,
         intake_date: new Date().toISOString(),
-        status: 'חדש',
+        status: 'חדש' as const,
         image_url: mainImageUrl,
         preview_image_url: mainImageUrl,
-        additional_images: additionalImageUrls.length > 0 ? additionalImageUrls : null,
         entry_method: 'דיגיטלי'
       };
 
@@ -206,11 +205,20 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
       }
 
       console.log('✅ Invoice created with ID:', newInvoice.id);
-      console.log('✅ Invoice created with additional_images:', {
-        id: newInvoice.id,
-        additional_images_count: newInvoice.additional_images?.length || 0,
-        full_invoice: newInvoice
-      });
+
+      // Update additional_images separately after creation
+      if (additionalImageUrls.length > 0) {
+        const { error: updateError } = await supabase
+          .from('invoices')
+          .update({ additional_images: additionalImageUrls })
+          .eq('id', newInvoice.id);
+        
+        if (updateError) {
+          console.error('Error updating additional_images:', updateError);
+        } else {
+          console.log('✅ Additional images updated:', additionalImageUrls.length);
+        }
+      }
 
       console.log('🔹 About to call Edge Function for AI analysis');
 

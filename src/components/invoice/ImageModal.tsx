@@ -29,9 +29,6 @@ const ImageModal = ({ imageUrl, previewImageUrl, additionalImages, isOpen, onClo
   // Check if it's a known image format
   const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
   const isKnownImage = displayUrl ? imageExtensions.some(ext => displayUrl.toLowerCase().includes(ext)) : false;
-  
-  // If not PDF and not a known image extension, try to display as image anyway
-  const shouldTryAsImage = !isPdf || hasPreviewImage;
 
   const handleDownload = () => {
     if (imageUrl) window.open(imageUrl, '_blank');
@@ -69,6 +66,9 @@ const ImageModal = ({ imageUrl, previewImageUrl, additionalImages, isOpen, onClo
   // Current image to display
   const currentImageUrl = allImages[currentPage] || displayUrl;
   const hasPreviewImage = !imageError && currentImageUrl;
+  
+  // If not PDF and not a known image extension, try to display as image anyway
+  const shouldTryAsImage = !isPdf || hasPreviewImage;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogChange}>

@@ -115,6 +115,7 @@ export type Database = {
       }
       invoices: {
         Row: {
+          additional_images: Json | null
           amount_before_vat: number | null
           business_type: string | null
           category: string | null
@@ -141,6 +142,7 @@ export type Database = {
           vat_amount: number | null
         }
         Insert: {
+          additional_images?: Json | null
           amount_before_vat?: number | null
           business_type?: string | null
           category?: string | null
@@ -167,6 +169,7 @@ export type Database = {
           vat_amount?: number | null
         }
         Update: {
+          additional_images?: Json | null
           amount_before_vat?: number | null
           business_type?: string | null
           category?: string | null

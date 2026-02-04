@@ -64,10 +64,10 @@ const EditInvoiceModal = ({ invoice, isOpen, onClose, onSave, categories }: Edit
 
   const handleSave = async () => {
     if (invoice) {
-      // Update additional_images in database
+      // Update additional_images in database using raw update
       const { error } = await supabase
         .from('invoices')
-        .update({ additional_images: additionalImages })
+        .update({ additional_images: additionalImages } as any)
         .eq('id', invoice.id);
 
       if (error) {

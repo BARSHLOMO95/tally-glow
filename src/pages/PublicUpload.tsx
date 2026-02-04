@@ -219,16 +219,15 @@ const PublicUpload = () => {
           additionalImages: additionalImageUrls
         });
 
-        // STEP 1: Create the invoice record directly with additional_images
+        // STEP 1: Create the invoice record
         const { data: newInvoice, error: createError } = await supabase
           .from('invoices')
           .insert([{
             user_id: linkData.user_id,
             intake_date: new Date().toISOString(),
-            status: 'חדש',
+            status: 'חדש' as const,
             image_url: mainImageUrl,
             preview_image_url: mainImageUrl,
-            additional_images: additionalImageUrls.length > 0 ? additionalImageUrls : null,
             entry_method: 'דיגיטלי'
           }])
           .select()
@@ -240,10 +239,21 @@ const PublicUpload = () => {
           continue;
         }
 
-        console.log('✅ Invoice created with additional_images:', {
-          id: newInvoice.id,
-          additional_images_count: newInvoice.additional_images?.length || 0
-        });
+        // STEP 2: Update additional_images separately if needed
+        if (additionalImageUrls.length > 0) {
+          const { error: updateError } = await supabase
+            .from('invoices')
+            .update({ additional_images: additionalImageUrls } as any)
+            .eq('id', newInvoice.id);
+          
+          if (updateError) {
+            console.error('Error updating additional_images:', updateError);
+          } else {
+            console.log('✅ Additional images updated:', additionalImageUrls.length);
+          }
+        }
+
+        console.log('✅ Invoice created:', newInvoice.id);
 
         // STEP 2: Call AI analysis in background to populate fields (don't wait)
         supabase.functions.invoke('import-invoices', {
