@@ -1,5 +1,4 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { PDFDocument } from 'https://esm.sh/pdf-lib@1.17.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,7 +9,6 @@ const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID')!;
 const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
 // Invoice-related keywords in Hebrew and English
 const INVOICE_KEYWORDS = [
@@ -95,243 +93,6 @@ Deno.serve(async (req) => {
     });
   }
 });
-
-// ============= PDF PREVIEW GENERATION =============
-// Must be declared before it's used
-async function generatePdfPreview(
-  supabase: any,
-  userId: string,
-  pdfData: Uint8Array,
-  filename: string
-): Promise<string | null> {
-  try {
-    if (!LOVABLE_API_KEY) {
-      console.log('LOVABLE_API_KEY not available for PDF preview generation');
-      return null;
-    }
-    
-    console.log(`Generating preview for PDF: ${filename}, size: ${pdfData.length} bytes`);
-    
-    // Convert PDF to base64 for AI processing
-    let binary = '';
-    for (let i = 0; i < pdfData.length; i++) {
-      binary += String.fromCharCode(pdfData[i]);
-    }
-    const base64Data = btoa(binary);
-    const dataUrl = `data:application/pdf;base64,${base64Data}`;
-    
-    // Use Gemini image generation model to create a preview
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-3-pro-image-preview',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { 
-                type: 'text', 
-                text: 'Create a clean, simple preview thumbnail image of this invoice/receipt document. Show the main elements: header with company name, key amounts, and date. Use a white background with black text in a clean layout. Make it look like a professional document thumbnail.'
-              },
-              { type: 'image_url', image_url: { url: dataUrl } }
-            ]
-          }
-        ],
-        max_tokens: 1000,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('PDF preview generation failed:', response.status, errorText);
-      return null;
-    }
-
-    const result = await response.json();
-    const content = result.choices?.[0]?.message?.content;
-    
-    // Check if the response contains a generated image URL
-    if (content && typeof content === 'string' && content.includes('http')) {
-      const urlMatch = content.match(/https?:\/\/[^\s<>"{}|\\^`\[\]]+/);
-      if (urlMatch) {
-        const imageResponse = await fetch(urlMatch[0]);
-        if (imageResponse.ok) {
-          const imageBuffer = await imageResponse.arrayBuffer();
-          const imageData = new Uint8Array(imageBuffer);
-          
-          const timestamp = Date.now();
-          const previewPath = `${userId}/previews/${timestamp}_preview.png`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from('invoices')
-            .upload(previewPath, imageData, {
-              contentType: 'image/png',
-              upsert: false,
-            });
-          
-          if (!uploadError) {
-            const { data: urlData } = supabase.storage.from('invoices').getPublicUrl(previewPath);
-            console.log(`PDF preview created: ${urlData.publicUrl}`);
-            return urlData.publicUrl;
-          }
-        }
-      }
-    }
-    
-    console.log('Could not generate PDF preview image, will use PDF viewer as fallback');
-    return null;
-    
-  } catch (error) {
-    console.error('Error generating PDF preview:', error);
-    return null;
-  }
-}
-
-// ============= PDF SPLITTING TO IMAGES =============
-/**
- * Splits a PDF into separate images (one per page) and uploads them to storage
- * Returns URLs of all page images: [mainImageUrl, ...additionalImageUrls]
- */
-async function splitPdfToImages(
-  supabase: any,
-  userId: string,
-  pdfData: Uint8Array,
-  filename: string
-): Promise<{ mainImageUrl: string; additionalImages: string[] } | null> {
-  try {
-    console.log(`📄 Splitting PDF: ${filename}, size: ${pdfData.length} bytes`);
-
-    // Load the PDF
-    const pdfDoc = await PDFDocument.load(pdfData);
-    const pageCount = pdfDoc.getPageCount();
-
-    console.log(`📄 PDF has ${pageCount} pages`);
-
-    if (pageCount === 0) {
-      console.error('PDF has no pages');
-      return null;
-    }
-
-    const imageUrls: string[] = [];
-
-    // Process each page
-    for (let pageIndex = 0; pageIndex < pageCount; pageIndex++) {
-      console.log(`📄 Processing page ${pageIndex + 1}/${pageCount}...`);
-
-      try {
-        // Create a new PDF with just this page
-        const singlePagePdf = await PDFDocument.create();
-        const [copiedPage] = await singlePagePdf.copyPages(pdfDoc, [pageIndex]);
-        singlePagePdf.addPage(copiedPage);
-
-        // Save the single-page PDF as bytes
-        const singlePageBytes = await singlePagePdf.save();
-
-        // Convert to base64 for AI processing
-        let binary = '';
-        for (let i = 0; i < singlePageBytes.length; i++) {
-          binary += String.fromCharCode(singlePageBytes[i]);
-        }
-        const base64Data = btoa(binary);
-        const dataUrl = `data:application/pdf;base64,${base64Data}`;
-
-        // Use Lovable AI to convert PDF page to PNG image
-        if (!LOVABLE_API_KEY) {
-          console.error('LOVABLE_API_KEY not available, cannot convert PDF pages to images');
-          return null;
-        }
-
-        console.log(`🤖 Converting page ${pageIndex + 1} to PNG using AI...`);
-
-        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-3-pro-image-preview',
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  {
-                    type: 'text',
-                    text: 'Create a high-quality PNG image that exactly reproduces this invoice/receipt document page. Preserve all text, numbers, layout, and formatting exactly as shown. Use a white background with black text. Make it look professional and readable, suitable for printing.'
-                  },
-                  { type: 'image_url', image_url: { url: dataUrl } }
-                ]
-              }
-            ],
-            max_tokens: 1000,
-          }),
-        });
-
-        if (!response.ok) {
-          console.error(`Failed to convert page ${pageIndex + 1}:`, response.status);
-          continue; // Skip this page and continue with others
-        }
-
-        const result = await response.json();
-        const content = result.choices?.[0]?.message?.content;
-
-        // Check if the response contains a generated image URL
-        if (content && typeof content === 'string' && content.includes('http')) {
-          const urlMatch = content.match(/https?:\/\/[^\s<>"{}|\\^`\[\]]+/);
-          if (urlMatch) {
-            // Download the generated image
-            const imageResponse = await fetch(urlMatch[0]);
-            if (imageResponse.ok) {
-              const imageBuffer = await imageResponse.arrayBuffer();
-              const imageData = new Uint8Array(imageBuffer);
-
-              // Upload to storage
-              const timestamp = Date.now();
-              const imagePath = `${userId}/${timestamp}_page${pageIndex + 1}.png`;
-
-              const { error: uploadError } = await supabase.storage
-                .from('invoices')
-                .upload(imagePath, imageData, {
-                  contentType: 'image/png',
-                  upsert: false,
-                });
-
-              if (!uploadError) {
-                const { data: urlData } = supabase.storage.from('invoices').getPublicUrl(imagePath);
-                imageUrls.push(urlData.publicUrl);
-                console.log(`✅ Page ${pageIndex + 1} uploaded: ${urlData.publicUrl}`);
-              } else {
-                console.error(`Failed to upload page ${pageIndex + 1}:`, uploadError);
-              }
-            }
-          }
-        }
-      } catch (pageError) {
-        console.error(`Error processing page ${pageIndex + 1}:`, pageError);
-        // Continue with next page
-      }
-    }
-
-    if (imageUrls.length === 0) {
-      console.error('Failed to convert any PDF pages to images');
-      return null;
-    }
-
-    console.log(`✅ Successfully converted ${imageUrls.length}/${pageCount} pages to images`);
-
-    // Return first image as main, rest as additional
-    const [mainImageUrl, ...additionalImages] = imageUrls;
-    return { mainImageUrl, additionalImages };
-
-  } catch (error) {
-    console.error('Error splitting PDF to images:', error);
-    return null;
-  }
-}
 
 // ============= RETRY HANDLER =============
 async function handleRetry(supabase: any, userId: string, invoiceId?: string): Promise<Response> {
@@ -692,88 +453,46 @@ async function processAttachment(
   
   console.log(`Downloaded attachment: ${attachment.filename}, size: ${attachmentData.length} bytes`);
 
-  // For PDFs: split into separate page images
-  if (attachment.mimeType.includes('pdf')) {
-    console.log('📄 Splitting PDF into page images...');
-    const splitResult = await splitPdfToImages(supabase, userId, attachmentData, attachment.filename);
+  // Upload the file to storage (PDFs will be converted to images by the browser later)
+  const uploadResult = await uploadToStorage(supabase, userId, attachmentData, attachment.filename, attachment.mimeType);
 
-    if (splitResult) {
-      console.log(`✅ PDF split successful: ${splitResult.additionalImages.length + 1} pages`);
+  if (uploadResult.success && uploadResult.storageUrl) {
+    console.log(`Uploaded to storage: ${uploadResult.storageUrl}`);
 
-      await createInvoice(supabase, userId, {
-        storageUrl: splitResult.mainImageUrl,
-        previewImageUrl: splitResult.mainImageUrl,
-        additionalImages: splitResult.additionalImages,
-        fileName: attachment.filename,
-        mimeType: 'image/png', // Pages are now PNGs
-        fileSource: 'gmail_attachment',
-        storageStatus: 'success',
-        originalUrl: null,
-        storageError: null,
-        fileData: attachmentData,
-      }, fromEmail, emailDate);
-      return { created: true };
-    } else {
-      // Fallback: upload PDF as-is if splitting failed
-      console.warn('PDF splitting failed, uploading as PDF file');
-      const uploadResult = await uploadToStorage(supabase, userId, attachmentData, attachment.filename, attachment.mimeType);
+    // For PDFs: mark with null preview_image_url so the browser will convert them later
+    const isPdf = attachment.mimeType.includes('pdf');
 
-      if (uploadResult.success && uploadResult.storageUrl) {
-        await createInvoice(supabase, userId, {
-          storageUrl: uploadResult.storageUrl,
-          previewImageUrl: null,
-          additionalImages: [],
-          fileName: attachment.filename,
-          mimeType: attachment.mimeType,
-          fileSource: 'gmail_attachment',
-          storageStatus: 'success',
-          originalUrl: null,
-          storageError: 'PDF splitting failed - file saved as PDF',
-          fileData: attachmentData,
-        }, fromEmail, emailDate);
-        return { created: true };
-      }
-    }
-  } else {
-    // For images: upload normally
-    const uploadResult = await uploadToStorage(supabase, userId, attachmentData, attachment.filename, attachment.mimeType);
-
-    if (uploadResult.success && uploadResult.storageUrl) {
-      console.log(`Uploaded to storage: ${uploadResult.storageUrl}`);
-
-      await createInvoice(supabase, userId, {
-        storageUrl: uploadResult.storageUrl,
-        previewImageUrl: uploadResult.storageUrl,
-        additionalImages: [],
-        fileName: attachment.filename,
-        mimeType: attachment.mimeType,
-        fileSource: 'gmail_attachment',
-        storageStatus: 'success',
-        originalUrl: null,
-        storageError: null,
-        fileData: attachmentData,
-      }, fromEmail, emailDate);
-      return { created: true };
-    }
-  }
-
-  // If we got here, upload failed
-  {
-    console.error(`Failed to upload attachment: ${uploadResult.error}`);
     await createInvoice(supabase, userId, {
-      storageUrl: null,
-      previewImageUrl: null,
+      storageUrl: uploadResult.storageUrl,
+      previewImageUrl: isPdf ? null : uploadResult.storageUrl, // null for PDFs = needs conversion
       additionalImages: [],
       fileName: attachment.filename,
       mimeType: attachment.mimeType,
       fileSource: 'gmail_attachment',
-      storageStatus: 'failed',
+      storageStatus: 'success',
       originalUrl: null,
-      storageError: uploadResult.error || 'Storage upload failed',
+      storageError: null,
       fileData: attachmentData,
     }, fromEmail, emailDate);
-    return { created: true, reason: 'storage upload failed' };
+    return { created: true };
   }
+
+  // If we got here, upload failed
+  console.error(`Failed to upload attachment: ${uploadResult.error}`);
+  await createInvoice(supabase, userId, {
+    storageUrl: null,
+    previewImageUrl: null,
+    additionalImages: [],
+    fileName: attachment.filename,
+    mimeType: attachment.mimeType,
+    fileSource: 'gmail_attachment',
+    storageStatus: 'failed',
+    originalUrl: null,
+    storageError: uploadResult.error || 'Storage upload failed',
+    fileData: attachmentData,
+  }, fromEmail, emailDate);
+  return { created: true, reason: 'storage upload failed' };
+}
 }
 
 // ============= EXTERNAL LINK PROCESSING =============
@@ -792,61 +511,22 @@ async function processExternalLink(
     console.log(`Successfully uploaded from link: ${downloadResult.storageUrl}`);
 
     const mimeType = downloadResult.mimeType || 'application/pdf';
+    const isPdf = mimeType.includes('pdf');
 
-    // For PDFs: split into separate page images
-    if (mimeType.includes('pdf') && downloadResult.fileData) {
-      console.log('📄 Splitting PDF from link into page images...');
-      const splitResult = await splitPdfToImages(supabase, userId, downloadResult.fileData, `link_${Date.now()}.pdf`);
-
-      if (splitResult) {
-        console.log(`✅ PDF split successful: ${splitResult.additionalImages.length + 1} pages`);
-
-        await createInvoice(supabase, userId, {
-          storageUrl: splitResult.mainImageUrl,
-          previewImageUrl: splitResult.mainImageUrl,
-          additionalImages: splitResult.additionalImages,
-          fileName: `gmail_link_${Date.now()}`,
-          mimeType: 'image/png', // Pages are now PNGs
-          fileSource: 'gmail_external_link',
-          storageStatus: 'success',
-          originalUrl: link,
-          storageError: null,
-          fileData: downloadResult.fileData,
-        }, fromEmail, emailDate);
-        return { created: true };
-      } else {
-        // Fallback: use the already-uploaded PDF if splitting failed
-        console.warn('PDF splitting failed, using uploaded PDF');
-        await createInvoice(supabase, userId, {
-          storageUrl: downloadResult.storageUrl,
-          previewImageUrl: null,
-          additionalImages: [],
-          fileName: `gmail_link_${Date.now()}`,
-          mimeType,
-          fileSource: 'gmail_external_link',
-          storageStatus: 'success',
-          originalUrl: link,
-          storageError: 'PDF splitting failed - file saved as PDF',
-          fileData: downloadResult.fileData,
-        }, fromEmail, emailDate);
-        return { created: true };
-      }
-    } else {
-      // For images: use as-is
-      await createInvoice(supabase, userId, {
-        storageUrl: downloadResult.storageUrl,
-        previewImageUrl: downloadResult.storageUrl,
-        additionalImages: [],
-        fileName: `gmail_link_${Date.now()}`,
-        mimeType,
-        fileSource: 'gmail_external_link',
-        storageStatus: 'success',
-        originalUrl: link,
-        storageError: null,
-        fileData: downloadResult.fileData,
-      }, fromEmail, emailDate);
-      return { created: true };
-    }
+    // Store the file - PDFs will be converted to images by the browser later
+    await createInvoice(supabase, userId, {
+      storageUrl: downloadResult.storageUrl,
+      previewImageUrl: isPdf ? null : downloadResult.storageUrl, // null for PDFs = needs conversion
+      additionalImages: [],
+      fileName: `gmail_link_${Date.now()}`,
+      mimeType,
+      fileSource: 'gmail_external_link',
+      storageStatus: 'success',
+      originalUrl: link,
+      storageError: null,
+      fileData: downloadResult.fileData,
+    }, fromEmail, emailDate);
+    return { created: true };
   } else {
     console.log(`Failed to download from link: ${downloadResult.error}`);
     await createInvoice(supabase, userId, {
