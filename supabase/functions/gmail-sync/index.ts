@@ -9,6 +9,7 @@ const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID')!;
 const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
 // Invoice-related keywords in Hebrew and English
 const INVOICE_KEYWORDS = [
@@ -140,11 +141,9 @@ async function handleRetry(supabase: any, userId: string, invoiceId?: string): P
       const result = await downloadAndUploadFromLink(supabase, userId, invoice.original_url);
       
       if (result.success && result.storageUrl) {
-        // Generate PDF preview if it's a PDF
-        let previewImageUrl: string | null = null;
-        if (result.mimeType?.includes('pdf') && result.fileData) {
-          previewImageUrl = await generatePdfPreview(supabase, userId, result.fileData, `retry_${invoice.id}.pdf`);
-        }
+        // For PDFs, mark as needing browser-side conversion
+        const isPdf = result.mimeType?.includes('pdf');
+        const previewImageUrl = isPdf ? null : result.storageUrl;
         
         const { error: updateError } = await supabase
           .from('invoices')
@@ -492,7 +491,6 @@ async function processAttachment(
     fileData: attachmentData,
   }, fromEmail, emailDate);
   return { created: true, reason: 'storage upload failed' };
-}
 }
 
 // ============= EXTERNAL LINK PROCESSING =============

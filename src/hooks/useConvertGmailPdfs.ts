@@ -25,7 +25,7 @@ export const useConvertGmailPdfs = (userId: string | undefined, enabled: boolean
         console.log('🔄 Checking for Gmail PDFs to convert...');
 
         // Find invoices that:
-        // 1. Have a file_path ending in .pdf (stored as PDF)
+        // 1. Have an image_url ending in .pdf (stored as PDF)
         // 2. Don't have preview_image_url (not converted yet)
         // 3. Have file_source = 'gmail_attachment' or 'gmail_external_link'
         const { data: pdfInvoices, error: fetchError } = await supabase
@@ -34,7 +34,7 @@ export const useConvertGmailPdfs = (userId: string | undefined, enabled: boolean
           .eq('user_id', userId)
           .or('file_source.eq.gmail_attachment,file_source.eq.gmail_external_link')
           .is('preview_image_url', null)
-          .ilike('file_path', '%.pdf')
+          .ilike('image_url', '%.pdf')
           .limit(10); // Convert max 10 PDFs per session to avoid overload
 
         if (fetchError) {
@@ -81,13 +81,30 @@ export const useConvertGmailPdfs = (userId: string | undefined, enabled: boolean
  * Convert a single invoice PDF to images
  */
 async function convertInvoicePdfToImages(invoice: Invoice) {
-  console.log(`🔄 Converting invoice ${invoice.id} (${invoice.file_path})...`);
+  // Extract file path from image_url - it's the storage path
+  const imageUrl = invoice.image_url;
+  if (!imageUrl) {
+    console.error(`❌ No image_url for invoice ${invoice.id}`);
+    return;
+  }
+
+  // Extract the file path from the public URL
+  // URL format: https://{project}.supabase.co/storage/v1/object/public/invoices/{user_id}/{filename}
+  const urlParts = imageUrl.split('/invoices/');
+  const filePath = urlParts.length > 1 ? urlParts[1] : null;
+
+  if (!filePath) {
+    console.error(`❌ Could not extract file path from URL: ${imageUrl}`);
+    return;
+  }
+
+  console.log(`🔄 Converting invoice ${invoice.id} (${filePath})...`);
 
   try {
     // Download the PDF from storage
     const { data: pdfBlob, error: downloadError } = await supabase.storage
       .from('invoices')
-      .download(invoice.file_path!);
+      .download(filePath);
 
     if (downloadError || !pdfBlob) {
       console.error(`❌ Failed to download PDF for invoice ${invoice.id}:`, downloadError);
@@ -95,7 +112,7 @@ async function convertInvoicePdfToImages(invoice: Invoice) {
     }
 
     // Convert Blob to File (required by generatePdfPreviews)
-    const pdfFile = new File([pdfBlob], invoice.file_path || 'invoice.pdf', {
+    const pdfFile = new File([pdfBlob], invoice.file_name || 'invoice.pdf', {
       type: 'application/pdf',
     });
 
