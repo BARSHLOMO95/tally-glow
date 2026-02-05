@@ -10,18 +10,22 @@ type Invoice = Database['public']['Tables']['invoices']['Row'];
  * This runs once per session and converts any PDFs that haven't been converted yet
  */
 export const useConvertGmailPdfs = (userId: string | undefined, enabled: boolean = true) => {
-  const hasRun = useRef(false);
   const isConverting = useRef(false);
+  const lastRunAt = useRef<number>(0);
+  const intervalIdRef = useRef<number | null>(null);
 
   useEffect(() => {
-    // Only run once per session and only if enabled
-    if (!enabled || !userId || hasRun.current || isConverting.current) {
-      return;
-    }
+    if (!enabled || !userId) return;
 
     const convertPdfsInBackground = async () => {
+      // Throttle: don’t run too frequently (helps avoid hammering storage/pdf.js)
+      const now = Date.now();
+      if (isConverting.current) return;
+      if (now - lastRunAt.current < 60_000) return; // 1 minute
+
       try {
         isConverting.current = true;
+        lastRunAt.current = now;
         console.log('🔄 Checking for Gmail PDFs to convert...');
 
         // Find invoices that:
@@ -35,7 +39,8 @@ export const useConvertGmailPdfs = (userId: string | undefined, enabled: boolean
           .or('file_source.eq.gmail_attachment,file_source.eq.gmail_external_link')
           .is('preview_image_url', null)
           .ilike('image_url', '%.pdf')
-          .limit(10); // Convert max 10 PDFs per session to avoid overload
+          .order('created_at', { ascending: false })
+          .limit(5); // small batches, repeated over time
 
         if (fetchError) {
           console.error('❌ Error fetching PDF invoices:', fetchError);
@@ -49,13 +54,11 @@ export const useConvertGmailPdfs = (userId: string | undefined, enabled: boolean
 
         console.log(`📄 Found ${pdfInvoices.length} Gmail PDFs to convert`);
 
-        // Convert each PDF
         for (const invoice of pdfInvoices) {
           try {
             await convertInvoicePdfToImages(invoice);
           } catch (error) {
             console.error(`❌ Failed to convert invoice ${invoice.id}:`, error);
-            // Continue with next invoice even if this one fails
           }
         }
 
@@ -64,16 +67,24 @@ export const useConvertGmailPdfs = (userId: string | undefined, enabled: boolean
         console.error('❌ Error in PDF conversion background task:', error);
       } finally {
         isConverting.current = false;
-        hasRun.current = true;
       }
     };
 
-    // Run conversion in background after a small delay
-    const timeoutId = setTimeout(() => {
+    // Initial run shortly after mount
+    const timeoutId = window.setTimeout(() => {
       convertPdfsInBackground();
-    }, 2000); // Wait 2 seconds after component mount
+    }, 2000);
 
-    return () => clearTimeout(timeoutId);
+    // Keep checking for new Gmail PDFs during the session
+    intervalIdRef.current = window.setInterval(() => {
+      convertPdfsInBackground();
+    }, 60_000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      if (intervalIdRef.current) window.clearInterval(intervalIdRef.current);
+      intervalIdRef.current = null;
+    };
   }, [userId, enabled]);
 };
 
