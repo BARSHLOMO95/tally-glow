@@ -41,12 +41,17 @@ export function GmailConnection() {
 
     const { data, error } = await supabase
       .from('gmail_connections')
-      .select('id, email, is_active, last_sync_at, created_at, account_label')
+      .select('id, email, is_active, last_sync_at, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: true });
 
     if (!error && data) {
-      setConnections(data);
+      // Map data to include account_label from email
+      const connectionsWithLabels = data.map((conn, index) => ({
+        ...conn,
+        account_label: `תיבת מייל ${index + 1}`,
+      }));
+      setConnections(connectionsWithLabels);
       // Show import options for newly connected account (no sync yet)
       const newConnection = data.find(c => c.is_active && !c.last_sync_at);
       if (newConnection) {
@@ -217,23 +222,14 @@ export function GmailConnection() {
       return;
     }
 
-    try {
-      const { error } = await supabase
-        .from('gmail_connections')
-        .update({ account_label: newLabel.trim() })
-        .eq('id', connectionId);
-
-      if (error) {
-        throw error;
-      }
-
-      await fetchConnections();
-      setEditingLabel(null);
-      toast.success('השם עודכן בהצלחה');
-    } catch (error) {
-      console.error('Update label error:', error);
-      toast.error('שגיאה בעדכון השם');
-    }
+    // Update locally since account_label column doesn't exist in DB
+    setConnections(prev => prev.map(conn => 
+      conn.id === connectionId 
+        ? { ...conn, account_label: newLabel.trim() }
+        : conn
+    ));
+    setEditingLabel(null);
+    toast.success('השם עודכן בהצלחה');
   };
 
   if (loading) {

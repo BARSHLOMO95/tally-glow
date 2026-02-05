@@ -74,6 +74,7 @@ export type Database = {
       gmail_connections: {
         Row: {
           access_token: string
+          account_label: string
           created_at: string
           email: string
           id: string
@@ -87,6 +88,7 @@ export type Database = {
         }
         Insert: {
           access_token: string
+          account_label: string
           created_at?: string
           email: string
           id?: string
@@ -100,6 +102,7 @@ export type Database = {
         }
         Update: {
           access_token?: string
+          account_label?: string
           created_at?: string
           email?: string
           id?: string
