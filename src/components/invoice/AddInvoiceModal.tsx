@@ -95,7 +95,6 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
     if (isPdf && previewBlobs.length === 0) {
       console.error('❌ BLOCKED: Cannot upload PDF without preview images');
       toast.error('לא ניתן להעלות PDF - ההמרה לתמונה נכשלה. נסה שוב או העלה תמונה רגילה.');
-      setIsUploading(false);
       return;
     }
 
@@ -113,6 +112,7 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.error('יש להתחבר כדי להעלות חשבוניות');
+        setIsUploading(false);
         return;
       }
 
@@ -192,7 +192,7 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
 
       console.log('📝 ABOUT TO INSERT INVOICE:', JSON.stringify(invoiceToCreate, null, 2));
 
-      // STEP 1: Create the invoice record directly with additional_images
+      // STEP 1: Create the invoice record
       const { data: newInvoice, error: createError } = await supabase
         .from('invoices')
         .insert([invoiceToCreate])
@@ -220,50 +220,47 @@ const AddInvoiceModal = ({ isOpen, onClose, onSave }: AddInvoiceModalProps) => {
         }
       }
 
-      console.log('🔹 About to call Edge Function for AI analysis');
+      // Close modal immediately and let user continue working
+      setIsUploading(false);
+      handleClose();
+      onSave(); // Refresh the list to show the new invoice
 
-      // STEP 2: Call AI analysis and WAIT for it to complete
+      // Show processing toast
+      toast.loading('המסמך הועלה! מנתח ברקע...', { id: `ai-analysis-${newInvoice.id}` });
+
+      // STEP 2: Call AI analysis in the BACKGROUND (don't await)
       const edgeFunctionPayload = {
-        invoice_id: newInvoice.id,  // Send the invoice ID to update
+        invoice_id: newInvoice.id,
         image_url: mainImageUrl,
         user_id: user.id,
-        additional_images: additionalImageUrls  // Send additional images to preserve them
+        additional_images: additionalImageUrls
       };
 
-      console.log('📤 Calling Edge Function with payload:', JSON.stringify(edgeFunctionPayload));
+      console.log('📤 Calling Edge Function in background:', JSON.stringify(edgeFunctionPayload));
 
-      // Show loading toast
-      toast.loading('המערכת מנתחת את החשבונית...', { id: 'ai-analysis' });
-
-      try {
-        const { data, error } = await supabase.functions.invoke('import-invoices', {
-          body: edgeFunctionPayload
-        });
-
+      // Fire and forget - AI analysis runs in background
+      supabase.functions.invoke('import-invoices', {
+        body: edgeFunctionPayload
+      }).then(({ data, error }) => {
         if (error) {
           console.error('❌ Error in AI analysis:', error);
-          toast.error('החשבונית נשמרה אך הניתוח נכשל', { id: 'ai-analysis' });
+          toast.error('הניתוח נכשל - ניתן לערוך ידנית', { id: `ai-analysis-${newInvoice.id}` });
         } else {
-          console.log('✅ AI analysis completed successfully:', data);
-          console.log('✅ Operation:', data?.operation, 'Updated:', data?.updated, 'Inserted:', data?.inserted);
-          console.log('✅ Invoice ID from response:', data?.invoice_id);
-          toast.success('החשבונית נשמרה וניתחה בהצלחה!', { id: 'ai-analysis' });
+          console.log('✅ AI analysis completed:', data);
+          toast.success('הניתוח הושלם בהצלחה!', { id: `ai-analysis-${newInvoice.id}` });
+          // Refresh to show updated data
+          onSave();
         }
-      } catch (err) {
+      }).catch(err => {
         console.error('❌ Exception in Edge Function call:', err);
-        toast.error('החשבונית נשמרה אך הניתוח נכשל', { id: 'ai-analysis' });
-      }
+        toast.error('הניתוח נכשל - ניתן לערוך ידנית', { id: `ai-analysis-${newInvoice.id}` });
+      });
 
-      console.log('🔹 AI analysis finished, calling onSave()');
-      await onSave(); // Wait for refresh to complete
-      console.log('🔹 onSave() completed, calling handleClose()');
-      handleClose();
-      console.log('🔹 handleClose() called - END of handleSubmit');
+      console.log('🔹 Modal closed, AI analysis running in background');
 
     } catch (error) {
       console.error('Error uploading invoice:', error);
       toast.error('שגיאה בהעלאת החשבונית');
-    } finally {
       setIsUploading(false);
     }
   };
