@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { motion, useScroll, useTransform, useSpring, useInView } from 'framer-motion';
+import { motion, useScroll, useSpring, useInView } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,8 +10,7 @@ import {
   Upload, 
   Zap, 
   Shield, 
-  BarChart3, 
-  MessageCircle,
+  BarChart3,
   Check,
   ArrowLeft,
   Sparkles,
@@ -20,9 +19,12 @@ import {
   Loader2,
   ChevronDown,
   Star,
-  Mail
+  Mail,
+  Menu,
+  X
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import SystemMockup from '@/components/landing/SystemMockup';
 
 interface Plan {
   id: string;
@@ -39,10 +41,10 @@ interface Plan {
 const FloatingParticles = () => {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {[...Array(20)].map((_, i) => (
+      {[...Array(15)].map((_, i) => (
         <motion.div
           key={i}
-          className="absolute w-2 h-2 rounded-full bg-gradient-to-r from-primary/30 to-purple-500/30"
+          className="absolute w-1 h-1 md:w-2 md:h-2 rounded-full bg-gradient-to-r from-primary/30 to-purple-500/30"
           style={{
             left: `${Math.random() * 100}%`,
             top: `${Math.random() * 100}%`,
@@ -70,7 +72,7 @@ const AuroraBackground = () => {
     <div className="absolute inset-0 overflow-hidden">
       <div className="absolute -top-1/2 -right-1/2 w-full h-full bg-gradient-to-bl from-primary/20 via-purple-500/10 to-transparent rounded-full blur-3xl animate-aurora" />
       <div className="absolute -bottom-1/2 -left-1/2 w-full h-full bg-gradient-to-tr from-pink-500/20 via-primary/10 to-transparent rounded-full blur-3xl animate-aurora" style={{ animationDelay: '-7s' }} />
-      <div className="absolute top-1/4 left-1/4 w-1/2 h-1/2 bg-gradient-to-r from-cyan-500/10 via-primary/10 to-purple-500/10 rounded-full blur-3xl animate-aurora" style={{ animationDelay: '-3s' }} />
+      <div className="absolute top-1/4 left-1/4 w-1/2 h-1/2 bg-gradient-to-r from-cyan-500/10 via-primary/10 to-purple-500/10 rounded-full blur-3xl animate-aurora hidden md:block" style={{ animationDelay: '-3s' }} />
     </div>
   );
 };
@@ -82,7 +84,7 @@ const Card3D = ({ children, className = '' }: { children: React.ReactNode; class
   const [rotateY, setRotateY] = useState(0);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!ref.current) return;
+    if (!ref.current || window.innerWidth < 768) return;
     const rect = ref.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -115,10 +117,9 @@ const Card3D = ({ children, className = '' }: { children: React.ReactNode; class
 };
 
 // Animated counter
-const AnimatedCounter = ({ value, suffix = '' }: { value: string; suffix?: string }) => {
+const AnimatedCounter = ({ value }: { value: string }) => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true });
-  const numericValue = parseInt(value.replace(/[^0-9]/g, '')) || 0;
   
   return (
     <span ref={ref} className="tabular-nums">
@@ -131,7 +132,6 @@ const AnimatedCounter = ({ value, suffix = '' }: { value: string; suffix?: strin
           {value}
         </motion.span>
       ) : '0'}
-      {suffix}
     </span>
   );
 };
@@ -140,6 +140,7 @@ const Landing = () => {
   const { user, loading } = useAuth();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30 });
   const heroRef = useRef(null);
@@ -170,7 +171,7 @@ const Landing = () => {
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
         >
-          <Loader2 className="w-10 h-10 text-primary" />
+          <Loader2 className="w-8 h-8 md:w-10 md:h-10 text-primary" />
         </motion.div>
       </div>
     );
@@ -236,7 +237,7 @@ const Landing = () => {
     <div className="min-h-screen bg-background overflow-x-hidden" dir="rtl">
       {/* Progress bar */}
       <motion.div 
-        className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-purple-500 to-pink-500 z-[100] origin-right"
+        className="fixed top-0 left-0 right-0 h-0.5 md:h-1 bg-gradient-to-r from-primary via-purple-500 to-pink-500 z-[100] origin-right"
         style={{ scaleX }}
       />
 
@@ -247,23 +248,24 @@ const Landing = () => {
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
       >
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-3 md:py-4 flex items-center justify-between">
           <motion.div 
-            className="flex items-center gap-3"
+            className="flex items-center gap-2 md:gap-3"
             whileHover={{ scale: 1.05 }}
           >
             <div className="relative">
-              <div className="w-11 h-11 bg-gradient-to-br from-primary via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center animate-pulse-glow">
-                <FileText className="w-5 h-5 text-white" />
+              <div className="w-9 h-9 md:w-11 md:h-11 bg-gradient-to-br from-primary via-purple-500 to-pink-500 rounded-xl md:rounded-2xl flex items-center justify-center animate-pulse-glow">
+                <FileText className="w-4 h-4 md:w-5 md:h-5 text-white" />
               </div>
-              <div className="absolute -inset-1 bg-gradient-to-r from-primary to-purple-500 rounded-2xl blur opacity-30 animate-pulse" />
+              <div className="absolute -inset-1 bg-gradient-to-r from-primary to-purple-500 rounded-xl md:rounded-2xl blur opacity-30 animate-pulse" />
             </div>
-            <span className="text-xl font-bold gradient-text">InvoiceAI</span>
+            <span className="text-lg md:text-xl font-bold gradient-text">InvoiceAI</span>
           </motion.div>
           
-          <div className="flex items-center gap-3">
+          {/* Desktop nav */}
+          <div className="hidden md:flex items-center gap-3">
             <Link to="/auth">
-              <Button variant="ghost" className="hidden sm:flex">התחברות</Button>
+              <Button variant="ghost">התחברות</Button>
             </Link>
             <Link to="/auth">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -277,14 +279,40 @@ const Landing = () => {
               </motion.div>
             </Link>
           </div>
+
+          {/* Mobile menu button */}
+          <button
+            className="md:hidden p-2"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
+
+        {/* Mobile menu */}
+        <motion.div
+          initial={false}
+          animate={{ height: mobileMenuOpen ? 'auto' : 0, opacity: mobileMenuOpen ? 1 : 0 }}
+          className="md:hidden overflow-hidden"
+        >
+          <div className="px-4 py-4 space-y-3 border-t border-border/50">
+            <Link to="/auth" className="block">
+              <Button variant="ghost" className="w-full justify-start">התחברות</Button>
+            </Link>
+            <Link to="/auth" className="block">
+              <Button className="w-full bg-gradient-to-r from-primary to-purple-600">
+                התחל עכשיו
+              </Button>
+            </Link>
+          </div>
+        </motion.div>
       </motion.header>
 
       {/* Hero Section */}
-      <section ref={heroRef} className="relative pt-32 pb-20 px-4 min-h-screen flex items-center">
+      <section ref={heroRef} className="relative pt-24 md:pt-32 pb-12 md:pb-20 px-4 min-h-[100dvh] flex flex-col justify-center">
         <AuroraBackground />
         <FloatingParticles />
-        <div className="absolute inset-0 grid-pattern" />
+        <div className="absolute inset-0 grid-pattern opacity-50 md:opacity-100" />
         
         <div className="container mx-auto text-center relative z-10">
           <motion.div
@@ -297,25 +325,25 @@ const Landing = () => {
               animate={heroInView ? { scale: 1, opacity: 1 } : {}}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              <Badge className="mb-8 bg-gradient-to-r from-primary/20 to-purple-500/20 text-primary border-primary/30 px-6 py-3 text-sm backdrop-blur-sm">
-                <Sparkles className="w-4 h-4 ml-2 animate-pulse" />
+              <Badge className="mb-4 md:mb-8 bg-gradient-to-r from-primary/20 to-purple-500/20 text-primary border-primary/30 px-4 md:px-6 py-2 md:py-3 text-xs md:text-sm backdrop-blur-sm">
+                <Sparkles className="w-3 h-3 md:w-4 md:h-4 ml-1 md:ml-2 animate-pulse" />
                 מערכת ניהול חשבוניות מבוססת AI
               </Badge>
             </motion.div>
             
             <motion.h1 
-              className="text-5xl md:text-7xl lg:text-8xl font-black mb-8 leading-tight"
+              className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-black mb-4 md:mb-8 leading-tight"
               initial={{ opacity: 0, y: 30 }}
               animate={heroInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.8, delay: 0.3 }}
             >
-              <span className="block mb-2">ניהול חשבוניות</span>
-              <span className="relative">
+              <span className="block mb-1 md:mb-2">ניהול חשבוניות</span>
+              <span className="relative inline-block">
                 <span className="gradient-text animate-text-glow">
                   בעידן החדש
                 </span>
                 <motion.span 
-                  className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-primary via-purple-500 to-pink-500 rounded-full"
+                  className="absolute -bottom-1 md:-bottom-2 left-0 right-0 h-0.5 md:h-1 bg-gradient-to-r from-primary via-purple-500 to-pink-500 rounded-full"
                   initial={{ scaleX: 0 }}
                   animate={heroInView ? { scaleX: 1 } : {}}
                   transition={{ duration: 0.8, delay: 0.8 }}
@@ -324,31 +352,30 @@ const Landing = () => {
             </motion.h1>
             
             <motion.p 
-              className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-12 leading-relaxed"
+              className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-3xl mx-auto mb-6 md:mb-10 leading-relaxed px-2"
               initial={{ opacity: 0, y: 20 }}
               animate={heroInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.8, delay: 0.5 }}
             >
               העלו חשבוניות, קבלו עיבוד אוטומטי עם 
-              <span className="text-primary font-semibold"> בינה מלאכותית מתקדמת</span>, 
-              סנכרון מ-Gmail, והתראות בזמן אמת.
+              <span className="text-primary font-semibold"> בינה מלאכותית מתקדמת</span>
             </motion.p>
 
             <motion.div 
-              className="flex flex-col sm:flex-row items-center justify-center gap-5"
+              className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-5"
               initial={{ opacity: 0, y: 20 }}
               animate={heroInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.8, delay: 0.7 }}
             >
-              <Link to="/auth">
+              <Link to="/auth" className="w-full sm:w-auto">
                 <motion.div 
                   whileHover={{ scale: 1.05, y: -2 }} 
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Button size="lg" className="text-lg px-10 py-7 bg-gradient-to-r from-primary via-purple-600 to-pink-500 hover:opacity-90 shadow-2xl shadow-primary/30 rounded-2xl group relative overflow-hidden">
-                    <span className="relative z-10 flex items-center font-semibold">
+                  <Button size="lg" className="w-full sm:w-auto text-base md:text-lg px-6 md:px-10 py-5 md:py-7 bg-gradient-to-r from-primary via-purple-600 to-pink-500 hover:opacity-90 shadow-2xl shadow-primary/30 rounded-xl md:rounded-2xl group relative overflow-hidden">
+                    <span className="relative z-10 flex items-center justify-center font-semibold">
                       התחל בחינם
-                      <ArrowLeft className="w-5 h-5 mr-3 group-hover:-translate-x-2 transition-transform" />
+                      <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3 group-hover:-translate-x-2 transition-transform" />
                     </span>
                     <div className="absolute inset-0 animate-shimmer" />
                   </Button>
@@ -357,9 +384,10 @@ const Landing = () => {
               <motion.div 
                 whileHover={{ scale: 1.05 }} 
                 whileTap={{ scale: 0.95 }}
+                className="w-full sm:w-auto"
               >
-                <Button size="lg" variant="outline" className="text-lg px-10 py-7 rounded-2xl border-2 backdrop-blur-sm hover:bg-primary/5">
-                  <span className="flex items-center">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto text-base md:text-lg px-6 md:px-10 py-5 md:py-7 rounded-xl md:rounded-2xl border-2 backdrop-blur-sm hover:bg-primary/5">
+                  <span className="flex items-center justify-center">
                     צפה בהדגמה
                     <motion.span
                       className="mr-2"
@@ -374,59 +402,68 @@ const Landing = () => {
             </motion.div>
           </motion.div>
 
-          {/* Stats */}
-          <motion.div 
-            className="mt-24 grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8"
-            initial={{ opacity: 0, y: 40 }}
-            animate={heroInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.9 }}
-          >
-            {stats.map((stat, index) => (
-              <Card3D key={index} className="group">
-                <div className="glass-dark rounded-2xl p-6 text-center hover-lift">
-                  <stat.icon className="w-8 h-8 mx-auto mb-3 text-primary opacity-80" />
-                  <div className="text-3xl md:text-4xl font-black gradient-text mb-1">
-                    <AnimatedCounter value={stat.value} />
-                  </div>
-                  <div className="text-muted-foreground text-sm">{stat.label}</div>
-                </div>
-              </Card3D>
-            ))}
-          </motion.div>
+          {/* System Mockup */}
+          <div className="mt-10 md:mt-16 lg:mt-20">
+            <SystemMockup />
+          </div>
 
           {/* Scroll indicator */}
           <motion.div 
-            className="absolute bottom-8 left-1/2 -translate-x-1/2"
+            className="mt-8 md:mt-12"
             animate={{ y: [0, 10, 0] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            <ChevronDown className="w-8 h-8 text-muted-foreground/50" />
+            <ChevronDown className="w-6 h-6 md:w-8 md:h-8 text-muted-foreground/50 mx-auto" />
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-12 md:py-20 px-4 relative">
+        <div className="container mx-auto">
+          <motion.div 
+            className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 lg:gap-8"
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            {stats.map((stat, index) => (
+              <Card3D key={index} className="group">
+                <div className="glass-dark rounded-xl md:rounded-2xl p-4 md:p-6 text-center hover-lift">
+                  <stat.icon className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 md:mb-3 text-primary opacity-80" />
+                  <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black gradient-text mb-0.5 md:mb-1">
+                    <AnimatedCounter value={stat.value} />
+                  </div>
+                  <div className="text-muted-foreground text-xs md:text-sm">{stat.label}</div>
+                </div>
+              </Card3D>
+            ))}
           </motion.div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-32 px-4 relative">
+      <section className="py-16 md:py-32 px-4 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
         
         <div className="container mx-auto relative z-10">
           <motion.div 
-            className="text-center mb-20"
+            className="text-center mb-10 md:mb-20"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <Badge className="mb-6 bg-primary/10 text-primary border-primary/20">יכולות המערכת</Badge>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6">
+            <Badge className="mb-4 md:mb-6 bg-primary/10 text-primary border-primary/20">יכולות המערכת</Badge>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black mb-4 md:mb-6">
               כל מה שצריך
-              <span className="gradient-text block mt-2">במקום אחד</span>
+              <span className="gradient-text block mt-1 md:mt-2">במקום אחד</span>
             </h2>
-            <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
+            <p className="text-muted-foreground text-sm md:text-lg lg:text-xl max-w-2xl mx-auto px-2">
               פתרון מקיף ומתקדם לניהול כל החשבוניות שלכם בצורה חכמה ויעילה
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
             {features.map((feature, index) => (
               <motion.div
                 key={index}
@@ -438,18 +475,18 @@ const Landing = () => {
                 <Card3D className="h-full">
                   <Card className="h-full border-0 bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl hover-lift overflow-hidden group">
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <CardHeader className="relative">
+                    <CardHeader className="relative p-4 md:p-6">
                       <motion.div 
-                        className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-5 shadow-lg`}
+                        className={`w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-3 md:mb-5 shadow-lg`}
                         whileHover={{ scale: 1.1, rotate: 5 }}
                         transition={{ type: 'spring', stiffness: 300 }}
                       >
-                        <feature.icon className="w-8 h-8 text-white" />
+                        <feature.icon className="w-6 h-6 md:w-8 md:h-8 text-white" />
                       </motion.div>
-                      <CardTitle className="text-2xl font-bold">{feature.title}</CardTitle>
+                      <CardTitle className="text-lg md:text-2xl font-bold">{feature.title}</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-base leading-relaxed">
+                    <CardContent className="p-4 md:p-6 pt-0">
+                      <CardDescription className="text-sm md:text-base leading-relaxed">
                         {feature.description}
                       </CardDescription>
                     </CardContent>
@@ -462,29 +499,29 @@ const Landing = () => {
       </section>
 
       {/* How it works */}
-      <section className="py-32 px-4 relative overflow-hidden">
+      <section className="py-16 md:py-32 px-4 relative overflow-hidden">
         <div className="absolute inset-0">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-0 left-1/4 w-48 h-48 md:w-96 md:h-96 bg-primary/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 w-48 h-48 md:w-96 md:h-96 bg-purple-500/10 rounded-full blur-3xl" />
         </div>
 
         <div className="container mx-auto relative z-10">
           <motion.div 
-            className="text-center mb-20"
+            className="text-center mb-10 md:mb-20"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <Badge className="mb-6 bg-primary/10 text-primary border-primary/20">איך זה עובד</Badge>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6">
+            <Badge className="mb-4 md:mb-6 bg-primary/10 text-primary border-primary/20">איך זה עובד</Badge>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black mb-4 md:mb-6">
               שלושה צעדים
-              <span className="gradient-text block mt-2">וזהו!</span>
+              <span className="gradient-text block mt-1 md:mt-2">וזהו!</span>
             </h2>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-4 md:gap-8 max-w-5xl mx-auto">
             {[
-              { step: '01', title: 'העלאה', desc: 'העלו חשבונית בכל דרך - תמונה, PDF, מייל או לינק ייחודי', icon: Upload },
+              { step: '01', title: 'העלאה', desc: 'העלו חשבונית בכל דרך - תמונה, PDF, מייל או לינק', icon: Upload },
               { step: '02', title: 'עיבוד אוטומטי', desc: 'ה-AI מזהה ומעבד את כל הנתונים תוך שניות', icon: Zap },
               { step: '03', title: 'ניהול מלא', desc: 'צפו בדוחות, נהלו ספקים וקבלו תובנות עסקיות', icon: BarChart3 }
             ].map((item, index) => (
@@ -496,18 +533,18 @@ const Landing = () => {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.2, duration: 0.6 }}
               >
-                <div className="glass-dark rounded-3xl p-8 text-center relative overflow-hidden group hover-lift">
-                  <div className="absolute -top-4 -right-4 text-8xl font-black text-primary/5 group-hover:text-primary/10 transition-colors">
+                <div className="glass-dark rounded-2xl md:rounded-3xl p-5 md:p-8 text-center relative overflow-hidden group hover-lift">
+                  <div className="absolute -top-2 md:-top-4 -right-2 md:-right-4 text-5xl md:text-8xl font-black text-primary/5 group-hover:text-primary/10 transition-colors">
                     {item.step}
                   </div>
                   <motion.div 
-                    className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center"
+                    className="w-14 h-14 md:w-20 md:h-20 mx-auto mb-4 md:mb-6 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center"
                     whileHover={{ scale: 1.1, rotate: -5 }}
                   >
-                    <item.icon className="w-10 h-10 text-white" />
+                    <item.icon className="w-7 h-7 md:w-10 md:h-10 text-white" />
                   </motion.div>
-                  <h3 className="text-2xl font-bold mb-3">{item.title}</h3>
-                  <p className="text-muted-foreground">{item.desc}</p>
+                  <h3 className="text-lg md:text-2xl font-bold mb-2 md:mb-3">{item.title}</h3>
+                  <p className="text-muted-foreground text-sm md:text-base">{item.desc}</p>
                 </div>
                 {index < 2 && (
                   <div className="hidden md:block absolute top-1/2 -left-4 w-8 h-0.5 bg-gradient-to-r from-primary to-purple-500" />
@@ -519,31 +556,31 @@ const Landing = () => {
       </section>
 
       {/* Pricing Section */}
-      <section className="py-32 px-4 relative" id="pricing">
+      <section className="py-16 md:py-32 px-4 relative" id="pricing">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
         
         <div className="container mx-auto relative z-10">
           <motion.div 
-            className="text-center mb-16"
+            className="text-center mb-10 md:mb-16"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <Badge className="mb-6 bg-primary/10 text-primary border-primary/20">תוכניות ומחירים</Badge>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6">
+            <Badge className="mb-4 md:mb-6 bg-primary/10 text-primary border-primary/20">תוכניות ומחירים</Badge>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black mb-4 md:mb-6">
               בחרו את התוכנית
-              <span className="gradient-text block mt-2">המושלמת לכם</span>
+              <span className="gradient-text block mt-1 md:mt-2">המושלמת לכם</span>
             </h2>
 
             {/* Billing Toggle */}
-            <div className="flex items-center justify-center gap-2 mt-10">
+            <div className="flex items-center justify-center gap-2 mt-6 md:mt-10">
               <motion.div 
-                className="glass-dark rounded-full p-1.5 flex items-center"
+                className="glass-dark rounded-full p-1 md:p-1.5 flex items-center"
                 layout
               >
                 <button
                   onClick={() => setBillingInterval('monthly')}
-                  className={`px-6 py-3 rounded-full font-medium transition-all ${
+                  className={`px-4 md:px-6 py-2 md:py-3 rounded-full font-medium text-sm md:text-base transition-all ${
                     billingInterval === 'monthly' 
                       ? 'bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg' 
                       : 'text-muted-foreground hover:text-foreground'
@@ -553,14 +590,14 @@ const Landing = () => {
                 </button>
                 <button
                   onClick={() => setBillingInterval('yearly')}
-                  className={`px-6 py-3 rounded-full font-medium transition-all flex items-center gap-2 ${
+                  className={`px-4 md:px-6 py-2 md:py-3 rounded-full font-medium text-sm md:text-base transition-all flex items-center gap-1 md:gap-2 ${
                     billingInterval === 'yearly' 
                       ? 'bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg' 
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   שנתי
-                  <Badge className="bg-green-500/20 text-green-500 border-green-500/30 text-xs">
+                  <Badge className="bg-green-500/20 text-green-500 border-green-500/30 text-[10px] md:text-xs">
                     -20%
                   </Badge>
                 </button>
@@ -568,7 +605,7 @@ const Landing = () => {
             </div>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8 max-w-6xl mx-auto">
             {/* Free Plan */}
             <motion.div
               initial={{ opacity: 0, y: 40 }}
@@ -577,20 +614,20 @@ const Landing = () => {
             >
               <Card3D className="h-full">
                 <Card className="h-full border-0 glass-dark overflow-hidden">
-                  <CardHeader className="text-center pb-4">
-                    <CardTitle className="text-2xl font-bold">חינם</CardTitle>
-                    <CardDescription>להתחלה ולהתנסות</CardDescription>
-                    <div className="mt-6">
-                      <span className="text-5xl font-black gradient-text">$0</span>
-                      <span className="text-muted-foreground">/לחודש</span>
+                  <CardHeader className="text-center pb-3 md:pb-4 p-4 md:p-6">
+                    <CardTitle className="text-xl md:text-2xl font-bold">חינם</CardTitle>
+                    <CardDescription className="text-sm md:text-base">להתחלה ולהתנסות</CardDescription>
+                    <div className="mt-4 md:mt-6">
+                      <span className="text-3xl md:text-5xl font-black gradient-text">$0</span>
+                      <span className="text-muted-foreground text-sm md:text-base">/לחודש</span>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-6">
-                    <ul className="space-y-4">
+                  <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6 pt-0">
+                    <ul className="space-y-3 md:space-y-4">
                       {['עד 10 מסמכים בחודש', 'עיבוד AI בסיסי', 'לינק העלאה אחד', 'תמיכה במייל'].map((feature, i) => (
-                        <li key={i} className="flex items-center gap-3">
-                          <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center">
-                            <Check className="w-4 h-4 text-green-500" />
+                        <li key={i} className="flex items-center gap-2 md:gap-3 text-sm md:text-base">
+                          <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                            <Check className="w-3 h-3 md:w-4 md:h-4 text-green-500" />
                           </div>
                           <span>{feature}</span>
                         </li>
@@ -598,7 +635,7 @@ const Landing = () => {
                     </ul>
                     <Link to="/auth" className="block">
                       <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                        <Button className="w-full py-6 rounded-xl" variant="outline">
+                        <Button className="w-full py-4 md:py-6 rounded-lg md:rounded-xl text-sm md:text-base" variant="outline">
                           התחל בחינם
                         </Button>
                       </motion.div>
@@ -626,42 +663,42 @@ const Landing = () => {
                       <>
                         <div className="absolute -top-px left-0 right-0 h-1 bg-gradient-to-r from-primary via-purple-500 to-pink-500" />
                         <motion.div 
-                          className="absolute -top-10 left-1/2 -translate-x-1/2"
+                          className="absolute -top-8 md:-top-10 left-1/2 -translate-x-1/2"
                           initial={{ y: -20, opacity: 0 }}
                           whileInView={{ y: 0, opacity: 1 }}
                           viewport={{ once: true }}
                         >
-                          <Badge className="bg-gradient-to-r from-primary to-purple-600 text-white border-0 px-4 py-1.5 shadow-lg">
+                          <Badge className="bg-gradient-to-r from-primary to-purple-600 text-white border-0 px-3 md:px-4 py-1 md:py-1.5 shadow-lg text-xs md:text-sm">
                             <Sparkles className="w-3 h-3 ml-1" />
                             הכי פופולרי
                           </Badge>
                         </motion.div>
                       </>
                     )}
-                    <CardHeader className="text-center pb-4 pt-8">
-                      <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
-                      <CardDescription>{plan.description}</CardDescription>
-                      <div className="mt-6">
-                        <span className="text-5xl font-black gradient-text">
+                    <CardHeader className="text-center pb-3 md:pb-4 pt-6 md:pt-8 p-4 md:p-6">
+                      <CardTitle className="text-xl md:text-2xl font-bold">{plan.name}</CardTitle>
+                      <CardDescription className="text-sm md:text-base">{plan.description}</CardDescription>
+                      <div className="mt-4 md:mt-6">
+                        <span className="text-3xl md:text-5xl font-black gradient-text">
                           ${billingInterval === 'monthly' ? plan.price_monthly : plan.price_yearly}
                         </span>
-                        <span className="text-muted-foreground">
+                        <span className="text-muted-foreground text-sm md:text-base">
                           /{billingInterval === 'monthly' ? 'חודש' : 'שנה'}
                         </span>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                      <ul className="space-y-4">
-                        <li className="flex items-center gap-3">
-                          <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center">
-                            <Check className="w-4 h-4 text-green-500" />
+                    <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6 pt-0">
+                      <ul className="space-y-3 md:space-y-4">
+                        <li className="flex items-center gap-2 md:gap-3 text-sm md:text-base">
+                          <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                            <Check className="w-3 h-3 md:w-4 md:h-4 text-green-500" />
                           </div>
                           <span className="font-medium">עד {plan.document_limit} מסמכים בחודש</span>
                         </li>
                         {plan.features?.map((feature, i) => (
-                          <li key={i} className="flex items-center gap-3">
-                            <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center">
-                              <Check className="w-4 h-4 text-green-500" />
+                          <li key={i} className="flex items-center gap-2 md:gap-3 text-sm md:text-base">
+                            <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                              <Check className="w-3 h-3 md:w-4 md:h-4 text-green-500" />
                             </div>
                             <span>{feature}</span>
                           </li>
@@ -669,7 +706,7 @@ const Landing = () => {
                       </ul>
                       <Link to="/auth" className="block">
                         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                          <Button className={`w-full py-6 rounded-xl ${
+                          <Button className={`w-full py-4 md:py-6 rounded-lg md:rounded-xl text-sm md:text-base ${
                             index === 0 
                               ? 'bg-gradient-to-r from-primary to-purple-600 hover:opacity-90 shadow-lg shadow-primary/25' 
                               : ''
@@ -688,10 +725,10 @@ const Landing = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-32 px-4">
+      <section className="py-16 md:py-32 px-4">
         <div className="container mx-auto">
           <motion.div 
-            className="relative rounded-[3rem] overflow-hidden"
+            className="relative rounded-2xl md:rounded-[3rem] overflow-hidden"
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
@@ -703,16 +740,16 @@ const Landing = () => {
               <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_70%_80%,rgba(255,255,255,0.15),transparent_50%)]" />
             </div>
             
-            <div className="relative z-10 p-12 md:p-20 text-center text-white">
+            <div className="relative z-10 p-8 md:p-12 lg:p-20 text-center text-white">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
               >
-                <h2 className="text-4xl md:text-6xl font-black mb-8">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-black mb-4 md:mb-8">
                   מוכנים להתחיל?
                 </h2>
-                <p className="text-xl md:text-2xl opacity-90 max-w-3xl mx-auto mb-12 leading-relaxed">
+                <p className="text-base md:text-xl lg:text-2xl opacity-90 max-w-3xl mx-auto mb-6 md:mb-12 leading-relaxed px-2">
                   הצטרפו לאלפי עסקים שכבר משתמשים במערכת שלנו לניהול חשבוניות חכם ויעיל
                 </p>
                 <Link to="/auth">
@@ -721,10 +758,10 @@ const Landing = () => {
                     whileTap={{ scale: 0.95 }}
                     className="inline-block"
                   >
-                    <Button size="lg" className="bg-white text-primary hover:bg-white/90 text-lg px-12 py-8 rounded-2xl font-bold shadow-2xl group">
+                    <Button size="lg" className="bg-white text-primary hover:bg-white/90 text-base md:text-lg px-8 md:px-12 py-5 md:py-8 rounded-xl md:rounded-2xl font-bold shadow-2xl group">
                       <span className="flex items-center">
                         התחל עכשיו בחינם
-                        <ArrowLeft className="w-6 h-6 mr-3 group-hover:-translate-x-2 transition-transform" />
+                        <ArrowLeft className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 group-hover:-translate-x-2 transition-transform" />
                       </span>
                     </Button>
                   </motion.div>
@@ -736,20 +773,20 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-16 px-4 border-t border-border/50 relative">
+      <footer className="py-10 md:py-16 px-4 border-t border-border/50 relative">
         <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent" />
         <div className="container mx-auto relative z-10">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-8">
             <motion.div 
-              className="flex items-center gap-3"
+              className="flex items-center gap-2 md:gap-3"
               whileHover={{ scale: 1.05 }}
             >
-              <div className="w-12 h-12 bg-gradient-to-br from-primary via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center">
-                <FileText className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-primary via-purple-500 to-pink-500 rounded-xl md:rounded-2xl flex items-center justify-center">
+                <FileText className="w-5 h-5 md:w-6 md:h-6 text-white" />
               </div>
-              <span className="text-2xl font-bold gradient-text">InvoiceAI</span>
+              <span className="text-xl md:text-2xl font-bold gradient-text">InvoiceAI</span>
             </motion.div>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-sm md:text-base">
               © {new Date().getFullYear()} InvoiceAI. כל הזכויות שמורות.
             </p>
           </div>
