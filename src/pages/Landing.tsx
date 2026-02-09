@@ -24,6 +24,11 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import SystemMockup from '@/components/landing/SystemMockup';
+import FloatingCards from '@/components/landing/FloatingCards';
+import TestimonialsSection from '@/components/landing/TestimonialsSection';
+import LogoCloud from '@/components/landing/LogoCloud';
+import LiveMetrics from '@/components/landing/LiveMetrics';
+import BeforeAfter from '@/components/landing/BeforeAfter';
 
 interface Plan {
   id: string;
@@ -277,12 +282,19 @@ const Landing = () => {
             </motion.div>
           </motion.div>
 
-          {/* System Mockup */}
-          <div className="mt-10 md:mt-16">
+          {/* System Mockup with floating cards */}
+          <div className="mt-10 md:mt-16 relative">
+            <FloatingCards />
             <SystemMockup />
           </div>
         </div>
       </section>
+
+      {/* Logo Cloud */}
+      <LogoCloud />
+
+      {/* Live Metrics */}
+      <LiveMetrics />
 
       {/* Features Section */}
       <section className="py-16 md:py-24 px-4">
@@ -368,6 +380,12 @@ const Landing = () => {
           </div>
         </div>
       </section>
+
+      {/* Before & After */}
+      <BeforeAfter />
+
+      {/* Testimonials */}
+      <TestimonialsSection />
 
       {/* Pricing Section */}
       <section className="py-16 md:py-24 px-4" id="pricing">
