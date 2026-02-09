@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { motion, useScroll, useSpring, useInView } from 'framer-motion';
+import { motion, useScroll, useSpring, useInView, useTransform } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -70,6 +70,11 @@ const Landing = () => {
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30 });
   const heroRef = useRef(null);
   const heroInView = useInView(heroRef, { once: true });
+  
+  // Parallax transforms for hero background orbs
+  const heroY = useTransform(scrollYProgress, [0, 0.3], [0, -100]);
+  const heroScale = useTransform(scrollYProgress, [0, 0.2], [1, 1.1]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.3], [1, 0]);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -155,13 +160,20 @@ const Landing = () => {
         style={{ scaleX }}
       />
 
+      {/* Grid pattern background */}
+      <div className="fixed inset-0 grid-pattern pointer-events-none opacity-50" />
+
       {/* Clean Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/40">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+            <motion.div 
+              className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center"
+              whileHover={{ rotate: 10, scale: 1.1 }}
+              transition={{ type: 'spring', stiffness: 300 }}
+            >
               <FileText className="w-4 h-4 text-primary-foreground" />
-            </div>
+            </motion.div>
             <span className="text-lg font-bold">InvoiceAI</span>
           </Link>
           
@@ -171,7 +183,17 @@ const Landing = () => {
               <Button variant="ghost" size="sm">התחברות</Button>
             </Link>
             <Link to="/auth">
-              <Button size="sm">התחל עכשיו</Button>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button size="sm" className="relative overflow-hidden group">
+                  <span className="relative z-10">התחל עכשיו</span>
+                  <motion.div
+                    className="absolute inset-0 bg-primary-foreground/10"
+                    initial={{ x: '-100%' }}
+                    whileHover={{ x: '100%' }}
+                    transition={{ duration: 0.5 }}
+                  />
+                </Button>
+              </motion.div>
             </Link>
           </div>
 
@@ -205,10 +227,31 @@ const Landing = () => {
 
       {/* Hero Section - Clean & Modern */}
       <section ref={heroRef} className="relative pt-20 md:pt-24 px-4">
-        {/* Subtle background gradient */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] translate-x-1/3 -translate-y-1/2" />
-        </div>
+        {/* Animated background gradient orbs with parallax */}
+        <motion.div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ y: heroY, opacity: heroOpacity }}>
+          <motion.div 
+            className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] translate-x-1/3 -translate-y-1/2"
+            style={{ scale: heroScale }}
+            animate={{ 
+              x: [0, 30, -20, 0],
+              y: [0, -40, 20, 0],
+            }}
+            transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div 
+            className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-primary/3 rounded-full blur-[100px] -translate-x-1/3 translate-y-1/2"
+            animate={{ 
+              x: [0, -30, 20, 0],
+              y: [0, 30, -20, 0],
+            }}
+            transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div 
+            className="absolute top-1/2 left-1/2 w-[300px] h-[300px] bg-primary/3 rounded-full blur-[80px] -translate-x-1/2 -translate-y-1/2"
+            animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        </motion.div>
         
         <div className="container mx-auto relative z-10 pt-8 md:pt-16">
           <motion.div
@@ -222,7 +265,7 @@ const Landing = () => {
               animate={heroInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.1 }}
             >
-              <Badge variant="secondary" className="mb-4 md:mb-6">
+              <Badge variant="secondary" className="mb-4 md:mb-6 animate-shimmer">
                 <Sparkles className="w-3 h-3 ml-1" />
                 מבוסס AI מתקדם
               </Badge>
@@ -235,7 +278,16 @@ const Landing = () => {
               transition={{ delay: 0.2 }}
             >
               ניהול חשבוניות{' '}
-              <span className="text-primary">חכם ואוטומטי</span>
+              <span className="text-primary relative">
+                חכם ואוטומטי
+                <motion.span 
+                  className="absolute -bottom-1 right-0 left-0 h-[3px] bg-primary/40 rounded-full"
+                  initial={{ scaleX: 0 }}
+                  animate={heroInView ? { scaleX: 1 } : {}}
+                  transition={{ delay: 0.8, duration: 0.6 }}
+                  style={{ originX: 1 }}
+                />
+              </span>
             </motion.h1>
             
             <motion.p 
@@ -273,11 +325,16 @@ const Landing = () => {
               transition={{ delay: 0.5 }}
             >
               {stats.map((stat, i) => (
-                <div key={i} className="flex items-center gap-2">
+                <motion.div 
+                  key={i} 
+                  className="flex items-center gap-2"
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ type: 'spring', stiffness: 400 }}
+                >
                   <stat.icon className="w-4 h-4 text-primary" />
                   <span className="font-bold"><AnimatedCounter value={stat.value} /></span>
                   <span className="text-muted-foreground text-sm">{stat.label}</span>
-                </div>
+                </motion.div>
               ))}
             </motion.div>
           </motion.div>
@@ -317,19 +374,25 @@ const Landing = () => {
             {features.map((feature, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: feature.delay }}
+                transition={{ delay: feature.delay, type: 'spring', stiffness: 100 }}
+                whileHover={{ y: -8 }}
               >
-                <Card className="h-full border-border/50 hover:border-primary/30 transition-colors">
-                  <CardHeader className="pb-2">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
+                <Card className="h-full border-border/50 hover:border-primary/30 hover:shadow-xl transition-all duration-300 group relative overflow-hidden">
+                  {/* Hover gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <CardHeader className="pb-2 relative">
+                    <motion.div 
+                      className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3"
+                      whileHover={{ rotate: 10, scale: 1.1 }}
+                    >
                       <feature.icon className="w-5 h-5 text-primary" />
-                    </div>
+                    </motion.div>
                     <CardTitle className="text-lg">{feature.title}</CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="relative">
                     <CardDescription className="text-sm">
                       {feature.description}
                     </CardDescription>
@@ -356,7 +419,18 @@ const Landing = () => {
             <p className="text-muted-foreground">שלושה צעדים פשוטים</p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-6 md:gap-8 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6 md:gap-8 max-w-4xl mx-auto relative">
+            {/* Connecting line between steps - desktop only */}
+            <div className="absolute top-6 right-[16.6%] left-[16.6%] hidden md:block">
+              <motion.div
+                className="h-[2px] bg-primary/20 w-full"
+                initial={{ scaleX: 0 }}
+                whileInView={{ scaleX: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1, delay: 0.3 }}
+                style={{ originX: 1 }}
+              />
+            </div>
             {[
               { step: '1', title: 'העלאה', desc: 'העלו חשבונית - תמונה, PDF או מייל', icon: Upload },
               { step: '2', title: 'עיבוד', desc: 'ה-AI מזהה את כל הנתונים אוטומטית', icon: Zap },
@@ -364,15 +438,19 @@ const Landing = () => {
             ].map((item, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="text-center"
+                transition={{ delay: index * 0.2, type: 'spring', stiffness: 100 }}
+                className="text-center relative"
               >
-                <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
-                  {item.step}
-                </div>
+                <motion.div 
+                  className="w-12 h-12 mx-auto mb-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold relative z-10"
+                  whileHover={{ scale: 1.2, rotate: 10 }}
+                  transition={{ type: 'spring', stiffness: 300 }}
+                >
+                  <item.icon className="w-5 h-5" />
+                </motion.div>
                 <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
                 <p className="text-muted-foreground text-sm">{item.desc}</p>
               </motion.div>
@@ -515,23 +593,78 @@ const Landing = () => {
       <section className="py-16 md:py-24 px-4">
         <div className="container mx-auto">
           <motion.div 
-            className="bg-primary text-primary-foreground rounded-2xl md:rounded-3xl p-8 md:p-12 lg:p-16 text-center"
-            initial={{ opacity: 0, scale: 0.98 }}
-            whileInView={{ opacity: 1, scale: 1 }}
+            className="bg-primary text-primary-foreground rounded-2xl md:rounded-3xl p-8 md:p-12 lg:p-16 text-center relative overflow-hidden"
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
+            transition={{ type: 'spring', stiffness: 80 }}
           >
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
-              מוכנים להתחיל?
-            </h2>
-            <p className="text-primary-foreground/80 max-w-xl mx-auto mb-6 md:mb-8">
-              הצטרפו לאלפי עסקים שכבר משתמשים במערכת לניהול חשבוניות חכם
-            </p>
-            <Link to="/auth">
-              <Button size="lg" variant="secondary" className="px-8">
-                התחל עכשיו בחינם
-                <ArrowLeft className="w-4 h-4 mr-2" />
-              </Button>
-            </Link>
+            {/* Animated background elements */}
+            <motion.div 
+              className="absolute top-0 right-0 w-64 h-64 bg-primary-foreground/10 rounded-full blur-3xl"
+              animate={{ x: [0, 30, 0], y: [0, -20, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <motion.div 
+              className="absolute bottom-0 left-0 w-48 h-48 bg-primary-foreground/10 rounded-full blur-3xl"
+              animate={{ x: [0, -20, 0], y: [0, 20, 0] }}
+              transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            
+            {/* Floating sparkles */}
+            {[...Array(6)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-1 h-1 bg-primary-foreground/30 rounded-full"
+                style={{
+                  top: `${20 + Math.random() * 60}%`,
+                  left: `${10 + Math.random() * 80}%`,
+                }}
+                animate={{
+                  y: [0, -20, 0],
+                  opacity: [0.2, 0.8, 0.2],
+                  scale: [1, 1.5, 1],
+                }}
+                transition={{
+                  duration: 3 + Math.random() * 2,
+                  repeat: Infinity,
+                  delay: Math.random() * 2,
+                }}
+              />
+            ))}
+            
+            <div className="relative z-10">
+              <motion.h2 
+                className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+              >
+                מוכנים להתחיל?
+              </motion.h2>
+              <motion.p 
+                className="text-primary-foreground/80 max-w-xl mx-auto mb-6 md:mb-8"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3 }}
+              >
+                הצטרפו לאלפי עסקים שכבר משתמשים במערכת לניהול חשבוניות חכם
+              </motion.p>
+              <Link to="/auth">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="inline-block"
+                >
+                  <Button size="lg" variant="secondary" className="px-8 shadow-lg">
+                    התחל עכשיו בחינם
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                  </Button>
+                </motion.div>
+              </Link>
+            </div>
           </motion.div>
         </div>
       </section>
