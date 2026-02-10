@@ -384,8 +384,142 @@
 
 /* Grid pattern */
 .grid-pattern {
-  background-image: 
+  background-image:
     linear-gradient(hsla(var(--primary), 0.03) 1px, transparent 1px),
     linear-gradient(90deg, hsla(var(--primary), 0.03) 1px, transparent 1px);
   background-size: 60px 60px;
+}
+
+/* Animated gradient border */
+@keyframes gradient-border-rotate {
+  0% { --angle: 0deg; }
+  100% { --angle: 360deg; }
+}
+
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.animated-gradient-border {
+  position: relative;
+}
+
+.animated-gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--angle),
+    hsla(var(--primary), 0.1),
+    hsla(var(--primary), 0.5),
+    hsl(270, 80%, 60%),
+    hsl(330, 80%, 60%),
+    hsla(var(--primary), 0.5),
+    hsla(var(--primary), 0.1)
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: gradient-border-rotate 4s linear infinite;
+  z-index: -1;
+}
+
+/* Feature card gradient glow on hover */
+.feature-card-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  background: radial-gradient(
+    600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    hsla(var(--primary), 0.1),
+    transparent 40%
+  );
+  pointer-events: none;
+}
+
+.feature-card-glow:hover::after {
+  opacity: 1;
+}
+
+/* Gradient avatar ring */
+.gradient-ring {
+  background: conic-gradient(
+    from 0deg,
+    hsl(var(--primary)),
+    hsl(270, 80%, 60%),
+    hsl(330, 80%, 60%),
+    hsl(var(--primary))
+  );
+  padding: 2px;
+  border-radius: 9999px;
+}
+
+/* Badge pulse animation */
+@keyframes badge-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 hsla(var(--primary), 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px hsla(var(--primary), 0);
+  }
+}
+
+.animate-badge-pulse {
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+/* Smooth number counter */
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-count-up {
+  animation: count-up 0.6s ease-out forwards;
+}
+
+/* Scroll indicator animation */
+@keyframes scroll-hint {
+  0%, 100% { transform: translateY(0); opacity: 1; }
+  50% { transform: translateY(8px); opacity: 0.5; }
+}
+
+.animate-scroll-hint {
+  animation: scroll-hint 2s ease-in-out infinite;
+}
+
+/* Gradient line */
+.gradient-line {
+  height: 1px;
+  background: linear-gradient(
+    to left,
+    transparent,
+    hsla(var(--primary), 0.3),
+    hsla(var(--primary), 0.5),
+    hsla(var(--primary), 0.3),
+    transparent
+  );
+}
+
+/* Glass card enhanced */
+.glass-card {
+  background: hsla(var(--card), 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid hsla(var(--border), 0.3);
+  box-shadow:
+    0 4px 6px -1px hsla(var(--primary), 0.05),
+    0 2px 4px -2px hsla(var(--primary), 0.05),
+    inset 0 1px 0 hsla(var(--primary-foreground), 0.05);
 }
