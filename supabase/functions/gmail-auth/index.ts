@@ -125,97 +125,91 @@ Deno.serve(async (req) => {
 
       // Calculate token expiry
       const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000));
+      const label = accountLabel || 'תיבת מייל חדשה';
 
-      // Check if this email is already connected for this user - if so, update tokens
-      const { data: existingConnection, error: existingError } = await supabaseAdmin
+      // Try to save/update the connection - use upsert approach for robustness
+      // First check if user already has a connection (by user_id + email, or just user_id)
+      const { data: existingByEmail } = await supabaseAdmin
         .from('gmail_connections')
-        .select('id, account_label')
+        .select('id')
         .eq('user_id', user.id)
         .eq('email', userInfo.email)
         .maybeSingle();
 
-      if (existingError) {
-        console.error('Error checking existing connection:', existingError);
-      }
+      const { data: existingByUser } = await supabaseAdmin
+        .from('gmail_connections')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (existingConnection) {
-        // Re-activate and update tokens for existing connection
-        const { data: updatedConnection, error: updateError } = await supabaseAdmin
+      const existingId = existingByEmail?.id || existingByUser?.id;
+
+      // Build the connection data - only include account_label if column exists
+      const baseData: Record<string, unknown> = {
+        user_id: user.id,
+        email: userInfo.email,
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        token_expires_at: expiresAt.toISOString(),
+        is_active: true,
+      };
+
+      // Try with account_label first, fall back without it
+      let result;
+      if (existingId) {
+        // Update existing connection
+        console.log('Updating existing connection:', existingId);
+        result = await supabaseAdmin
           .from('gmail_connections')
-          .update({
-            access_token: tokens.access_token,
-            refresh_token: tokens.refresh_token,
-            token_expires_at: expiresAt.toISOString(),
-            is_active: true,
-            account_label: accountLabel || existingConnection.account_label,
-          })
-          .eq('id', existingConnection.id)
+          .update({ ...baseData, account_label: label })
+          .eq('id', existingId)
           .select()
           .single();
 
-        if (updateError) {
-          console.error('Database update error:', updateError);
-          return new Response(JSON.stringify({ error: `שגיאה בעדכון החיבור: ${updateError.message}` }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
+        // If update failed (possibly because account_label column doesn't exist), retry without it
+        if (result.error) {
+          console.log('Update with account_label failed, retrying without it:', result.error.message);
+          result = await supabaseAdmin
+            .from('gmail_connections')
+            .update(baseData)
+            .eq('id', existingId)
+            .select()
+            .single();
         }
+      } else {
+        // Insert new connection
+        console.log('Inserting new connection for user:', user.id);
+        result = await supabaseAdmin
+          .from('gmail_connections')
+          .insert({ ...baseData, account_label: label })
+          .select()
+          .single();
 
-        console.log('Gmail connection re-activated:', updatedConnection.id);
-
-        return new Response(JSON.stringify({
-          success: true,
-          email: userInfo.email,
-          connectionId: updatedConnection.id
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        // If insert failed (possibly because account_label column doesn't exist), retry without it
+        if (result.error) {
+          console.log('Insert with account_label failed, retrying without it:', result.error.message);
+          result = await supabaseAdmin
+            .from('gmail_connections')
+            .insert(baseData)
+            .select()
+            .single();
+        }
       }
 
-      // Check if user already has 3 connections
-      const { count } = await supabaseAdmin
-        .from('gmail_connections')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-
-      if (count && count >= 3) {
-        return new Response(JSON.stringify({ error: 'ניתן לחבר עד 3 חשבונות Gmail בלבד' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      // Save new connection to database
-      const label = accountLabel || `תיבת מייל ${(count || 0) + 1}`;
-
-      const { data: newConnection, error: insertError } = await supabaseAdmin
-        .from('gmail_connections')
-        .insert({
-          user_id: user.id,
-          email: userInfo.email,
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token,
-          token_expires_at: expiresAt.toISOString(),
-          is_active: true,
-          account_label: label,
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        console.error('Database insert error:', insertError);
-        return new Response(JSON.stringify({ error: `שגיאה בשמירת החיבור: ${insertError.message}` }), {
+      if (result.error) {
+        console.error('Database save error:', JSON.stringify(result.error));
+        return new Response(JSON.stringify({ error: `שגיאה בשמירת החיבור: ${result.error.message}` }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      console.log('Gmail connection saved successfully:', newConnection.id);
+      console.log('Gmail connection saved successfully:', result.data.id);
 
       return new Response(JSON.stringify({
         success: true,
         email: userInfo.email,
-        connectionId: newConnection.id
+        connectionId: result.data.id
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
