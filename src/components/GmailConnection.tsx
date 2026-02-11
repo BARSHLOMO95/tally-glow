@@ -210,7 +210,11 @@ export function GmailConnection() {
 
       if (response.error) {
         localStorage.removeItem('gmail_pending_account_label');
-        throw new Error(response.error.message);
+        const errorContext = response.error.context;
+        const errorMessage = (typeof errorContext === 'object' && errorContext?.error)
+          ? errorContext.error
+          : response.error.message || 'שגיאה בחיבור Gmail';
+        throw new Error(errorMessage);
       }
 
       if (response.data?.authUrl) {
