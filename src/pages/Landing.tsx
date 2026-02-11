@@ -444,6 +444,14 @@ const Landing = () => {
 
           {/* System Mockup with animated gradient border */}
           <div className="mt-6 md:mt-16 relative">
+            <motion.p
+              className="text-center text-xs md:text-sm text-muted-foreground mb-3 md:mb-4"
+              initial={{ opacity: 0 }}
+              animate={heroInView ? { opacity: 1 } : {}}
+              transition={{ delay: 0.6 }}
+            >
+              הצצה למערכת ניהול החשבוניות החכמה
+            </motion.p>
             <FloatingCards />
             <div className="animated-gradient-border rounded-xl md:rounded-2xl">
               <SystemMockup />
