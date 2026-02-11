@@ -73,6 +73,14 @@ Deno.serve(async (req) => {
         });
       }
 
+      if (!tokens.refresh_token) {
+        console.error('No refresh_token received from Google. User may need to revoke app access and re-authorize.');
+        return new Response(JSON.stringify({ error: 'לא התקבל refresh token מגוגל. נסה להסיר את ההרשאה מחשבון הגוגל ולחבר מחדש.' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       // Get user email from Google
       const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
         headers: { Authorization: `Bearer ${tokens.access_token}` },

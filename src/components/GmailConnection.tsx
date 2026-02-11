@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,15 +41,14 @@ export function GmailConnection() {
 
     const { data, error } = await supabase
       .from('gmail_connections')
-      .select('id, email, is_active, last_sync_at, created_at')
+      .select('id, email, is_active, last_sync_at, created_at, account_label')
       .eq('user_id', user.id)
       .order('created_at', { ascending: true });
 
     if (!error && data) {
-      // Map data to include account_label from email
       const connectionsWithLabels = data.map((conn, index) => ({
         ...conn,
-        account_label: `תיבת מייל ${index + 1}`,
+        account_label: conn.account_label || `תיבת מייל ${index + 1}`,
       }));
       setConnections(connectionsWithLabels);
       // Show import options for newly connected account (no sync yet)
@@ -105,50 +104,71 @@ export function GmailConnection() {
     fetchConnections();
   }, [fetchConnections]);
 
-  // Handle OAuth callback
+  // Handle OAuth callback - use ref to prevent double execution on re-renders
+  const callbackProcessedRef = useRef(false);
   useEffect(() => {
     const handleCallback = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code');
       const state = urlParams.get('state');
-      const accountLabel = urlParams.get('account_label') || 'תיבת מייל חדשה';
 
-      if (code && state) {
-        setConnecting(true);
+      if (!code || !state) return;
 
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
+      // Prevent double execution (effect can re-fire when fetchConnections changes)
+      if (callbackProcessedRef.current) return;
+      callbackProcessedRef.current = true;
 
-          const redirectUrl = `${window.location.origin}/settings`;
+      // Clean URL immediately to prevent re-processing
+      window.history.replaceState({}, '', '/settings');
 
-          const response = await supabase.functions.invoke('gmail-auth', {
-            body: { code, redirectUrl, accountLabel },
-            headers: {
-              Authorization: `Bearer ${session?.access_token}`,
-            },
-          });
+      // Retrieve the account label saved before the OAuth redirect
+      const accountLabel = localStorage.getItem('gmail_pending_account_label') || 'תיבת מייל חדשה';
+      localStorage.removeItem('gmail_pending_account_label');
 
-          if (response.error) {
-            throw new Error(response.error.message || 'Failed to connect Gmail');
-          }
+      setConnecting(true);
 
-          if (response.data?.success) {
-            toast.success(`Gmail מחובר בהצלחה: ${response.data.email}`);
-            // Show import options after successful connection
-            await fetchConnections();
-            const newConnection = response.data.connectionId;
-            if (newConnection) {
-              setShowImportOptions(newConnection);
-            }
-          }
-        } catch (error) {
-          console.error('Gmail callback error:', error);
-          toast.error('שגיאה בחיבור Gmail');
-        } finally {
-          setConnecting(false);
-          // Clean URL
-          window.history.replaceState({}, '', '/settings');
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session?.access_token) {
+          throw new Error('לא נמצא חיבור פעיל - יש להתחבר מחדש');
         }
+
+        const redirectUrl = `${window.location.origin}/settings`;
+
+        const response = await supabase.functions.invoke('gmail-auth', {
+          body: { code, redirectUrl, accountLabel },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (response.error) {
+          // Extract the actual error message from the edge function response
+          let errorMessage = 'Failed to connect Gmail';
+          try {
+            const errorContext = await response.error.context?.json?.();
+            errorMessage = errorContext?.error || response.error.message || errorMessage;
+          } catch {
+            errorMessage = response.error.message || errorMessage;
+          }
+          throw new Error(errorMessage);
+        }
+
+        if (response.data?.success) {
+          toast.success(`Gmail מחובר בהצלחה: ${response.data.email}`);
+          await fetchConnections();
+          const newConnection = response.data.connectionId;
+          if (newConnection) {
+            setShowImportOptions(newConnection);
+          }
+        }
+      } catch (error) {
+        console.error('Gmail callback error:', error);
+        const message = error instanceof Error ? error.message : 'שגיאה בחיבור Gmail';
+        toast.error(message);
+      } finally {
+        setConnecting(false);
       }
     };
 
@@ -176,6 +196,9 @@ export function GmailConnection() {
       // If no label provided, use default based on count
       const label = accountLabel || `תיבת מייל ${connections.length + 1}`;
 
+      // Save the label to localStorage so it survives the OAuth redirect
+      localStorage.setItem('gmail_pending_account_label', label);
+
       const response = await supabase.functions.invoke('gmail-auth', {
         body: { redirectUrl, accountLabel: label },
         headers: {
@@ -184,6 +207,7 @@ export function GmailConnection() {
       });
 
       if (response.error) {
+        localStorage.removeItem('gmail_pending_account_label');
         throw new Error(response.error.message);
       }
 
@@ -222,14 +246,27 @@ export function GmailConnection() {
       return;
     }
 
-    // Update locally since account_label column doesn't exist in DB
-    setConnections(prev => prev.map(conn => 
-      conn.id === connectionId 
-        ? { ...conn, account_label: newLabel.trim() }
-        : conn
-    ));
-    setEditingLabel(null);
-    toast.success('השם עודכן בהצלחה');
+    try {
+      const { error } = await supabase
+        .from('gmail_connections')
+        .update({ account_label: newLabel.trim() })
+        .eq('id', connectionId);
+
+      if (error) {
+        throw error;
+      }
+
+      setConnections(prev => prev.map(conn =>
+        conn.id === connectionId
+          ? { ...conn, account_label: newLabel.trim() }
+          : conn
+      ));
+      setEditingLabel(null);
+      toast.success('השם עודכן בהצלחה');
+    } catch (error) {
+      console.error('Error updating label:', error);
+      toast.error('שגיאה בעדכון שם החשבון');
+    }
   };
 
   if (loading) {
