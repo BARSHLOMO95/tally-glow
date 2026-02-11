@@ -3,7 +3,7 @@ import { X, Check, ArrowLeft } from 'lucide-react';
 
 const BeforeAfter = () => {
   return (
-    <section className="py-16 md:py-24 px-4 bg-muted/20">
+    <section className="py-12 md:py-24 px-4 bg-muted/20">
       <div className="container mx-auto">
         <motion.div
           className="text-center mb-10 md:mb-14"
@@ -17,7 +17,7 @@ const BeforeAfter = () => {
           <p className="text-muted-foreground">ההבדל ברור</p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-4xl mx-auto items-stretch">
           {/* Before */}
           <motion.div
             className="bg-card border border-border/50 rounded-2xl p-6 md:p-8 relative overflow-hidden"

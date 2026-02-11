@@ -257,8 +257,8 @@ const Landing = () => {
         style={{ scaleX }}
       />
 
-      {/* Grid pattern background */}
-      <div className="fixed inset-0 grid-pattern pointer-events-none opacity-50" />
+      {/* Grid pattern background - hidden on mobile for performance */}
+      <div className="fixed inset-0 grid-pattern pointer-events-none opacity-50 hidden sm:block" />
 
       {/* Clean Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/40">
@@ -327,7 +327,7 @@ const Landing = () => {
         {/* Animated background gradient orbs with parallax */}
         <motion.div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ y: heroY, opacity: heroOpacity }}>
           <motion.div
-            className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] translate-x-1/3 -translate-y-1/2"
+            className="absolute top-0 right-0 w-[300px] h-[300px] sm:w-[600px] sm:h-[600px] bg-primary/5 rounded-full blur-[80px] sm:blur-[120px] translate-x-1/3 -translate-y-1/2"
             style={{ scale: heroScale }}
             animate={{
               x: [0, 30, -20, 0],
@@ -336,7 +336,7 @@ const Landing = () => {
             transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
           />
           <motion.div
-            className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-primary/3 rounded-full blur-[100px] -translate-x-1/3 translate-y-1/2"
+            className="absolute bottom-0 left-0 w-[250px] h-[250px] sm:w-[500px] sm:h-[500px] bg-primary/3 rounded-full blur-[60px] sm:blur-[100px] -translate-x-1/3 translate-y-1/2"
             animate={{
               x: [0, -30, 20, 0],
               y: [0, 30, -20, 0],
@@ -344,7 +344,7 @@ const Landing = () => {
             transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
           />
           <motion.div
-            className="absolute top-1/2 left-1/2 w-[300px] h-[300px] bg-primary/3 rounded-full blur-[80px] -translate-x-1/2 -translate-y-1/2"
+            className="absolute top-1/2 left-1/2 w-[150px] h-[150px] sm:w-[300px] sm:h-[300px] bg-primary/3 rounded-full blur-[40px] sm:blur-[80px] -translate-x-1/2 -translate-y-1/2"
             animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
             transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
           />
@@ -369,7 +369,7 @@ const Landing = () => {
             </motion.div>
 
             <motion.h1
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 md:mb-6 tracking-tight"
+              className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-4 md:mb-6 tracking-tight"
               initial={{ opacity: 0, y: 20 }}
               animate={heroInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.2 }}
@@ -405,22 +405,22 @@ const Landing = () => {
             >
               <Link to="/auth" className="w-full sm:w-auto">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button size="lg" className="w-full sm:w-auto px-8 shadow-lg shadow-primary/25">
+                  <Button size="lg" className="w-full sm:w-auto px-6 sm:px-8 shadow-lg shadow-primary/25">
                     התחל בחינם
                     <ArrowLeft className="w-4 h-4 mr-2" />
                   </Button>
                 </motion.div>
               </Link>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button size="lg" variant="outline" className="w-full sm:w-auto px-8">
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full sm:w-auto">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto px-6 sm:px-8">
                   צפה בהדגמה
                 </Button>
               </motion.div>
             </motion.div>
 
-            {/* Stats - inline on mobile with animated counters */}
+            {/* Stats - grid on mobile, inline on desktop */}
             <motion.div
-              className="flex flex-wrap justify-center gap-6 md:gap-10 mt-8 md:mt-12 text-center"
+              className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-2.5 sm:gap-4 md:gap-10 mt-8 md:mt-12 text-center"
               initial={{ opacity: 0 }}
               animate={heroInView ? { opacity: 1 } : {}}
               transition={{ delay: 0.5 }}
@@ -428,15 +428,15 @@ const Landing = () => {
               {stats.map((stat, i) => (
                 <motion.div
                   key={i}
-                  className="flex items-center gap-2 bg-card/50 backdrop-blur-sm border border-border/30 rounded-full px-4 py-2"
+                  className="flex items-center justify-center gap-1.5 sm:gap-2 bg-card/50 backdrop-blur-sm border border-border/30 rounded-full px-2.5 py-1.5 sm:px-4 sm:py-2"
                   whileHover={{ scale: 1.1, borderColor: 'hsl(var(--primary) / 0.3)' }}
                   transition={{ type: 'spring', stiffness: 400 }}
                 >
-                  <stat.icon className="w-4 h-4 text-primary" />
-                  <span className="font-bold">
+                  <stat.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
+                  <span className="font-bold text-xs sm:text-sm">
                     <AnimatedCounter value={stat.value} suffix={stat.suffix} />
                   </span>
-                  <span className="text-muted-foreground text-sm">{stat.label}</span>
+                  <span className="text-muted-foreground text-[11px] sm:text-sm">{stat.label}</span>
                 </motion.div>
               ))}
             </motion.div>
@@ -484,7 +484,7 @@ const Landing = () => {
       </div>
 
       {/* Features Section */}
-      <section className="py-16 md:py-24 px-4 relative">
+      <section className="py-12 md:py-24 px-4 relative">
         <div className="container mx-auto">
           <motion.div
             className="text-center mb-10 md:mb-16"
@@ -527,10 +527,10 @@ const Landing = () => {
       <WaveDivider color="hsl(var(--muted) / 0.3)" />
 
       {/* How it works */}
-      <section className="py-16 md:py-24 px-4 bg-muted/30 relative">
+      <section className="py-12 md:py-24 px-4 bg-muted/30 relative">
         <div className="container mx-auto">
           <motion.div
-            className="text-center mb-10 md:mb-16"
+            className="text-center mb-8 md:mb-16"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -641,7 +641,7 @@ const Landing = () => {
             </div>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-5xl mx-auto">
             {/* Free Plan */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -732,7 +732,7 @@ const Landing = () => {
       <section className="py-16 md:py-24 px-4">
         <div className="container mx-auto">
           <motion.div
-            className="bg-gradient-to-br from-primary via-primary to-purple-600 text-primary-foreground rounded-2xl md:rounded-3xl p-8 md:p-12 lg:p-16 text-center relative overflow-hidden"
+            className="bg-gradient-to-br from-primary via-primary to-purple-600 text-primary-foreground rounded-2xl md:rounded-3xl p-6 sm:p-8 md:p-12 lg:p-16 text-center relative overflow-hidden"
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -811,9 +811,9 @@ const Landing = () => {
       {/* Enhanced Footer */}
       <footer className="py-12 md:py-16 px-4 border-t bg-muted/20">
         <div className="container mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-12 mb-8">
             {/* Brand */}
-            <div className="md:col-span-1">
+            <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                   <FileText className="w-4 h-4 text-primary-foreground" />
