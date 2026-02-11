@@ -447,8 +447,9 @@ const Landing = () => {
             <motion.div
               className="text-center mb-5 md:mb-8"
               initial={{ opacity: 0, y: 15 }}
-              animate={heroInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ delay: 0.6 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
             >
               <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground mb-2">
                 תפסיקו לבזבז שעות על הקלדה ידנית של חשבוניות
