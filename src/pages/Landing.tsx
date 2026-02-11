@@ -323,7 +323,7 @@ const Landing = () => {
       </header>
 
       {/* Hero Section - Clean & Modern */}
-      <section ref={heroRef} className="relative pt-14 md:pt-24 px-4">
+      <section ref={heroRef} className="relative pt-14 md:pt-20 px-4">
         {/* Animated background gradient orbs with parallax */}
         <motion.div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ y: heroY, opacity: heroOpacity }}>
           <motion.div
@@ -350,7 +350,7 @@ const Landing = () => {
           />
         </motion.div>
 
-        <div className="container mx-auto relative z-10 pt-0 md:pt-16">
+        <div className="container mx-auto relative z-10 pt-0 md:pt-4">
           <motion.div
             className="text-center max-w-4xl mx-auto"
             initial={{ opacity: 0, y: 30 }}
@@ -362,14 +362,14 @@ const Landing = () => {
               animate={heroInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.1 }}
             >
-              <Badge variant="secondary" className="mb-1 md:mb-6 animate-shimmer">
+              <Badge variant="secondary" className="mb-2 md:mb-4 animate-shimmer">
                 <Sparkles className="w-3 h-3 ml-1" />
                 מבוסס AI מתקדם
               </Badge>
             </motion.div>
 
             <motion.h1
-              className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-1 md:mb-6 tracking-tight"
+              className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-2 md:mb-4 tracking-tight"
               initial={{ opacity: 0, y: 20 }}
               animate={heroInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.2 }}
@@ -388,7 +388,7 @@ const Landing = () => {
             </motion.h1>
 
             <motion.p
-              className="text-muted-foreground text-sm md:text-lg lg:text-xl max-w-2xl mx-auto mb-2 md:mb-8"
+              className="text-muted-foreground text-sm md:text-lg lg:text-xl max-w-2xl mx-auto mb-3 md:mb-6"
               initial={{ opacity: 0, y: 20 }}
               animate={heroInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.3 }}
@@ -420,7 +420,7 @@ const Landing = () => {
 
             {/* Stats - grid on mobile, inline on desktop */}
             <motion.div
-              className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-1.5 sm:gap-4 md:gap-10 mt-3 md:mt-12 text-center"
+              className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-1.5 sm:gap-4 md:gap-8 mt-4 md:mt-8 text-center"
               initial={{ opacity: 0 }}
               animate={heroInView ? { opacity: 1 } : {}}
               transition={{ delay: 0.5 }}
@@ -443,7 +443,7 @@ const Landing = () => {
           </motion.div>
 
           {/* System Mockup with animated gradient border */}
-          <div className="mt-4 md:mt-16 relative">
+          <div className="mt-6 md:mt-10 relative">
             <motion.div
               className="text-center mb-3 md:mb-8"
               initial={{ opacity: 0, y: 15 }}
@@ -466,7 +466,7 @@ const Landing = () => {
 
           {/* Scroll hint */}
           <motion.div
-            className="flex justify-center mt-2 md:mt-12"
+            className="flex justify-center mt-4 md:mt-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.5 }}
