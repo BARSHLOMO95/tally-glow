@@ -63,26 +63,36 @@ Deno.serve(async (req) => {
         });
       }
 
-      console.log('Exchanging code for tokens...');
+      console.log('Exchanging code for tokens with redirect_uri:', redirectUrl);
 
       // Exchange code for tokens
-      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          code,
-          client_id: GOOGLE_CLIENT_ID,
-          client_secret: GOOGLE_CLIENT_SECRET,
-          redirect_uri: redirectUrl,
-          grant_type: 'authorization_code',
-        }),
-      });
+      let tokenResponse;
+      try {
+        tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            code,
+            client_id: GOOGLE_CLIENT_ID,
+            client_secret: GOOGLE_CLIENT_SECRET,
+            redirect_uri: redirectUrl,
+            grant_type: 'authorization_code',
+          }),
+        });
+      } catch (fetchErr) {
+        console.error('Failed to reach Google token endpoint:', fetchErr);
+        return new Response(JSON.stringify({ error: 'שגיאת רשת בעת החלפת קוד אימות - לא ניתן להתחבר לשרתי Google' }), {
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
       const tokens = await tokenResponse.json();
+      console.log('Token exchange response status:', tokenResponse.status, 'has refresh_token:', !!tokens.refresh_token);
 
       if (tokens.error) {
-        console.error('Token exchange error:', tokens);
-        return new Response(JSON.stringify({ error: tokens.error_description || tokens.error }), {
+        console.error('Token exchange error:', JSON.stringify(tokens));
+        return new Response(JSON.stringify({ error: `שגיאת Google OAuth: ${tokens.error_description || tokens.error}` }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -97,9 +107,18 @@ Deno.serve(async (req) => {
       }
 
       // Get user email from Google
-      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-        headers: { Authorization: `Bearer ${tokens.access_token}` },
-      });
+      let userInfoResponse;
+      try {
+        userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+          headers: { Authorization: `Bearer ${tokens.access_token}` },
+        });
+      } catch (fetchErr) {
+        console.error('Failed to reach Google userinfo endpoint:', fetchErr);
+        return new Response(JSON.stringify({ error: 'שגיאת רשת בעת קבלת פרטי המשתמש מ-Google' }), {
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
       const userInfo = await userInfoResponse.json();
 
       console.log('Got user info:', userInfo.email);
@@ -263,8 +282,10 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Gmail auth error:', error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    const errStack = error instanceof Error ? error.stack : '';
+    console.error('Gmail auth error:', errMsg, errStack);
+    return new Response(JSON.stringify({ error: `שגיאה פנימית: ${errMsg}` }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
