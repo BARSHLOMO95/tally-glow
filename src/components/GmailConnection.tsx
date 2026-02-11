@@ -80,7 +80,11 @@ export function GmailConnection() {
       });
 
       if (response.error) {
-        throw new Error(response.error.message);
+        const errorContext = response.error.context;
+        const errorMessage = (typeof errorContext === 'object' && errorContext?.error)
+          ? errorContext.error
+          : response.error.message || 'שגיאה בסנכרון Gmail';
+        throw new Error(errorMessage);
       }
 
       const { processed, invoicesCreated, totalFound } = response.data;
@@ -94,7 +98,8 @@ export function GmailConnection() {
       await fetchConnections();
     } catch (error) {
       console.error('Gmail sync error:', error);
-      toast.error('שגיאה בסנכרון Gmail');
+      const message = error instanceof Error ? error.message : 'שגיאה בסנכרון Gmail';
+      toast.error(message);
     } finally {
       setSyncing(null);
     }
@@ -144,14 +149,11 @@ export function GmailConnection() {
         });
 
         if (response.error) {
-          // Extract the actual error message from the edge function response
-          let errorMessage = 'Failed to connect Gmail';
-          try {
-            const errorContext = await response.error.context?.json?.();
-            errorMessage = errorContext?.error || response.error.message || errorMessage;
-          } catch {
-            errorMessage = response.error.message || errorMessage;
-          }
+          // In Supabase JS v2, FunctionsHttpError.context is the parsed response body
+          const errorContext = response.error.context;
+          const errorMessage = (typeof errorContext === 'object' && errorContext?.error)
+            ? errorContext.error
+            : response.error.message || 'שגיאה בחיבור Gmail';
           throw new Error(errorMessage);
         }
 

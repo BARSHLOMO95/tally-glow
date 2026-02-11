@@ -92,17 +92,48 @@ Deno.serve(async (req) => {
       // Calculate token expiry
       const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000));
 
-      // Check if this email is already connected for this user
-      const { data: existingConnection } = await supabaseAdmin
+      // Check if this email is already connected for this user - if so, update tokens
+      const { data: existingConnection, error: existingError } = await supabaseAdmin
         .from('gmail_connections')
-        .select('id')
+        .select('id, account_label')
         .eq('user_id', user.id)
         .eq('email', userInfo.email)
         .maybeSingle();
 
+      if (existingError) {
+        console.error('Error checking existing connection:', existingError);
+      }
+
       if (existingConnection) {
-        return new Response(JSON.stringify({ error: 'חשבון זה כבר מחובר' }), {
-          status: 400,
+        // Re-activate and update tokens for existing connection
+        const { data: updatedConnection, error: updateError } = await supabaseAdmin
+          .from('gmail_connections')
+          .update({
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token,
+            token_expires_at: expiresAt.toISOString(),
+            is_active: true,
+            account_label: accountLabel || existingConnection.account_label,
+          })
+          .eq('id', existingConnection.id)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.error('Database update error:', updateError);
+          return new Response(JSON.stringify({ error: `שגיאה בעדכון החיבור: ${updateError.message}` }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        console.log('Gmail connection re-activated:', updatedConnection.id);
+
+        return new Response(JSON.stringify({
+          success: true,
+          email: userInfo.email,
+          connectionId: updatedConnection.id
+        }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
@@ -138,8 +169,8 @@ Deno.serve(async (req) => {
         .single();
 
       if (insertError) {
-        console.error('Database error:', insertError);
-        return new Response(JSON.stringify({ error: 'Failed to save connection' }), {
+        console.error('Database insert error:', insertError);
+        return new Response(JSON.stringify({ error: `שגיאה בשמירת החיבור: ${insertError.message}` }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
