@@ -6,10 +6,10 @@ const logos = [
 
 const LogoCloud = () => {
   return (
-    <section className="py-10 md:py-16 px-4 border-y border-border/30">
+    <section className="py-6 md:py-12 px-4 border-y border-border/30">
       <div className="container mx-auto">
         <motion.p
-          className="text-center text-sm text-muted-foreground mb-8"
+          className="text-center text-xs md:text-sm text-muted-foreground mb-4 md:mb-8"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
