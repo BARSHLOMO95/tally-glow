@@ -80,10 +80,15 @@ export function GmailConnection() {
       });
 
       if (response.error) {
-        const errorContext = response.error.context;
-        const errorMessage = (typeof errorContext === 'object' && errorContext?.error)
-          ? errorContext.error
-          : response.error.message || 'שגיאה בסנכרון Gmail';
+        let errorMessage = response.error.message || 'שגיאה בסנכרון Gmail';
+        try {
+          const errorBody = await response.error.context?.json();
+          if (errorBody?.error) {
+            errorMessage = errorBody.error;
+          }
+        } catch {
+          // context may not be a Response or may not have json
+        }
         throw new Error(errorMessage);
       }
 
@@ -149,11 +154,16 @@ export function GmailConnection() {
         });
 
         if (response.error) {
-          // In Supabase JS v2, FunctionsHttpError.context is the parsed response body
-          const errorContext = response.error.context;
-          const errorMessage = (typeof errorContext === 'object' && errorContext?.error)
-            ? errorContext.error
-            : response.error.message || 'שגיאה בחיבור Gmail';
+          // In Supabase JS v2, FunctionsHttpError.context is a Response object
+          let errorMessage = response.error.message || 'שגיאה בחיבור Gmail';
+          try {
+            const errorBody = await response.error.context?.json();
+            if (errorBody?.error) {
+              errorMessage = errorBody.error;
+            }
+          } catch {
+            // context may not be a Response or may not have json
+          }
           throw new Error(errorMessage);
         }
 
@@ -210,10 +220,15 @@ export function GmailConnection() {
 
       if (response.error) {
         localStorage.removeItem('gmail_pending_account_label');
-        const errorContext = response.error.context;
-        const errorMessage = (typeof errorContext === 'object' && errorContext?.error)
-          ? errorContext.error
-          : response.error.message || 'שגיאה בחיבור Gmail';
+        let errorMessage = response.error.message || 'שגיאה בחיבור Gmail';
+        try {
+          const errorBody = await response.error.context?.json();
+          if (errorBody?.error) {
+            errorMessage = errorBody.error;
+          }
+        } catch {
+          // context may not be a Response or may not have json
+        }
         throw new Error(errorMessage);
       }
 
