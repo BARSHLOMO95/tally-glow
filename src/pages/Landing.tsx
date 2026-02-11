@@ -444,14 +444,19 @@ const Landing = () => {
 
           {/* System Mockup with animated gradient border */}
           <div className="mt-6 md:mt-16 relative">
-            <motion.p
-              className="text-center text-xs md:text-sm text-muted-foreground mb-3 md:mb-4"
-              initial={{ opacity: 0 }}
-              animate={heroInView ? { opacity: 1 } : {}}
+            <motion.div
+              className="text-center mb-3 md:mb-5"
+              initial={{ opacity: 0, y: 10 }}
+              animate={heroInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.6 }}
             >
-              הצצה למערכת ניהול החשבוניות החכמה
-            </motion.p>
+              <p className="text-sm md:text-base font-semibold text-foreground">
+                תפסיקו לבזבז שעות על הקלדה ידנית של חשבוניות
+              </p>
+              <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                המערכת עושה את העבודה בשבילכם — מהר יותר, מדויק יותר, וללא עלויות מיותרות
+              </p>
+            </motion.div>
             <FloatingCards />
             <div className="animated-gradient-border rounded-xl md:rounded-2xl">
               <SystemMockup />
