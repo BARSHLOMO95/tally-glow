@@ -25,8 +25,7 @@ import {
   Github,
   Twitter,
   Linkedin,
-  ChevronDown,
-  MousePointer2
+  ChevronDown
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import SystemMockup from '@/components/landing/SystemMockup';
@@ -362,9 +361,9 @@ const Landing = () => {
               animate={heroInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.1 }}
             >
-              <Badge variant="secondary" className="mb-2 md:mb-4 animate-shimmer">
-                <Sparkles className="w-3 h-3 ml-1" />
-                מבוסס AI מתקדם
+              <Badge variant="secondary" className="mb-3 md:mb-4 animate-shimmer">
+                <Zap className="w-3 h-3 ml-1" />
+                חוסכים 80% מזמן העבודה
               </Badge>
             </motion.div>
 
@@ -393,8 +392,8 @@ const Landing = () => {
               animate={heroInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.3 }}
             >
-              העלו חשבוניות וקבלו עיבוד אוטומטי עם בינה מלאכותית.
-              חסכו זמן, הפחיתו טעויות, וקבלו שליטה מלאה.
+              העלו חשבונית — קבלו נתונים מדויקים תוך שניות.
+              <span className="hidden sm:inline">בלי הקלדה ידנית, בלי טעויות, בלי כאב ראש.</span>
             </motion.p>
 
             <motion.div
@@ -405,17 +404,52 @@ const Landing = () => {
             >
               <Link to="/auth" className="w-full sm:w-auto">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button size="lg" className="w-full sm:w-auto px-6 sm:px-8 shadow-lg shadow-primary/25">
+                  <Button size="lg" className="w-full sm:w-auto px-6 sm:px-8 shadow-lg shadow-primary/25 text-base">
                     התחל בחינם
                     <ArrowLeft className="w-4 h-4 mr-2" />
                   </Button>
                 </motion.div>
               </Link>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full sm:w-auto">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto px-6 sm:px-8">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto px-6 sm:px-8 text-base">
                   צפה בהדגמה
                 </Button>
               </motion.div>
+            </motion.div>
+
+            <motion.p
+              className="text-xs text-muted-foreground mt-2"
+              initial={{ opacity: 0 }}
+              animate={heroInView ? { opacity: 1 } : {}}
+              transition={{ delay: 0.45 }}
+            >
+              ללא כרטיס אשראי · הגדרה תוך דקה
+            </motion.p>
+
+            {/* Social proof strip */}
+            <motion.div
+              className="flex items-center justify-center gap-2 mt-3 md:mt-4"
+              initial={{ opacity: 0 }}
+              animate={heroInView ? { opacity: 1 } : {}}
+              transition={{ delay: 0.5 }}
+            >
+              <div className="flex -space-x-2 space-x-reverse">
+                {['דכ', 'מל', 'יא', 'רש'].map((initials, i) => (
+                  <div key={i} className="w-7 h-7 rounded-full bg-primary/10 border-2 border-background flex items-center justify-center">
+                    <span className="text-[9px] font-bold text-primary">{initials}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="flex gap-0.5">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  <span className="font-semibold text-foreground">2,500+</span> עסקים כבר חוסכים
+                </span>
+              </div>
             </motion.div>
 
             {/* Stats - grid on mobile, inline on desktop */}
@@ -444,58 +478,19 @@ const Landing = () => {
 
           {/* System Mockup with animated gradient border */}
           <div className="mt-6 md:mt-10 relative">
-            <motion.div
-              className="text-center mb-3 md:mb-8"
-              initial={{ opacity: 0, y: 15 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-            >
-              <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground mb-2">
-                תפסיקו לבזבז שעות על הקלדה ידנית של חשבוניות
-              </h2>
-              <p className="text-sm md:text-base text-muted-foreground">
-                המערכת עושה את העבודה בשבילכם — מהר יותר, מדויק יותר, וללא עלויות מיותרות
-              </p>
-            </motion.div>
             <FloatingCards />
             <div className="animated-gradient-border rounded-xl md:rounded-2xl">
               <SystemMockup />
             </div>
           </div>
-
-          {/* Scroll hint */}
-          <motion.div
-            className="flex justify-center mt-4 md:mt-8"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.5 }}
-          >
-            <motion.div
-              className="flex flex-col items-center gap-1 text-muted-foreground/50"
-              animate={{ y: [0, 8, 0] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              <MousePointer2 className="w-4 h-4" />
-              <ChevronDown className="w-4 h-4" />
-            </motion.div>
-          </motion.div>
         </div>
       </section>
 
       {/* Logo Cloud */}
       <LogoCloud />
 
-      {/* Wave divider */}
-      <WaveDivider color="hsl(var(--muted) / 0.3)" />
-
       {/* Live Metrics */}
       <LiveMetrics />
-
-      {/* Gradient line divider */}
-      <div className="container mx-auto px-4">
-        <div className="gradient-line" />
-      </div>
 
       {/* Features Section */}
       <section className="py-12 md:py-24 px-4 relative">
@@ -544,18 +539,18 @@ const Landing = () => {
       <section className="py-12 md:py-24 px-4 bg-muted/30 relative">
         <div className="container mx-auto">
           <motion.div
-            className="text-center mb-8 md:mb-16"
+            className="text-center mb-6 md:mb-16"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">
               איך זה עובד?
             </h2>
-            <p className="text-muted-foreground">שלושה צעדים פשוטים</p>
+            <p className="text-muted-foreground text-sm md:text-base">שלושה צעדים פשוטים</p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-6 md:gap-8 max-w-4xl mx-auto relative">
+          <div className="grid grid-cols-3 md:gap-8 gap-3 max-w-4xl mx-auto relative">
             {/* Connecting line between steps - desktop only */}
             <div className="absolute top-6 right-[16.6%] left-[16.6%] hidden md:block">
               <motion.div
@@ -568,9 +563,9 @@ const Landing = () => {
               />
             </div>
             {[
-              { step: '1', title: 'העלאה', desc: 'העלו חשבונית - תמונה, PDF או מייל', icon: Upload },
-              { step: '2', title: 'עיבוד', desc: 'ה-AI מזהה את כל הנתונים אוטומטית', icon: Zap },
-              { step: '3', title: 'ניהול', desc: 'צפו בדוחות וקבלו תובנות עסקיות', icon: BarChart3 }
+              { step: '1', title: 'העלאה', desc: 'תמונה, PDF או מייל', descDesktop: 'העלו חשבונית - תמונה, PDF או מייל', icon: Upload },
+              { step: '2', title: 'עיבוד', desc: 'AI מזהה הכל אוטומטית', descDesktop: 'ה-AI מזהה את כל הנתונים אוטומטית', icon: Zap },
+              { step: '3', title: 'ניהול', desc: 'דוחות ותובנות בזמן אמת', descDesktop: 'צפו בדוחות וקבלו תובנות עסקיות', icon: BarChart3 }
             ].map((item, index) => (
               <motion.div
                 key={index}
@@ -581,14 +576,15 @@ const Landing = () => {
                 className="text-center relative"
               >
                 <motion.div
-                  className="w-12 h-12 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center text-lg font-bold relative z-10 shadow-lg shadow-primary/25"
+                  className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-2 md:mb-4 rounded-full bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center text-lg font-bold relative z-10 shadow-lg shadow-primary/25"
                   whileHover={{ scale: 1.2, rotate: 10 }}
                   transition={{ type: 'spring', stiffness: 300 }}
                 >
-                  <item.icon className="w-5 h-5" />
+                  <item.icon className="w-4 h-4 md:w-5 md:h-5" />
                 </motion.div>
-                <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
-                <p className="text-muted-foreground text-sm">{item.desc}</p>
+                <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-2">{item.title}</h3>
+                <p className="text-muted-foreground text-xs md:text-sm hidden md:block">{item.descDesktop}</p>
+                <p className="text-muted-foreground text-[11px] md:hidden">{item.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -685,6 +681,7 @@ const Landing = () => {
                   <Link to="/auth" className="block">
                     <Button variant="outline" className="w-full">התחל בחינם</Button>
                   </Link>
+                  <p className="text-[11px] text-muted-foreground text-center">ללא כרטיס אשראי</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -788,22 +785,22 @@ const Landing = () => {
 
             <div className="relative z-10">
               <motion.h2
-                className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4"
+                className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.2 }}
               >
-                מוכנים להתחיל?
+                מוכנים לחסוך שעות כל חודש?
               </motion.h2>
               <motion.p
-                className="text-primary-foreground/80 max-w-xl mx-auto mb-6 md:mb-8"
+                className="text-primary-foreground/80 max-w-xl mx-auto mb-6 md:mb-8 text-sm md:text-base"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.3 }}
               >
-                הצטרפו לאלפי עסקים שכבר משתמשים במערכת לניהול חשבוניות חכם
+                הצטרפו ל-2,500+ עסקים שכבר חוסכים זמן וכסף עם ניהול חשבוניות אוטומטי
               </motion.p>
               <Link to="/auth">
                 <motion.div
@@ -811,12 +808,21 @@ const Landing = () => {
                   whileTap={{ scale: 0.95 }}
                   className="inline-block"
                 >
-                  <Button size="lg" variant="secondary" className="px-8 shadow-lg">
+                  <Button size="lg" variant="secondary" className="px-8 shadow-lg text-base">
                     התחל עכשיו בחינם
                     <ArrowLeft className="w-4 h-4 mr-2" />
                   </Button>
                 </motion.div>
               </Link>
+              <motion.p
+                className="text-primary-foreground/60 text-xs mt-3"
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.5 }}
+              >
+                ללא כרטיס אשראי · הגדרה תוך דקה · ביטול בכל עת
+              </motion.p>
             </div>
           </motion.div>
         </div>

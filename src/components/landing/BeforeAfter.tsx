@@ -1,32 +1,35 @@
 import { motion } from 'framer-motion';
-import { X, Check, ArrowLeft } from 'lucide-react';
+import { X, Check, ArrowLeft, Timer, TrendingDown } from 'lucide-react';
 
 const BeforeAfter = () => {
   return (
     <section className="py-12 md:py-24 px-4 bg-muted/20">
       <div className="container mx-auto">
         <motion.div
-          className="text-center mb-10 md:mb-14"
+          className="text-center mb-8 md:mb-14"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">
             לפני ואחרי
           </h2>
-          <p className="text-muted-foreground">ההבדל ברור</p>
+          <p className="text-muted-foreground text-sm md:text-base">ההבדל ברור — ראו בעצמכם</p>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-4xl mx-auto items-stretch">
           {/* Before */}
           <motion.div
-            className="bg-card border border-border/50 rounded-2xl p-6 md:p-8 relative overflow-hidden"
+            className="bg-card border border-border/50 rounded-2xl p-5 md:p-8 relative overflow-hidden"
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
           >
             <div className="absolute top-0 left-0 right-0 h-1 bg-destructive/60" />
-            <h3 className="text-lg font-bold mb-5 text-destructive">בלי InvoiceAI</h3>
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingDown className="w-5 h-5 text-destructive" />
+              <h3 className="text-base md:text-lg font-bold text-destructive">בלי InvoiceAI</h3>
+            </div>
             <ul className="space-y-4">
               {[
                 'הזנה ידנית של כל חשבונית',
@@ -54,7 +57,7 @@ const BeforeAfter = () => {
 
           {/* After */}
           <motion.div
-            className="bg-card border border-primary/30 rounded-2xl p-6 md:p-8 relative overflow-hidden shadow-lg"
+            className="bg-card border border-primary/30 rounded-2xl p-5 md:p-8 relative overflow-hidden shadow-lg"
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
@@ -62,7 +65,10 @@ const BeforeAfter = () => {
           >
             <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
             <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl" />
-            <h3 className="text-lg font-bold mb-5 text-primary">עם InvoiceAI</h3>
+            <div className="flex items-center gap-2 mb-4">
+              <Timer className="w-5 h-5 text-primary" />
+              <h3 className="text-base md:text-lg font-bold text-primary">עם InvoiceAI</h3>
+            </div>
             <ul className="space-y-4">
               {[
                 'סריקה וזיהוי אוטומטי',

@@ -14,7 +14,7 @@ const LiveMetrics = () => {
 
   return (
     <motion.section
-      className="py-12 md:py-16 px-4"
+      className="py-8 md:py-16 px-4"
       initial={{ opacity: 0 }}
       whileInView={{ opacity: 1 }}
       viewport={{ once: true }}
