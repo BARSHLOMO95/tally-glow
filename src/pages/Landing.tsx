@@ -443,17 +443,17 @@ const Landing = () => {
           </motion.div>
 
           {/* System Mockup with animated gradient border */}
-          <div className="mt-6 md:mt-16 relative">
+          <div className="mt-8 md:mt-16 relative">
             <motion.div
-              className="text-center mb-3 md:mb-5"
-              initial={{ opacity: 0, y: 10 }}
+              className="text-center mb-5 md:mb-8"
+              initial={{ opacity: 0, y: 15 }}
               animate={heroInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.6 }}
             >
-              <p className="text-sm md:text-base font-semibold text-foreground">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground mb-2">
                 תפסיקו לבזבז שעות על הקלדה ידנית של חשבוניות
-              </p>
-              <p className="text-xs md:text-sm text-muted-foreground mt-1">
+              </h2>
+              <p className="text-sm md:text-base text-muted-foreground">
                 המערכת עושה את העבודה בשבילכם — מהר יותר, מדויק יותר, וללא עלויות מיותרות
               </p>
             </motion.div>
