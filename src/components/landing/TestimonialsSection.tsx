@@ -53,7 +53,7 @@ const TestimonialsSection = () => {
 
         <div className="max-w-3xl mx-auto">
           {/* Cards row */}
-          <div className="relative h-[260px] md:h-[240px]">
+          <div className="relative h-[280px] sm:h-[260px] md:h-[240px]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={active}
@@ -63,7 +63,7 @@ const TestimonialsSection = () => {
                 transition={{ duration: 0.4 }}
                 className="absolute inset-0"
               >
-                <div className="glass-card rounded-2xl p-6 md:p-8 shadow-xl h-full flex flex-col justify-between relative overflow-hidden">
+                <div className="glass-card rounded-2xl p-5 sm:p-6 md:p-8 shadow-xl h-full flex flex-col justify-between relative overflow-hidden">
                   {/* Decorative gradient blob */}
                   <div className="absolute -top-20 -left-20 w-40 h-40 bg-primary/5 rounded-full blur-3xl" />
                   <div className="absolute -bottom-20 -right-20 w-40 h-40 bg-primary/5 rounded-full blur-3xl" />
