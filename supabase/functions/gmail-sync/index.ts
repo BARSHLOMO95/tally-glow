@@ -11,10 +11,17 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
-// Invoice-related keywords in Hebrew and English
+// Invoice-related keywords in Hebrew and English - focused on actual invoices/receipts
+// Deliberately excludes: הזמנה (order), order, confirmation - too many false positives
 const INVOICE_KEYWORDS = [
   'חשבונית', 'קבלה', 'חשבונית מס', 'חשבון', 'invoice', 'receipt', 'bill',
-  'payment', 'תשלום', 'הזמנה', 'order', 'אישור תשלום', 'confirmation'
+  'payment', 'תשלום', 'אישור תשלום', 'פוליסה', 'ביטוח', 'חיוב', 'billing'
+];
+
+// Document types that should be SKIPPED (not real invoices)
+const SKIP_DOCUMENT_TYPES = [
+  'הצעת מחיר', 'הזמנת רכש', 'הזמנה', 'price quote', 'quotation', 'proposal',
+  'purchase order', 'pro forma', 'פרופורמה', 'טיוטה', 'draft'
 ];
 
 // Categories for AI extraction
@@ -337,7 +344,9 @@ function calculateAfterDate(timeRange: string): Date {
 function buildSearchQuery(afterDate: Date): string {
   const dateStr = afterDate.toISOString().split('T')[0].replace(/-/g, '/');
   const keywordQuery = INVOICE_KEYWORDS.map(k => `"${k}"`).join(' OR ');
-  return `(${keywordQuery}) after:${dateStr} (has:attachment OR from:invoice OR from:receipt OR from:billing)`;
+  // Search for emails with invoice keywords that have attachments or come from billing-related senders
+  // Exclude common non-invoice senders
+  return `(${keywordQuery}) after:${dateStr} (has:attachment OR from:invoice OR from:receipt OR from:billing) -subject:"הצעת מחיר" -subject:"price quote" -subject:"הזמנת רכש"`;
 }
 
 async function searchGmailMessages(accessToken: string, query: string): Promise<string[]> {
@@ -461,7 +470,7 @@ async function processAttachment(
     // For PDFs: mark with null preview_image_url so the browser will convert them later
     const isPdf = attachment.mimeType.includes('pdf');
 
-    await createInvoice(supabase, userId, {
+    const result = await createInvoice(supabase, userId, {
       storageUrl: uploadResult.storageUrl,
       previewImageUrl: isPdf ? null : uploadResult.storageUrl, // null for PDFs = needs conversion
       additionalImages: [],
@@ -473,6 +482,16 @@ async function processAttachment(
       storageError: null,
       fileData: attachmentData,
     }, fromEmail, emailDate);
+    
+    if (result.skipped) {
+      // Clean up the uploaded file since we're skipping this document
+      const urlParts = uploadResult.storageUrl!.split('/invoices/');
+      if (urlParts[1]) {
+        await supabase.storage.from('invoices').remove([urlParts[1]]);
+        console.log(`🗑️ Cleaned up skipped file from storage`);
+      }
+      return { created: false, reason: 'skipped - not a valid invoice' };
+    }
     return { created: true };
   }
 
@@ -511,8 +530,7 @@ async function processExternalLink(
     const mimeType = downloadResult.mimeType || 'application/pdf';
     const isPdf = mimeType.includes('pdf');
 
-    // Store the file - PDFs will be converted to images by the browser later
-    await createInvoice(supabase, userId, {
+    const result = await createInvoice(supabase, userId, {
       storageUrl: downloadResult.storageUrl,
       previewImageUrl: isPdf ? null : downloadResult.storageUrl, // null for PDFs = needs conversion
       additionalImages: [],
@@ -524,6 +542,16 @@ async function processExternalLink(
       storageError: null,
       fileData: downloadResult.fileData,
     }, fromEmail, emailDate);
+    
+    if (result.skipped) {
+      // Clean up the uploaded file since we're skipping this document
+      const urlParts = downloadResult.storageUrl!.split('/invoices/');
+      if (urlParts[1]) {
+        await supabase.storage.from('invoices').remove([urlParts[1]]);
+        console.log(`🗑️ Cleaned up skipped file from storage`);
+      }
+      return { created: false, reason: 'skipped - not a valid invoice' };
+    }
     return { created: true };
   } else {
     console.log(`Failed to download from link: ${downloadResult.error}`);
@@ -722,7 +750,7 @@ async function createInvoice(
   metadata: InvoiceMetadata,
   fromEmail: string,
   emailDate: string
-): Promise<void> {
+): Promise<{ skipped?: boolean }> {
   console.log(`Creating invoice: ${metadata.fileName}, source: ${metadata.fileSource}, status: ${metadata.storageStatus}`);
   
   let extractedData: any = {};
@@ -732,8 +760,18 @@ async function createInvoice(
     console.log('Extracted data:', JSON.stringify(extractedData));
   }
   
+  // Skip non-invoice documents (quotes, purchase orders, etc.)
+  if (extractedData.is_valid_tax_document === false) {
+    const docType = extractedData.document_type || 'unknown';
+    console.log(`⏭️ Skipping non-invoice document: "${docType}" from ${metadata.fileName}`);
+    return { skipped: true };
+  }
+  
   const supplierName = extractedData.supplier_name || parseSupplierFromEmail(fromEmail);
   const documentDate = extractedData.document_date || parseDate(emailDate);
+  
+  // Determine document_type from AI extraction
+  const documentType = extractedData.document_type || 'אחר';
   
   let status: string;
   if (metadata.storageStatus === 'failed') {
@@ -751,6 +789,7 @@ async function createInvoice(
     document_date: documentDate,
     total_amount: extractedData.total_amount || 0,
     category: extractedData.category || 'אחר',
+    document_type: documentType,
     business_type: extractedData.business_type || 'עוסק מורשה',
     // Only set image_url if storage succeeded - this controls printability!
     image_url: metadata.storageStatus === 'success' ? metadata.storageUrl : null,
@@ -821,6 +860,10 @@ async function extractInvoiceDataFromBytes(data: Uint8Array, mimeType: string): 
 - total_amount: Total amount (number only, including VAT)
 - category: One of: ${VALID_CATEGORIES.join(', ')}
 - business_type: One of: עוסק מורשה, עוסק פטור, חברה בע"מ, ספק חו"ל
+- document_type: The type of document. Must be one of: "חשבונית מס", "חשבונית מס קבלה", "קבלה", "פוליסה", "הצעת מחיר", "הזמנה", "אחר"
+- is_valid_tax_document: true if this is an actual invoice (חשבונית), receipt (קבלה), insurance policy (פוליסה), or billing statement (חיוב). false if this is a quote (הצעת מחיר), purchase order (הזמנה), proposal, draft, pro forma, or any non-financial document.
+
+IMPORTANT: Be strict about is_valid_tax_document. Only mark as true for documents that represent an actual financial transaction or obligation (invoices, receipts, insurance policies, billing statements). Quotes, proposals, orders, and drafts are NOT valid.
 
 Respond in JSON only. Use null for fields you cannot extract.`
           },
