@@ -127,22 +127,13 @@ Deno.serve(async (req) => {
       const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000));
       const label = accountLabel || 'תיבת מייל חדשה';
 
-      // Try to save/update the connection - use upsert approach for robustness
-      // First check if user already has a connection (by user_id + email, or just user_id)
-      const { data: existingByEmail } = await supabaseAdmin
+      // Check if connection already exists for this user + email combo
+      const { data: existing } = await supabaseAdmin
         .from('gmail_connections')
         .select('id')
         .eq('user_id', user.id)
         .eq('email', userInfo.email)
         .maybeSingle();
-
-      const { data: existingByUser } = await supabaseAdmin
-        .from('gmail_connections')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      const existingId = existingByEmail?.id || existingByUser?.id;
 
       // Build the connection data - only include account_label if column exists
       const baseData: Record<string, unknown> = {
@@ -156,13 +147,13 @@ Deno.serve(async (req) => {
 
       // Try with account_label first, fall back without it
       let result;
-      if (existingId) {
+      if (existing) {
         // Update existing connection
-        console.log('Updating existing connection:', existingId);
+        console.log('Updating existing connection:', existing.id);
         result = await supabaseAdmin
           .from('gmail_connections')
           .update({ ...baseData, account_label: label })
-          .eq('id', existingId)
+          .eq('id', existing.id)
           .select()
           .single();
 
@@ -172,7 +163,7 @@ Deno.serve(async (req) => {
           result = await supabaseAdmin
             .from('gmail_connections')
             .update(baseData)
-            .eq('id', existingId)
+            .eq('id', existing.id)
             .select()
             .single();
         }
