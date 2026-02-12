@@ -15,6 +15,7 @@ import PublicUpload from "./pages/PublicUpload";
 import Admin from "./pages/Admin";
 import Suppliers from "./pages/Suppliers";
 import Analytics from "./pages/Analytics";
+import Trash from "./pages/Trash";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -105,6 +106,14 @@ const App = () => (
                   <h1 className="text-3xl font-bold">העלאות ציבוריות</h1>
                   <p className="text-muted-foreground mt-2">בקרוב...</p>
                 </div>
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/trash"
+            element={
+              <AppLayout>
+                <Trash />
               </AppLayout>
             }
           />
