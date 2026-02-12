@@ -322,7 +322,7 @@ const Landing = () => {
       </header>
 
       {/* Hero Section - Clean & Modern */}
-      <section ref={heroRef} className="relative pt-14 md:pt-20 px-4">
+      <section ref={heroRef} className="relative pt-10 md:pt-14 px-4">
         {/* Animated background gradient orbs with parallax */}
         <motion.div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ y: heroY, opacity: heroOpacity }}>
           <motion.div
@@ -349,7 +349,7 @@ const Landing = () => {
           />
         </motion.div>
 
-        <div className="container mx-auto relative z-10 pt-0 md:pt-4">
+        <div className="container mx-auto relative z-10 pt-0 md:pt-0">
           <motion.div
             className="text-center max-w-4xl mx-auto"
             initial={{ opacity: 0, y: 30 }}
@@ -454,7 +454,7 @@ const Landing = () => {
 
             {/* Stats - grid on mobile, inline on desktop */}
             <motion.div
-              className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-1.5 sm:gap-4 md:gap-8 mt-4 md:mt-8 text-center"
+              className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-1.5 sm:gap-4 md:gap-8 mt-3 md:mt-5 text-center"
               initial={{ opacity: 0 }}
               animate={heroInView ? { opacity: 1 } : {}}
               transition={{ delay: 0.5 }}
@@ -477,7 +477,7 @@ const Landing = () => {
           </motion.div>
 
           {/* System Mockup with animated gradient border */}
-          <div className="mt-6 md:mt-10 relative">
+          <div className="mt-4 md:mt-6 relative">
             <FloatingCards />
             <div className="animated-gradient-border rounded-xl md:rounded-2xl">
               <SystemMockup />
