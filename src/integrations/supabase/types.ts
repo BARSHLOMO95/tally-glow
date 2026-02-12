@@ -123,6 +123,7 @@ export type Database = {
           business_type: string | null
           category: string | null
           created_at: string
+          deleted_at: string | null
           document_date: string | null
           document_number: string | null
           document_type: string | null
@@ -150,6 +151,7 @@ export type Database = {
           business_type?: string | null
           category?: string | null
           created_at?: string
+          deleted_at?: string | null
           document_date?: string | null
           document_number?: string | null
           document_type?: string | null
@@ -177,6 +179,7 @@ export type Database = {
           business_type?: string | null
           category?: string | null
           created_at?: string
+          deleted_at?: string | null
           document_date?: string | null
           document_number?: string | null
           document_type?: string | null

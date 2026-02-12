@@ -33,6 +33,7 @@ export function useInvoices(userId: string | undefined) {
       .from('invoices')
       .select('*')
       .eq('user_id', userId)
+      .is('deleted_at', null)
       .order('intake_date', { ascending: false });
 
     if (error) {
@@ -301,11 +302,11 @@ export function useInvoices(userId: string | undefined) {
     }
   };
 
-  // Delete invoices
+  // Soft delete invoices (move to trash)
   const deleteInvoices = async (ids: string[]) => {
     const { error } = await supabase
       .from('invoices')
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .in('id', ids);
 
     if (error) {
@@ -314,7 +315,7 @@ export function useInvoices(userId: string | undefined) {
     } else {
       setInvoices(prev => prev.filter(i => !ids.includes(i.id)));
       setSelectedIds([]);
-      toast.success(`${ids.length} חשבוניות נמחקו בהצלחה`);
+      toast.success(`${ids.length} חשבוניות הועברו לסל המיחזור`);
     }
   };
 

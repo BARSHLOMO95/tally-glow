@@ -9,6 +9,7 @@ import {
   Link2,
   Settings,
   Shield,
+  Trash2,
   Menu,
   X,
 } from 'lucide-react';
@@ -58,6 +59,11 @@ const navItems: NavItem[] = [
     title: 'העלאות ציבוריות',
     href: '/upload-links',
     icon: Link2,
+  },
+  {
+    title: 'סל מיחזור',
+    href: '/trash',
+    icon: Trash2,
   },
 ];
 
