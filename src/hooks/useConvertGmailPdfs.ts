@@ -21,7 +21,7 @@ export const useConvertGmailPdfs = (userId: string | undefined, enabled: boolean
       // Throttle: don’t run too frequently (helps avoid hammering storage/pdf.js)
       const now = Date.now();
       if (isConverting.current) return;
-      if (now - lastRunAt.current < 60_000) return; // 1 minute
+      if (now - lastRunAt.current < 25_000) return; // 25 seconds
 
       try {
         isConverting.current = true;
@@ -73,12 +73,12 @@ export const useConvertGmailPdfs = (userId: string | undefined, enabled: boolean
     // Initial run shortly after mount
     const timeoutId = window.setTimeout(() => {
       convertPdfsInBackground();
-    }, 2000);
+    }, 1500);
 
-    // Keep checking for new Gmail PDFs during the session
+    // Keep checking for new Gmail PDFs during the session (every 30s)
     intervalIdRef.current = window.setInterval(() => {
       convertPdfsInBackground();
-    }, 60_000);
+    }, 30_000);
 
     return () => {
       window.clearTimeout(timeoutId);
