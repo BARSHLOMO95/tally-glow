@@ -88,28 +88,6 @@ const App = () => (
             }
           />
           <Route
-            path="/categories"
-            element={
-              <AppLayout>
-                <div className="p-6">
-                  <h1 className="text-3xl font-bold">קטגוריות</h1>
-                  <p className="text-muted-foreground mt-2">בקרוב...</p>
-                </div>
-              </AppLayout>
-            }
-          />
-          <Route
-            path="/upload-links"
-            element={
-              <AppLayout>
-                <div className="p-6">
-                  <h1 className="text-3xl font-bold">העלאות ציבוריות</h1>
-                  <p className="text-muted-foreground mt-2">בקרוב...</p>
-                </div>
-              </AppLayout>
-            }
-          />
-          <Route
             path="/trash"
             element={
               <AppLayout>

@@ -178,6 +178,26 @@ const Auth = () => {
                   {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
                   התחבר
                 </Button>
+                <button
+                  type="button"
+                  className="text-sm text-primary hover:underline w-full text-center mt-1"
+                  onClick={async () => {
+                    if (!email) {
+                      toast.error('הזינו כתובת אימייל כדי לאפס סיסמה');
+                      return;
+                    }
+                    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                      redirectTo: `${window.location.origin}/auth`,
+                    });
+                    if (error) {
+                      toast.error('שגיאה בשליחת קישור לאיפוס סיסמה');
+                    } else {
+                      toast.success('קישור לאיפוס סיסמה נשלח לאימייל שלך');
+                    }
+                  }}
+                >
+                  שכחת סיסמה?
+                </button>
               </form>
             </TabsContent>
             
