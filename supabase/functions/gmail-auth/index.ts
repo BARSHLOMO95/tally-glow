@@ -197,6 +197,34 @@ Deno.serve(async (req) => {
 
       console.log('Gmail connection saved successfully:', result.data.id);
 
+      // Register Gmail Pub/Sub watch for real-time notifications
+      try {
+        const watchResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/watch', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${tokens.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            topicName: 'projects/lnvy-483613/topics/gmail-notifications',
+            labelIds: ['INBOX'],
+          }),
+        });
+        const watchResult = await watchResponse.json();
+        console.log('Gmail watch registered:', JSON.stringify(watchResult));
+        
+        if (watchResult.historyId) {
+          // Save the initial historyId
+          await supabaseAdmin
+            .from('gmail_connections')
+            .update({ last_history_id: watchResult.historyId })
+            .eq('id', result.data.id);
+        }
+      } catch (watchError) {
+        console.error('Failed to register Gmail watch (non-blocking):', watchError);
+        // Non-blocking - the connection still works, just without real-time sync
+      }
+
       return new Response(JSON.stringify({
         success: true,
         email: userInfo.email,
