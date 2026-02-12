@@ -5,13 +5,10 @@ import {
   FileText,
   Building2,
   BarChart3,
-  FolderOpen,
-  Link2,
   Settings,
   Shield,
   Trash2,
   Menu,
-  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -49,16 +46,6 @@ const navItems: NavItem[] = [
     href: '/analytics',
     icon: BarChart3,
     badge: 'חדש',
-  },
-  {
-    title: 'קטגוריות',
-    href: '/categories',
-    icon: FolderOpen,
-  },
-  {
-    title: 'העלאות ציבוריות',
-    href: '/upload-links',
-    icon: Link2,
   },
   {
     title: 'סל מיחזור',
@@ -112,8 +99,8 @@ function SidebarContent({ onNavigate, isAdmin = false }: SidebarContentProps) {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-purple-600">
             <FileText className="h-5 w-5 text-white" />
           </div>
-          <span className="bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-            Tally Glow
+           <span className="bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+            InvoiceAI
           </span>
         </Link>
       </div>
