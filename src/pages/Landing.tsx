@@ -162,7 +162,13 @@ const Landing = () => {
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30 });
   const heroRef = useRef(null);
-  const heroInView = useInView(heroRef, { once: true });
+  const [heroInView, setHeroInView] = useState(false);
+
+  useEffect(() => {
+    // Trigger hero animations shortly after mount
+    const timer = setTimeout(() => setHeroInView(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Parallax transforms for hero background orbs
   const heroY = useTransform(scrollYProgress, [0, 0.3], [0, -100]);
