@@ -9,12 +9,14 @@ import {
   Shield,
   Trash2,
   Menu,
+  LogOut,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useAuth } from '@/hooks/useAuth';
 
 interface NavItem {
   title: string;
@@ -75,6 +77,7 @@ interface SidebarContentProps {
 
 function SidebarContent({ onNavigate, isAdmin = false }: SidebarContentProps) {
   const location = useLocation();
+  const { signOut } = useAuth();
 
   const isActive = (path: string) => {
     if (path === '/dashboard') {
@@ -166,16 +169,17 @@ function SidebarContent({ onNavigate, isAdmin = false }: SidebarContentProps) {
 
       {/* User Section */}
       <div className="border-t p-4">
-        <div className="flex items-center gap-3 rounded-lg bg-muted/50 px-3 py-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary to-purple-600 text-sm font-semibold text-white">
-            {/* First letter of user name - will be dynamic */}
-            U
-          </div>
-          <div className="flex-1 text-sm">
-            <p className="font-medium">משתמש</p>
-            <p className="text-xs text-muted-foreground">חשבון פעיל</p>
-          </div>
-        </div>
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          onClick={async () => {
+            await signOut();
+            onNavigate?.();
+          }}
+        >
+          <LogOut className="h-5 w-5" />
+          <span>התנתק</span>
+        </Button>
       </div>
     </div>
   );
