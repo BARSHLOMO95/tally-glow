@@ -18,5 +18,8 @@ verify_jwt = false
 [functions.gmail-webhook]
 verify_jwt = false
 
+[functions.gmail-watch-renew]
+verify_jwt = false
+
 [functions.gmail-sync]
 verify_jwt = false
