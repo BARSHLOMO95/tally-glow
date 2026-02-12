@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -77,6 +77,7 @@ interface SidebarContentProps {
 
 function SidebarContent({ onNavigate, isAdmin = false }: SidebarContentProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { signOut } = useAuth();
 
   const isActive = (path: string) => {
@@ -174,6 +175,7 @@ function SidebarContent({ onNavigate, isAdmin = false }: SidebarContentProps) {
           className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
           onClick={async () => {
             await signOut();
+            navigate('/');
             onNavigate?.();
           }}
         >
