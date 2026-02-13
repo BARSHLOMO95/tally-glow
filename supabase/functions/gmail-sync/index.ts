@@ -74,24 +74,48 @@ Deno.serve(async (req) => {
 
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
-    // Get user
+    // Determine user ID - either from JWT token or from connectionId (webhook calls)
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
-    
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid user' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    let userId: string | null = null;
+
+    // Check if this is a service-role call (from gmail-webhook)
+    if (token === SUPABASE_SERVICE_ROLE_KEY && connectionId) {
+      // Webhook call - look up user from connectionId
+      console.log(`Service-role call with connectionId: ${connectionId}`);
+      const { data: conn, error: connErr } = await supabaseAdmin
+        .from('gmail_connections')
+        .select('user_id')
+        .eq('id', connectionId)
+        .single();
+      
+      if (connErr || !conn) {
+        console.error('Failed to find connection:', connErr);
+        return new Response(JSON.stringify({ error: 'Connection not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = conn.user_id;
+      console.log(`Resolved user from connection: ${userId}`);
+    } else {
+      // Regular user call - get user from JWT
+      const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+      if (userError || !user) {
+        return new Response(JSON.stringify({ error: 'Invalid user' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = user.id;
     }
 
     // Handle retry action
     if (action === 'retry') {
-      return await handleRetry(supabaseAdmin, user.id, invoiceId);
+      return await handleRetry(supabaseAdmin, userId, invoiceId);
     }
 
     // Regular sync flow
-    return await handleSync(supabaseAdmin, user.id, authHeader, timeRange, connectionId);
+    return await handleSync(supabaseAdmin, userId, authHeader, timeRange, connectionId);
 
   } catch (error) {
     console.error('Gmail sync error:', error);
