@@ -116,7 +116,7 @@ export const SubscriptionTab = () => {
             </span>
           </div>
 
-          {subscription?.status === 'free' && remaining < 3 && (
+          {remaining < 3 && (
             <div className="p-3 bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-lg">
               <p className="text-sm text-orange-900 dark:text-orange-100">
                 אתה מתקרב למגבלת המסמכים החודשית. שקול לשדרג את התוכנית שלך.
