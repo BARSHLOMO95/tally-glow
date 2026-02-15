@@ -155,7 +155,7 @@ const Pricing = () => {
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold mb-4">בחר את התוכנית המתאימה לך</h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            התחל בחינם עם 10 מסמכים בחודש, או שדרג לתוכנית מתקדמת לניהול ללא הגבלות
+            התחל בחינם עם 10 מסמכים בחודש, או שדרג לתוכנית מקצועית עם 50 מסמכים בחודש
           </p>
         </div>
 

@@ -156,8 +156,8 @@ export function useSubscription() {
     const documentLimit = plan?.document_limit || 10;
     const currentCount = usage?.document_count || 0;
 
-    // Check if limit is reached
-    if (currentCount >= documentLimit && subscription?.status !== 'active') {
+    // Check if limit is reached (applies to all users including active subscribers)
+    if (currentCount >= documentLimit) {
       return false;
     }
 
@@ -182,23 +182,12 @@ export function useSubscription() {
   };
 
   const canUploadDocument = (): boolean => {
-    // Active subscribers have unlimited documents (or higher limits)
-    if (subscription?.status === 'active') {
-      const limit = plan?.document_limit || Infinity;
-      return (usage?.document_count || 0) < limit;
-    }
-    
-    // Free users have 10 document limit
-    const freeLimit = 10;
-    return (usage?.document_count || 0) < freeLimit;
+    const limit = plan?.document_limit || 10;
+    return (usage?.document_count || 0) < limit;
   };
 
   const getRemainingDocuments = (): number => {
-    const limit = subscription?.status === 'active' 
-      ? (plan?.document_limit || Infinity)
-      : 10;
-    
-    if (limit === Infinity) return Infinity;
+    const limit = plan?.document_limit || 10;
     return Math.max(0, limit - (usage?.document_count || 0));
   };
 
