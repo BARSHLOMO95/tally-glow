@@ -371,7 +371,6 @@ Return ONLY a clean JSON object. No markdown, no notes.`;
             ]
           }
         ],
-        max_tokens: 1000,
       }),
     });
 

@@ -551,7 +551,6 @@ async function extractInvoiceDataFromBytes(data: Uint8Array, mimeType: string): 
             ]
           }
         ],
-        max_tokens: 500,
       }),
     });
 

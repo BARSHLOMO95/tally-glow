@@ -899,7 +899,6 @@ Respond in JSON only. Use null for fields you cannot extract.`
             ]
           }
         ],
-        max_tokens: 500,
       }),
     });
 
