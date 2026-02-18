@@ -180,13 +180,6 @@ Deno.serve(async (req) => {
         await incrementDocumentUsage(supabase, userId, 1);
       }
       
-      // Send WhatsApp notification
-      const userSettings = await getUserSettings(supabase, userId);
-      if (extractionFailed) {
-        await sendWhatsAppNotification(false, null, imageUrlForAI, 'המסמך נשמר אך לא ניתן היה לחלץ את הפרטים - ממתין לבדיקה ידנית', userSettings);
-      } else {
-        await sendWhatsAppNotification(true, invoiceData, imageUrlForAI, undefined, userSettings);
-      }
       
       return new Response(
         JSON.stringify({
@@ -276,13 +269,6 @@ Deno.serve(async (req) => {
       await incrementDocumentUsage(supabase, userId, data.length);
     }
 
-    // Send WhatsApp notification for regular imports
-    if (data && data.length > 0) {
-      const userSettings = await getUserSettings(supabase, userId);
-      for (const invoice of data) {
-        await sendWhatsAppNotification(true, invoice, invoice.image_url, undefined, userSettings);
-      }
-    }
 
     return new Response(
       JSON.stringify({ success: true, inserted: data?.length || 0, data }),
@@ -488,117 +474,3 @@ async function incrementDocumentUsage(supabase: any, userId: string, count: numb
   }
 }
 
-// Get user settings from database
-async function getUserSettings(supabase: any, userId: string): Promise<any> {
-  try {
-    const { data, error } = await supabase
-      .from('user_settings')
-      .select('whatsapp_number, whatsapp_group_id, phone_number, company_name')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error fetching user settings:', error);
-      return null;
-    }
-    return data;
-  } catch (error) {
-    console.error('Error fetching user settings:', error);
-    return null;
-  }
-}
-
-// WhatsApp notification function - using Green-API
-async function sendWhatsAppNotification(
-  success: boolean, 
-  invoiceData?: any, 
-  imageUrl?: string,
-  errorMessage?: string,
-  userSettings?: any
-): Promise<void> {
-  // Green-API credentials (hardcoded as specified)
-  const INSTANCE_ID = '7103131302';
-  const API_TOKEN = '7df3b4758f35446bab49f8200939bc9982cd8015603d4526b0';
-  
-  // Get user's phone number from settings
-  const userPhoneNumber = userSettings?.phone_number;
-  
-  if (!userPhoneNumber) {
-    console.log('WhatsApp notification skipped - no phone_number configured in user settings');
-    return;
-  }
-  
-  // Format phone for WhatsApp chatId: phone@c.us
-  // Remove any non-numeric characters and ensure proper format
-  const cleanPhone = userPhoneNumber.replace(/\D/g, '');
-  const chatId = `${cleanPhone}@c.us`;
-  
-  const companyName = userSettings?.company_name || 'המערכת';
-  
-  // Build message with available fields, marking missing ones
-  const getFieldValue = (value: any, fieldName: string): string => {
-    if (value === null || value === undefined || value === '' || value === 0) {
-      return `חסר מידע: ${fieldName}`;
-    }
-    return String(value);
-  };
-  
-  let message: string;
-  
-  if (success && invoiceData) {
-    const docNumber = getFieldValue(invoiceData.document_number, 'מספר מסמך');
-    const supplier = getFieldValue(invoiceData.supplier_name, 'שם ספק');
-    const docType = getFieldValue(invoiceData.document_type, 'סוג מסמך');
-    const category = getFieldValue(invoiceData.category, 'קטגוריה');
-    const totalAmount = invoiceData.total_amount ? `${invoiceData.total_amount} ₪` : 'חסר מידע: סכום';
-    const docDate = getFieldValue(invoiceData.document_date, 'תאריך מסמך');
-    const businessType = getFieldValue(invoiceData.business_type, 'סוג עוסק');
-    
-    message = `📄 מסמך נקלט בהצלחה - ${companyName}
-
-📋 פרטי המסמך:
-• מספר מסמך: ${docNumber}
-• ספק: ${supplier}
-• תאריך: ${docDate}
-• סוג מסמך: ${docType}
-• סוג עוסק: ${businessType}
-• קטגוריה: ${category}
-• סכום כולל מע״מ: ${totalAmount}
-
-🔗 לצפייה במסמך:
-${imageUrl || 'לא זמין'}`;
-  } else {
-    message = `📄 מסמך התקבל - ${companyName}
-
-${errorMessage || 'המסמך נשמר בהצלחה וממתין לבדיקה ידנית.'}
-
-🔗 לצפייה במסמך:
-${imageUrl || 'לא זמין'}`;
-  }
-
-  try {
-    // Green-API endpoint
-    const apiUrl = `https://api.green-api.com/waInstance${INSTANCE_ID}/sendMessage/${API_TOKEN}`;
-    
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        chatId: chatId,
-        message: message,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('WhatsApp API error:', response.status, errorText);
-    } else {
-      const result = await response.json();
-      console.log('WhatsApp notification sent successfully to', chatId, 'Response:', JSON.stringify(result));
-    }
-  } catch (error) {
-    console.error('Error sending WhatsApp notification:', error);
-  }
-}
